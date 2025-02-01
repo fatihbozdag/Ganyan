@@ -1,0 +1,10 @@
+horse_no,horse_name,age,origin,weight,jockey,owner_trainer,start_pos,hp_score,last_6,kgs_score,s20_score,eid_score,gny_score,agf_score,venue,file_date,race_no,race_time,distance_track,surface,origin
+1,UMUDUNU KAYBETME,4y a a,GÜNTAY UMUT IŞIĞI,16,MEHMET KAYA,2 4 4 5 2 7,,,,,,,,,İstanbul,2024-03-22,1,,,Sentetik,GÜNTAY UMUT IŞIĞI - ATEŞTOP
+2,BOĞUŞLU,4y k a,OVA IŞILCAN,19,AHMET ÇELİK,4 7 4 7 2 2,,,,,,,,,İstanbul,2024-03-22,1,,,Sentetik,OVA IŞILCAN - CAŞ
+3,RÜZGARIMA KAPIL,4y a a,SEMEND ŞİLAN,17,ENES BOZDAĞ,2 2 5 3 4 4,,,,,,,,,İstanbul,2024-03-22,1,,,Sentetik,SEMEND ŞİLAN - HABERBA
+4,AKALTON,4y a a,BİÇER KENDİR,6,MUSTAFA TEKPETER,0 0 6 6 8 7,,,,,,,,,İstanbul,2024-03-22,1,,,Sentetik,BİÇER KENDİR - PALAZ
+5,KING PELE,4y k a,TURBO AÇIK ARA,16,AKIN SÖZEN,7 7 7 5,,,,,,,,,İstanbul,2024-03-22,1,,,Sentetik,TURBO AÇIK ARA - YILDIZO
+6,KIRMÜJDE,4y k a,MADRABAZ MÜJDEER,18,ERHAN AKTUĞ,MUHARREM ERDİNÇ AMİNE KURT,8 0,,,,,,,,İstanbul,2024-03-22,1,,,Sentetik,MADRABAZ MÜJDEER - YAŞARCI
+7,YAZASLANI,4y a a,VAKKAS YAZ YAĞMUR,19,MERTCAN ÇELİK,HAMZA ÖZEN GÖKMEN GÖKÇE,,,,,,,,,İstanbul,2024-03-22,1,,,Sentetik,VAKKAS YAZ YAĞMUR - RİKARDO
+8,SONTURBO,4y a k,TURBO NURSOLMAZ,16,EREN KADİRLER,3 5 3 3 6 4,,,,,,,,,İstanbul,2024-03-22,1,,,Sentetik,TURBO NURSOLMAZ - HALİD
+9,TURBOLU,4y k k,TURBO SERRACEM,16,ZÜLFÜKAR KARABUL,7 8 7 5,,,,,,,,,İstanbul,2024-03-22,1,,,Sentetik,TURBO SERRACEM - SAĞANAK

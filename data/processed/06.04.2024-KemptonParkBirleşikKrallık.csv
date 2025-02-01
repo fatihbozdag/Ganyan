@@ -1,0 +1,71 @@
+horse_no,horse_name,age,origin,weight,jockey,owner_trainer,venue,file_date,race_no,distance_track,race_type,horse_type,race_day
+1,AURIC (IRE),3y d e,HAVANA GOLD (IRE),58,O MURPHY,MANOR HOUSE STABLES,﻿Kempton Park Birleşik Krallık,2024-04-06,1,,,English,Saturday
+2,HARRY DID,3y d e,EXCEED AND EXCEL (AUS),59,H TURNER,PARK LODGE STABLES L,﻿Kempton Park Birleşik Krallık,2024-04-06,1,,,English,Saturday
+3,BOADICIA (IRE),3y d d,HOLY ROMAN EMPEROR (IRE),57,P-L JAMİN,GULLWİNG ENTERPRİSES,﻿Kempton Park Birleşik Krallık,2024-04-06,1,,,English,Saturday
+4,GRANDLAD (IRE),3y d e,ACCLAMATION,58,A FARRAGHER,SLEEVE IT LTD,﻿Kempton Park Birleşik Krallık,2024-04-06,1,,,English,Saturday
+5,STAR PUPIL,3y d e,ZOUSTAR (AUS),59,G ROOKE,"BECCLE, CLAY, FLEMİN",﻿Kempton Park Birleşik Krallık,2024-04-06,1,,,English,Saturday
+6,SKY WARRIOR (IRE),3y d e,MEHMAS (IRE),"62,5",R KİNGSCOTE,MİSS J DEADMAN & MR,﻿Kempton Park Birleşik Krallık,2024-04-06,1,,,English,Saturday
+7,ARKHALIA FLYNN (Koşmaz),3y d e,ULYSSES (IRE),58,D PROBERT,JOHN & ZOE WEBSTER,﻿Kempton Park Birleşik Krallık,2024-04-06,1,,,English,Saturday
+8,ETHANDUN (IRE),3y d e,SAXON WARRIOR (JPN),58,C BİSHOP,"SİMON MUNİR, ISAAC S",﻿Kempton Park Birleşik Krallık,2024-04-06,1,,,English,Saturday
+9,KODI LION (IRE),3y d e,KODI BEAR (IRE),58,K SHOEMARK,OPULENCE THOROUGHBRE,﻿Kempton Park Birleşik Krallık,2024-04-06,1,,,English,Saturday
+10,NORTHERNER (IRE) (Koşmaz),3y d d,PROFITABLE (IRE),55,H DOYLE,GRİD IRON RACİNG AND,﻿Kempton Park Birleşik Krallık,2024-04-06,1,,,English,Saturday
+1,ADELAISE (IRE),5y d k,LAWMAN (FR),58,W BUİCK,FLEXFORD TWO & KİERA,﻿Kempton Park Birleşik Krallık,2024-04-06,2,,,English,Saturday
+2,CHOISYA,4y a k,NIGHT OF THUNDER (IRE),58,H DAVİES,MR MOHAMMED AL NABOU,﻿Kempton Park Birleşik Krallık,2024-04-06,2,,,English,Saturday
+3,ROSE PRICK (IRE),4y a k,NO NAY NEVER (USA),58,S OSBORNE,DAVİD WARD,﻿Kempton Park Birleşik Krallık,2024-04-06,2,,,English,Saturday
+4,JULIA AUGUSTA,5y d k,ULYSSES (IRE),58,JAMES DOYLE,CHEVELEY PARK STUD,﻿Kempton Park Birleşik Krallık,2024-04-06,2,,,English,Saturday
+5,ZOUKY,4y d k,ZOUSTAR (AUS),58,O MURPHY,"D FRAVİGAR, K DİXON",﻿Kempton Park Birleşik Krallık,2024-04-06,2,,,English,Saturday
+6,MANY TEARS (IRE) DB,4y a k,SHOWCASING,"59,5",D MUSCUTT,CUNNINGHAM THOROUGHB,﻿Kempton Park Birleşik Krallık,2024-04-06,2,,,English,Saturday
+7,ENOLA GREY (IRE),4y k k,HAVANA GREY,58,R SCOTT,CRAGG WOOD RACİNG,﻿Kempton Park Birleşik Krallık,2024-04-06,2,,,English,Saturday
+8,MOTHER MARY (IRE),4y d k,ZOFFANY (IRE),58,F NORTON,MR MİCHAEL WİLLİAMS,﻿Kempton Park Birleşik Krallık,2024-04-06,2,,,English,Saturday
+9,MYSTERIOUS LOVE (IRE),4y d k,DARK ANGEL (IRE),58,B SAYETTE,MS E L BANKS,﻿Kempton Park Birleşik Krallık,2024-04-06,2,,,English,Saturday
+10,MYSTIC PEARL (FR) YP,4y d k,INVINCIBLE SPIRIT (IRE),58,C FALLON,SHEİKH JUMA DALMOOK,﻿Kempton Park Birleşik Krallık,2024-04-06,2,,,English,Saturday
+1,CEMHAAN,7y d a,MUHAARAR,"62,5",N CALLAN,PJL RACİNG,﻿Kempton Park Birleşik Krallık,2024-04-06,3,,,English,Saturday
+2,KILLYBEGS WARRIOR (IRE),4y d a,SAXON WARRIOR (JPN),62,JAMES DOYLE,MR M DOYLE,﻿Kempton Park Birleşik Krallık,2024-04-06,3,,,English,Saturday
+3,INTINSO,4y k a,SIYOUNI (FR),"59,5",H DOYLE,MR IMAD ALSAGAR,﻿Kempton Park Birleşik Krallık,2024-04-06,3,,,English,Saturday
+4,OLD PECULIER KG,5y d a,ACLAIM (IRE),55,D PROBERT,HAVEN'TACLUE SYNDİCA,﻿Kempton Park Birleşik Krallık,2024-04-06,3,,,English,Saturday
+5,YOUTHFUL KING,5y d a,FOUNTAIN OF YOUTH (IRE),56,ETHAN JONES,MR RİCHARD L PAGE &,﻿Kempton Park Birleşik Krallık,2024-04-06,3,,,English,Saturday
+6,LAAFI (FR),4y d a,CLOTH OF STARS (IRE),"59,5",C FALLON,MR R A GREEN,﻿Kempton Park Birleşik Krallık,2024-04-06,3,,,English,Saturday
+7,CHILLINGHAM (IRE) K,5y d a,ULYSSES (IRE),59,C RODRİGUEZ,MR J CARRİCK & MR S,﻿Kempton Park Birleşik Krallık,2024-04-06,3,,,English,Saturday
+8,LONDONER (IRE),4y a a,SAXON WARRIOR (JPN),"58,5",J CROWLEY,MR J FYFFE,﻿Kempton Park Birleşik Krallık,2024-04-06,3,,,English,Saturday
+9,VALSAD (IRE),5y d a,INTELLO (GER),58,S OSBORNE,BARRATT RACİNG,﻿Kempton Park Birleşik Krallık,2024-04-06,3,,,English,Saturday
+10,CAPTAIN WIERZBA,4y a a,NIGHT OF THUNDER (IRE),58,H CROUCH,VALMONT,﻿Kempton Park Birleşik Krallık,2024-04-06,3,,,English,Saturday
+11,OLD HARROVIAN,5y a a,SEA THE STARS (IRE),"57,5",O MURPHY,MR MİCHAEL BLENCOWE,﻿Kempton Park Birleşik Krallık,2024-04-06,3,,,English,Saturday
+12,DUC DE KENT (FR),4y d a,ZELZAL (FR),56,W BUİCK,DEVA RACİNG DDK,﻿Kempton Park Birleşik Krallık,2024-04-06,3,,,English,Saturday
+13,DREAM HARDER (IRE),5y d a,MUHAARAR,56,R KİNGSCOTE,MR PAUL  FARRELL,﻿Kempton Park Birleşik Krallık,2024-04-06,3,,,English,Saturday
+14,CANNON ROCK YP,4y d a,FASTNET ROCK (AUS),"55,5",A KEELEY,PAUL PLATTEN & PARTN,﻿Kempton Park Birleşik Krallık,2024-04-06,3,,,English,Saturday
+1,DUTY OF CARE,6y d a,KINGMAN,60,S OSBORNE,GALLAGHER BLOODSTOCK,﻿Kempton Park Birleşik Krallık,2024-04-06,4,,,English,Saturday
+2,SLEEPING LION (USA),9y a a,TEOFILO (IRE),"62,5",D PROBERT,MERRY FOX STUD LİMİT,﻿Kempton Park Birleşik Krallık,2024-04-06,4,,,English,Saturday
+3,CIRCUIT BREAKER DB,4y d a,NATHANIEL (IRE),"58,5",JAMES DOYLE,TANZANITE,﻿Kempton Park Birleşik Krallık,2024-04-06,4,,,English,Saturday
+4,NOVEL LEGEND (IRE),5y d a,NATHANIEL (IRE),"63,5",D MUSCUTT,MR BONİFACE HO KA KU,﻿Kempton Park Birleşik Krallık,2024-04-06,4,,,English,Saturday
+5,TRITONIC,7y a a,SEA THE MOON (GER),63,H DOYLE,MCNEILL FAMILY & MR,﻿Kempton Park Birleşik Krallık,2024-04-06,4,,,English,Saturday
+6,ISLAND BRAVE (IRE),10y d k,ZEBEDEE,63,C FALLON,MR DONALD M KERR,﻿Kempton Park Birleşik Krallık,2024-04-06,4,,,English,Saturday
+7,SPIRIT MIXER,6y a a,FRANKEL,"62,5",O MURPHY,MR J C SMİTH,﻿Kempton Park Birleşik Krallık,2024-04-06,4,,,English,Saturday
+8,MANU ET CORDE (IRE) DB,5y d a,TEOFILO (IRE),62,C RODRIGUEZ,MR J FYFFE,﻿Kempton Park Birleşik Krallık,2024-04-06,4,,,English,Saturday
+9,SOLENT GATEWAY (IRE) DB YP,6y d a,AWTAAD (IRE),62,H DAVIES,MR D R PASSANT & HEF,﻿Kempton Park Birleşik Krallık,2024-04-06,4,,,English,Saturday
+10,FLEURMAN (IRE) KG (Koşmaz),6y k a,MASTERCRAFTSMAN (IRE),62,D TUDHOPE,BECTİVE STUD,﻿Kempton Park Birleşik Krallık,2024-04-06,4,,,English,Saturday
+11,SPLENDENT (IRE) DB,5y d k,FAST COMPANY (IRE),"60,5",K SHOEMARK,MRS FITRI HAY,﻿Kempton Park Birleşik Krallık,2024-04-06,4,,,English,Saturday
+12,AQWAAM YP,6y k a,SEA THE STARS (IRE),60,OİSİN ORR,MR PATRİCK KELLY,﻿Kempton Park Birleşik Krallık,2024-04-06,4,,,English,Saturday
+13,GALACTIC JACK (IRE) DB,4y d a,GALILEO (IRE),60,W COX,MARK & MARIA ADAMS,﻿Kempton Park Birleşik Krallık,2024-04-06,4,,,English,Saturday
+14,SWEET FANTASY,5y d k,WOOTTON BASSETT,"58,5",A KEELEY,THE GREDLEY FAMILY,﻿Kempton Park Birleşik Krallık,2024-04-06,4,,,English,Saturday
+1,DEVOTED QUEEN,3y d d,KINGMAN,60,W BUİCK,GODOLPHİN,﻿Kempton Park Birleşik Krallık,2024-04-06,5,,,English,Saturday
+2,MARCELLA (GER) K,3y d d,AREION (GER),58,O MURPHY,DAHLBURY RACİNG,﻿Kempton Park Birleşik Krallık,2024-04-06,5,,,English,Saturday
+3,AHLAIN,3y d d,TOO DARN HOT,60,N CALLAN,MR SULTAN ALİ,﻿Kempton Park Birleşik Krallık,2024-04-06,5,,,English,Saturday
+4,LES BLEUS,3y d d,BLUE POINT (IRE),58,G ROOKE,MR HARRY REDKNAPP,﻿Kempton Park Birleşik Krallık,2024-04-06,5,,,English,Saturday
+5,TWISTED TIARA (IRE) K,3y d d,RIBCHESTER (IRE),57,D PROBERT,CROWN CONNOİSSEURS,﻿Kempton Park Birleşik Krallık,2024-04-06,5,,,English,Saturday
+1,NOTABLE SPEECH,3y a e,DUBAWI (IRE),"61,5",W BUİCK,GODOLPHİN,﻿Kempton Park Birleşik Krallık,2024-04-06,6,,,English,Saturday
+2,VALVANO (IRE),3y a e,NIGHT OF THUNDER (IRE),60,H CROUCH,VALMONT,﻿Kempton Park Birleşik Krallık,2024-04-06,6,,,English,Saturday
+3,PERSICA (IRE),3y a e,NEW BAY,60,S M LEVEY,MARTİN HUGHES & MİCH,﻿Kempton Park Birleşik Krallık,2024-04-06,6,,,English,Saturday
+4,NATIVE WARRIOR,3y d e,WOOTTON BASSETT,58,D TUDHOPE,CLİPPER,﻿Kempton Park Birleşik Krallık,2024-04-06,6,,,English,Saturday
+5,WITNESS STAND,3y d e,EXPERT EYE,58,O MURPHY,BRONTE COLLECTİON 1,﻿Kempton Park Birleşik Krallık,2024-04-06,6,,,English,Saturday
+1,FERROUS (IRE),4y k a,DARK ANGEL (IRE),59,D PROBERT,RECYCLED PRODUCTS Lİ,﻿Kempton Park Birleşik Krallık,2024-04-06,7,,,English,Saturday
+2,INTERVENTION YP,7y d a,SWISS SPIRIT,60,C FALLON,THE HORSE WATCHERS 8,﻿Kempton Park Birleşik Krallık,2024-04-06,7,,,English,Saturday
+3,EXALTED ANGEL (FR),8y d a,DARK ANGEL (IRE),"58,5",P-L JAMİN,PAU-PERTH PARTNERSHİ,﻿Kempton Park Birleşik Krallık,2024-04-06,7,,,English,Saturday
+4,KNEBWORTH YP,4y d a,AWTAAD (IRE),58,ETHAN JONES,"BLAKE, COOMBS, DELLA",﻿Kempton Park Birleşik Krallık,2024-04-06,7,,,English,Saturday
+5,FRESH DB,7y d a,BATED BREATH,"61,5",D TUDHOPE,CLIPPER,﻿Kempton Park Birleşik Krallık,2024-04-06,7,,,English,Saturday
+6,DESERT COP,4y d a,OASIS DREAM,"62,5",O MURPHY,MR J C SMİTH,﻿Kempton Park Birleşik Krallık,2024-04-06,7,,,English,Saturday
+7,AZURE ANGEL,4y a k,HARRY ANGEL (IRE),"60,5",JAMES DOYLE,OPULENCE THOROUGHBRE,﻿Kempton Park Birleşik Krallık,2024-04-06,7,,,English,Saturday
+8,GOOD EARTH (IRE),7y d a,ACCLAMATION,"58,5",C PLANAS,MRS H LLOYD-HERRİNGT,﻿Kempton Park Birleşik Krallık,2024-04-06,7,,,English,Saturday
+9,WATCHYA,5y k a,DARK ANGEL (IRE),"57,5",N CALLAN,MYRACEHORSE & PARTNE,﻿Kempton Park Birleşik Krallık,2024-04-06,7,,,English,Saturday
+10,REBEL PATH (FR),5y d a,IFFRAAJ,"57,5",M GHİANİ,MR STUART C WİLLİAMS,﻿Kempton Park Birleşik Krallık,2024-04-06,7,,,English,Saturday
+11,RATHBONE,8y d a,FOXWEDGE (AUS),"57,5",D MUSCUTT,MR N SHUCKSMITH,﻿Kempton Park Birleşik Krallık,2024-04-06,7,,,English,Saturday
+12,STRONG POWER (IRE) YP,7y d a,KODIAC,57,B ROBİNSON,THE LADS UNİTED SYND,﻿Kempton Park Birleşik Krallık,2024-04-06,7,,,English,Saturday

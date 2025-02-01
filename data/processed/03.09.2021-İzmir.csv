@@ -1,0 +1,83 @@
+horse_no,horse_name,age,origin,weight,jockey,owner_trainer,venue,file_date,race_no,distance_track,race_type,horse_type,race_day
+1,TUĞTEKİN KG,6y d  a,DEHA,60,O.YILDIZ,H.TARIK DİKENCİK,﻿İzmir,2021-09-03,1,,Çim,English,Friday
+2,OĞLUMVOLKAN KG,7y k  a,TURBO,55,M.M.BİLGİN AP,M.ASIM ÇÖMLEKÇİOĞLU,﻿İzmir,2021-09-03,1,,Çim,English,Friday
+3,ARSLANTURBO KG K,6y k  a,TURBO,62,M.ÇİÇEK,TANSEL ARSLAN,﻿İzmir,2021-09-03,1,,Çim,English,Friday
+4,KIRATİLLA KG,4y k  a,TÜMÖZ BEY,55,N.AVCİ,AYŞEGÜL KURTEL,﻿İzmir,2021-09-03,1,,Çim,English,Friday
+5,KAMERTAY,6y k  a,ÇAVUŞOĞLU,57,H.ŞİMŞEK,RECEP İNCESU,﻿İzmir,2021-09-03,1,,Çim,English,Friday
+6,YAMAN ADAM KG DB,5y k  a,TURBO,57,B.M.MIRIK,DİLAN ATİK BATMAZ,﻿İzmir,2021-09-03,1,,Çim,English,Friday
+7,MENEM NENE SK SGKR,5y a k,ŞİMŞEĞİNOĞLU,55,D.PALAUR,ZEKİ SÖKMEN,﻿İzmir,2021-09-03,1,,Çim,English,Friday
+1.)69.000 TL,2.)27.600 TL,3.)13.800 TL,4.)6.900 TL,1.)19.838 TL,2.)7.935 TL,3.)3.968 TL,﻿İzmir,2021-09-03,2,,Kum,English,Friday
+1,EDWARD KG K DB,2y d  e,CUVEE (USA),55,B.M.MIRIK,A.FERHAT KÜÇÜKER,﻿İzmir,2021-09-03,2,,Kum,English,Friday
+2,FLASH BANG KG DB SK,2y d  e,KANEKO,60,Ö.YILDIRIM,ÖMERCAN EROĞLU,﻿İzmir,2021-09-03,2,,Kum,English,Friday
+3,OĞLUM UTKUN KG DB SK,2y d  e,BOSPORUS (IRE),57,S.ÖZEN,BÜLENT UTKUN,﻿İzmir,2021-09-03,2,,Kum,English,Friday
+4,FERMUZ KG,2y a  e,SON OF SUN,57,M.ÇİÇEK,MAHMUT AKİBÜN YÜZÜCÜ,﻿İzmir,2021-09-03,2,,Kum,English,Friday
+5,AUGUSTIN KG K,2y a  e,KANEKO,57,MER.ÇELİK,MURAT AKÇA,﻿İzmir,2021-09-03,2,,Kum,English,Friday
+6,VAİZ KG K (Koşmaz),2y d  e,MENDIP (USA),54,N.AVCİ,OĞUZ DAĞLAROĞLU,﻿İzmir,2021-09-03,2,,Kum,English,Friday
+1.)72.000 TL,2.)28.800 TL,3.)14.400 TL,4.)7.200 TL,1.)20.700 TL,2.)8.280 TL,3.)4.140 TL,﻿İzmir,2021-09-03,3,,Kum,English,Friday
+1,MATMAZEL BERYL  KG K DB,2y d  d,LION HEART (USA),57,S.ÖZEN,ŞÜKRÜYE ADIŞEN,﻿İzmir,2021-09-03,3,,Kum,English,Friday
+2,SO SO CRAZY KG K,2y d  d,SPEEDY WOLF,57,M.GÖNÜLTAŞ,YAŞAR GÖLBAŞ,﻿İzmir,2021-09-03,3,,Kum,English,Friday
+3,GOLDEN CORINTH KG K,2y a  d,CORINTHIAN (USA),57,MER.ÇELİK,ALP Ş. EVCİMEN,﻿İzmir,2021-09-03,3,,Kum,English,Friday
+4,LADY LOPEZ SK,2y d  d,PAPA CLEM (USA),57,M.ÇİÇEK,SÜLEYMAN KILIÇASLAN,﻿İzmir,2021-09-03,3,,Kum,English,Friday
+5,BABY BAM BAM KG SK,2y k  d,NATIVE KHAN (FR),57,B.AVERBAK,ZEYNEP AKYOL,﻿İzmir,2021-09-03,3,,Kum,English,Friday
+6,ANDRIELLA KG K DB,2y a  d,CUVEE (USA),57,B.M.MIRIK,BERK PELENK,﻿İzmir,2021-09-03,3,,Kum,English,Friday
+7,BABY PUFF SK,2y d  d,KANEKO,57 +0.10,GÖKH.GÖKÇE,HİKMET ŞİMŞEK,﻿İzmir,2021-09-03,3,,Kum,English,Friday
+8,NIGHTS CAT K,2y d  d,PACO BOY (IRE),57,M.M.BİLGİN AP,ERDAL YILDIRIM,﻿İzmir,2021-09-03,3,,Kum,English,Friday
+9,PRENSES EVRİM KG K,2y d  d,YES OF AFRIKA,57,H.ŞİMŞEK,ALİ GALİP MERCAN,﻿İzmir,2021-09-03,3,,Kum,English,Friday
+10,BELLE DARİN,2y k  d,LAWMAN (FR),57 +0.60,Ç.OK,SAMİ DOĞAN,﻿İzmir,2021-09-03,3,,Kum,English,Friday
+11,PRINCESS THALIA  KG K,2y d  d,LION KING,57,A.C.DAĞDEVİREN,NURULLAH ASTAN,﻿İzmir,2021-09-03,3,,Kum,English,Friday
+1,ÖZDOĞA DB,6y d k,ÖZGÜNHAN,"57,5",C.PASO AP,KAYA KAYA,﻿İzmir,2021-09-03,4,,Çim,English,Friday
+2,NOSSİ DB,5y k k,KAFKAS ŞAHI,"58,5",S.ÖZEN,ERKUL ÖCAL,﻿İzmir,2021-09-03,4,,Çim,English,Friday
+3,UZUNCUK ÇİÇEĞİ K DB,5y a k,SANCAKBEYİ,55 +0.20,H.ŞİMŞEK,UMUT ALTUNKILIÇ,﻿İzmir,2021-09-03,4,,Çim,English,Friday
+4,DALBASTI KG SK GKR,5y d k,ALTAHA,"53,5",N.AVCİ,NİMET ARİF KURTEL,﻿İzmir,2021-09-03,4,,Çim,English,Friday
+5,HAYAT KG DB SK,4y a k,BERKSOY,54 +1.40,F.AVCI,FATMA TAMER,﻿İzmir,2021-09-03,4,,Çim,English,Friday
+6,POLATLI GÜLÜ KG DB SK,4y a k,ÖZGÜNHAN,62,A.KÜRÜNDÜK,C.AHMET ÇUKUROVA,﻿İzmir,2021-09-03,4,,Çim,English,Friday
+7,ÇİFTEADA DB SK,5y k k,ÖZDURAN,53,D.PALAUR,AHMET ALTUNKILIÇ,﻿İzmir,2021-09-03,4,,Çim,English,Friday
+8,KÜŞİ KG K DB,5y a k,BERKAY EFE,63,Ç.OK,FERİT MENGİ,﻿İzmir,2021-09-03,4,,Çim,English,Friday
+9,UÇAN NAZ SK,5y a k,UÇANBEY,57,M.M.BİLGİN AP,YASİN TEKTAŞ,﻿İzmir,2021-09-03,4,,Çim,English,Friday
+10,KÜÇÜK SAVALANA KG,4y a k,TOŞUR,50 +2.00,B.AVERBAK,FEVZİ YILMAZ,﻿İzmir,2021-09-03,4,,Çim,English,Friday
+11,ELLİBEŞ KG K DB,7y d k,KAMAN,50 +2.00,B.M.MIRIK,MUHAMMET HOCAOĞULLARI,﻿İzmir,2021-09-03,4,,Çim,English,Friday
+12,BEYBAN DB SKG SK,4y a k,ÖZGÜNHAN,50 +1.00,M.B.ÖNCEL AP,ARİF ÇELİK,﻿İzmir,2021-09-03,4,,Çim,English,Friday
+1.)107.500 TL,2.)43.000 TL,3.)21.500 TL,4.)10.750 TL,1.)24.725 TL,2.)9.890 TL,3.)4.945 TL,﻿İzmir,2021-09-03,5,,Kum,English,Friday
+1,SEA BREEZE KG DB SK,3y d  e,INVINCIBLE SON (IRE),60,B.KURDU,GÖRKEM GEDİKOĞLU,﻿İzmir,2021-09-03,5,,Kum,English,Friday
+2,EXTRA RUMOOZ K,3y d  d,LION HEART (USA),56,N.AVCİ,AHMET ALABAY,﻿İzmir,2021-09-03,5,,Kum,English,Friday
+3,DEV ADAM KG DB SK,3y d  e,PLEASANTLY PERFECT (USA),63,Ö.YILDIRIM,H.SİNAN SERTER,﻿İzmir,2021-09-03,5,,Kum,English,Friday
+4,DÖKERBOSS KG SK,3y d  e,BOSPORUS (IRE),58,M.ÇİÇEK,MURAT DÖKER,﻿İzmir,2021-09-03,5,,Kum,English,Friday
+5,SOFYALI,3y a  e,EL CORREDOR (USA),58,MER.ÇELİK,MEHMET ALTUNKILIÇ,﻿İzmir,2021-09-03,5,,Kum,English,Friday
+6,LUCKY JUSTEN SKG SK,3y a  e,JUSTENUFFHUMOR (USA),59,B.M.MIRIK,YALÇIN TÜRE,﻿İzmir,2021-09-03,5,,Kum,English,Friday
+7,BLACK TROUBLE SK,3y d  e,AFTER MARKET (USA),58,S.ÖZEN,CENK ŞAMLI,﻿İzmir,2021-09-03,5,,Kum,English,Friday
+8,LEBRON SKG SK,3y d  e,WIENER WALZER (GER),58,GÖKH.GÖKÇE,TURGUT KONUKOĞLU,﻿İzmir,2021-09-03,5,,Kum,English,Friday
+9,ADAHAN SK,3y a  e,CUVEE (USA),58,A.C.DAĞDEVİREN,ŞEVKİ EREN,﻿İzmir,2021-09-03,5,,Kum,English,Friday
+1.)90.000 TL,2.)36.000 TL,3.)18.000 TL,4.)9.000 TL,1.)25.875 TL,2.)10.350 TL,3.)5.175 TL,﻿İzmir,2021-09-03,6,,Çim,English,Friday
+1,BORNOVALIM KG DB SK GKR,3y d  d,BABA MEVLÜT,52 +0.80,ADEM ŞEN,TANSEL ARSLAN,﻿İzmir,2021-09-03,6,,Çim,English,Friday
+2,MAHSUL KG K,3y k  e,BERKSOY,57,MER.ÇELİK,HALİL FELHAN,﻿İzmir,2021-09-03,6,,Çim,English,Friday
+3,VİZİGOT KG SK,3y k  e,KAIZBERT (RU),57,O.YILDIZ,MERT ÇELİK,﻿İzmir,2021-09-03,6,,Çim,English,Friday
+4,GÜLAĞA KG SK,3y k  e,JOKER,54 +1.40,M.ÇİÇEK,SONER GÜL,﻿İzmir,2021-09-03,6,,Çim,English,Friday
+5,CANOMERİM DB,3y d  e,HABERKAN,54 +0.80,H.ŞİMŞEK,KAYA KAYA,﻿İzmir,2021-09-03,6,,Çim,English,Friday
+6,FIRTINA GÜZELİ KG K GKR,3y a  d,YAKUPBEY,52 +1.40,A.C.DAĞDEVİREN,MİKAİL ALTIN,﻿İzmir,2021-09-03,6,,Çim,English,Friday
+7,SERKANINOĞLU KG DB SK,3y a  e,DELİCİHAN,56 +1.50,Ç.OK,HASAN M. ATİK,﻿İzmir,2021-09-03,6,,Çim,English,Friday
+8,BİGBOSS KG SK,3y a  e,BİTİRİMKARINCA,54,M.M.BİLGİN AP,İSMET ÇİFTÇİ,﻿İzmir,2021-09-03,6,,Çim,English,Friday
+9,BORANKIRCENK KG K,3y a  e,DEMİRDÖVEN,55 +0.80,S.ÖZEN,OSMAN NURİ KIR,﻿İzmir,2021-09-03,6,,Çim,English,Friday
+1.)72.000 TL,2.)28.800 TL,3.)14.400 TL,4.)7.200 TL,1.)20.700 TL,2.)8.280 TL,3.)4.140 TL,﻿İzmir,2021-09-03,7,,Kum,English,Friday
+1,SPEEDY FOOT KG,2y a  d,MUNNINGS (USA),57,M.ÇİÇEK,MELİS KURTEL EMİN,﻿İzmir,2021-09-03,7,,Kum,English,Friday
+2,SERAZA DB,2y d  d,MENDIP (USA),57,MER.ÇELİK,K.FIRAT DANIŞOĞLU,﻿İzmir,2021-09-03,7,,Kum,English,Friday
+3,QUEEN MON BELLUCCI SK,2y a  d,LION HEART (USA),57,N.AVCİ,CELİL İYİDOĞAN,﻿İzmir,2021-09-03,7,,Kum,English,Friday
+4,JAMMY JUSTEN KG K,2y d  d,JUSTENUFFHUMOR (USA),57,B.KURDU,ALP Ş. EVCİMEN,﻿İzmir,2021-09-03,7,,Kum,English,Friday
+5,SEVDE GEÇ DB SK,2y a  d,LION HEART (USA),57,S.ÖZEN,HARİKA BERBEROĞLU,﻿İzmir,2021-09-03,7,,Kum,English,Friday
+6,OPİA KG DB SK,2y d  d,SCARFACE,57,GÖKH.GÖKÇE,HAKAN S. ÖZCAN,﻿İzmir,2021-09-03,7,,Kum,English,Friday
+7,STRONG BERYL KG K DB,2y d  d,VICTORY GALLOP (CAN),57 +0.10,A.YILDIZ AP,ŞÜKRÜYE ADIŞEN,﻿İzmir,2021-09-03,7,,Kum,English,Friday
+8,LADY EGELİ KG K,2y d  d,BOSPORUS (IRE),57,ONUR ÖZ,NACİ GİRŞEN,﻿İzmir,2021-09-03,7,,Kum,English,Friday
+9,ADALI KIZ KG DB SK,2y a  d,AKINDAYIM (IRE),57,M.SAV,AYŞE GÜL,﻿İzmir,2021-09-03,7,,Kum,English,Friday
+10,TIME RUNNER KG K,2y d  d,CORINTHIAN (USA),57,M.AKIN AP,OĞUZ İKEN,﻿İzmir,2021-09-03,7,,Kum,English,Friday
+1.)60.000 TL,2.)24.000 TL,3.)12.000 TL,4.)6.000 TL,1.)13.800 TL,2.)5.520 TL,3.)2.760 TL,﻿İzmir,2021-09-03,8,,Çim,English,Friday
+1,UÇSUZ BUCAKSIZ DB SKG SK,3y d  d,KATIRCI,59,MER.ÇELİK,AYŞE TEZCAN,﻿İzmir,2021-09-03,8,,Çim,English,Friday
+2,THE FAST QUEEN KG K DB,3y d  d,HAKEEM (USA),58,GÖKH.GÖKÇE,MUSTAFA YAVUZ PAŞAOĞLU,﻿İzmir,2021-09-03,8,,Çim,English,Friday
+3,BRIGHT QUEEN DB SK,3y d  d,DR FONG (USA),57 +0.10,M.M.BİLGİN AP,ERKAN BAL,﻿İzmir,2021-09-03,8,,Çim,English,Friday
+4,ELAZIĞ PRENSESİ KG DB SK,3y d  d,ASTRAKHAN,58,U.BARLIK,ERKAN OKAN,﻿İzmir,2021-09-03,8,,Çim,English,Friday
+5,RALALA DB,3y d  d,NEARLY GREEN,54 +0.10,ADEM ŞEN,ZEKİ UYGUR,﻿İzmir,2021-09-03,8,,Çim,English,Friday
+6,MASTER CHEF KG K DB,3y d  e,MENDIP (USA),56 +0.60,S.ÖZEN,ÖZGÜR DEMİR,﻿İzmir,2021-09-03,8,,Çim,English,Friday
+7,LATIFA TWO KG K DB,3y d  d,ASTROLOGY (USA),56 +0.60,B.KURDU,ALP Ş. EVCİMEN,﻿İzmir,2021-09-03,8,,Çim,English,Friday
+8,KARTALTEPE KG,3y d  d,SALVATORE,58,A.KÜRÜNDÜK,ABDULLAH AKKUŞ,﻿İzmir,2021-09-03,8,,Çim,English,Friday
+9,ÖZELİM KG K DB,3y a  d,THREE VALLEYS (USA),54,B.M.MIRIK,İSMET ÇİFTÇİ,﻿İzmir,2021-09-03,8,,Çim,English,Friday
+10,PRINCESS BERYL KG K DB GKR,3y d  d,YONAGUSKA (USA),50 +1.90,A.YILDIZ AP,ŞÜKRÜYE ADIŞEN,﻿İzmir,2021-09-03,8,,Çim,English,Friday
+11,LADY ISKOCH KG K,3y d  d,KING DAVID (USA),54,B.AVERBAK,ERDEM KÖZLEME,﻿İzmir,2021-09-03,8,,Çim,English,Friday
+12,BABOU K DB,3y d  d,APPROVE (IRE),54 +0.90,H.ŞİMŞEK,ZEKİ ÇELİK,﻿İzmir,2021-09-03,8,,Çim,English,Friday

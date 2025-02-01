@@ -1,0 +1,55 @@
+horse_no,horse_name,age,origin,weight,jockey,owner_trainer,venue,file_date,race_no,distance_track,race_type,horse_type,race_day
+1,BAHÇE KG,4y a  a,KAIZBERT (RU),"57,5",Y.CENGİZ AP,M.EMİN OLCAY,﻿Diyarbakır,2021-11-28,1,,Kum,English,Sunday
+2,TUMBUL HÜSEYİN KG DB SK,4y a  a,TOŞUR,"60,5 +0.30",V.KIZMAZ,SUNGUR SOYDAM,﻿Diyarbakır,2021-11-28,1,,Kum,English,Sunday
+3,GÜLAYFER SKG SK,5y a k,GOBAKBEY,"61,5",İ.KATAR AP,MEHMET KÜÇÜKÇAY,﻿Diyarbakır,2021-11-28,1,,Kum,English,Sunday
+4,LİZGE KG K,7y k k,DEHA,57 +0.10,A.ÇANKAYA AP,MEHMET KORKMAZ,﻿Diyarbakır,2021-11-28,1,,Kum,English,Sunday
+5,MÜRÜLÜ KG K GKR,5y a  a,ALTAHA,"56,5 +0.10",B.SARIDAL AP,ALİ ŞAHİN,﻿Diyarbakır,2021-11-28,1,,Kum,English,Sunday
+6,MİHRİBANKAYA KG K GKR,5y k  a,ÇOKER,58,N.ALTIN,KADRİYE KAYA,﻿Diyarbakır,2021-11-28,1,,Kum,English,Sunday
+7,MAZLUMZÜLFİKAR KG DB SK,6y k  a,TURBO,60,Y.ÇELİKBAŞ AP,MEHMET EMİN DEMİRKAPU,﻿Diyarbakır,2021-11-28,1,,Kum,English,Sunday
+8,KADİRBERK KG DB SK,4y a  a,YAKUPBEY,"53,5 +0.20",F.ÇETİNBAŞ AP,REŞAT KAZMA,﻿Diyarbakır,2021-11-28,1,,Kum,English,Sunday
+1,ALTIN KAFES SK,7y d k,PERFECTO,60 +0.80,V.KIZMAZ,ABDULBAKİ ÖZKAN,﻿Diyarbakır,2021-11-28,2,,Kum,English,Sunday
+2,CELALIM KG K,3y d  d,KANEKO,60,F.YARDIMCI,HALİT AY,﻿Diyarbakır,2021-11-28,2,,Kum,English,Sunday
+3,SULTAN REEDS SK,4y d k,KING DAVID (USA),57,N.ALTIN,FEDAİ KAHRAMAN,﻿Diyarbakır,2021-11-28,2,,Kum,English,Sunday
+4,PRINCESS SABA DB SK GKR,5y k k,EL CORREDOR (USA),54 +2.00,H.ALTUNDAĞ AP,KADRİ FELHAN,﻿Diyarbakır,2021-11-28,2,,Kum,English,Sunday
+5,MISS MATRA SKG SK,5y d k,PERFECTO,61,İ.KATAR AP,MAHMUT KARAKEÇİ,﻿Diyarbakır,2021-11-28,2,,Kum,English,Sunday
+6,BAMBOLEO KG SK,4y d k,TOCCET (USA),54,B.SARIDAL AP,OSMAN Z. TEKİNALP,﻿Diyarbakır,2021-11-28,2,,Kum,English,Sunday
+7,PRENSES ŞİRİN SK,4y d k,LION HEART (USA),60,M.AVŞAR,NEDİM AKAGÜNDÜZ,﻿Diyarbakır,2021-11-28,2,,Kum,English,Sunday
+8,LADY DALAKA KG K GKR,3y d  d,EL CORREDOR (USA),55 +2.00,B.BEKTAŞ,HÜSEYİN ŞİMŞEK,﻿Diyarbakır,2021-11-28,2,,Kum,English,Sunday
+9,KARA ZELLO SK,4y d k,SARSILMAZ,57,C.TEPE,HALİL MURAT ÇAKMAK,﻿Diyarbakır,2021-11-28,2,,Kum,English,Sunday
+1.)50.500 TL,2.)20.200 TL,3.)10.100 TL,4.)5.050 TL,1.)8.711 TL,2.)3.485 TL,3.)1.742 TL,﻿Diyarbakır,2021-11-28,3,,Kum,English,Sunday
+1,GÜRSUHAN K DB,6y d  a,KANEKO,59,F.YARDIMCI,MEHMET KAYA,﻿Diyarbakır,2021-11-28,3,,Kum,English,Sunday
+2,TINASOĞLU DB SKG SK ÖG,6y d  a,EL SALVADOR,"57,5 +0.50",İ.KATAR AP,HAŞİM TINAS,﻿Diyarbakır,2021-11-28,3,,Kum,English,Sunday
+3,TRUSTABLE K DB,7y d  a,SIXTIES ICON (GB),61,H.ALTUNDAĞ AP,ABDULVEHAP AKDAĞ,﻿Diyarbakır,2021-11-28,3,,Kum,English,Sunday
+4,REHA HAN DB SKG SK,4y d  a,WHOS NEXT,55 +0.90,N.ALTIN,TARIK KARADUMAN,﻿Diyarbakır,2021-11-28,3,,Kum,English,Sunday
+5,THE DIFFERENCE KG DB SK,5y d  a,SHANGHAI BOBBY (USA),55 +2.00,B.BEKTAŞ,ALİ ŞEKER,﻿Diyarbakır,2021-11-28,3,,Kum,English,Sunday
+6,SÜREYYA HANIM KG DB SK ÖG,4y d k,COMPETUS,51 +2.00,F.ÇETİNBAŞ AP,ZİYA ŞEMENOĞLU,﻿Diyarbakır,2021-11-28,3,,Kum,English,Sunday
+7,YÜZATLI KG DB,5y d  a,INVINCIBLE SON (IRE),54 +0.90,Y.CENGİZ AP,EYYÜP ÇİZİK,﻿Diyarbakır,2021-11-28,3,,Kum,English,Sunday
+8,ZALDIR DB SK,4y d  a,MARCAVELLY (USA),57,M.AVŞAR,FEDAİ KAHRAMAN,﻿Diyarbakır,2021-11-28,3,,Kum,English,Sunday
+9,ÇAĞANHAN DB SKG SK,5y k  a,HAKEEM (USA),54 +0.80,C.TEPE,MEHMET TÜRKERİ,﻿Diyarbakır,2021-11-28,3,,Kum,English,Sunday
+1,LEYLANUR KG K DB,5y a k,KIRIMHAN,"56,5 +1.00",F.YARDIMCI,ABDULLAH TEKİNALP,﻿Diyarbakır,2021-11-28,4,,Kum,English,Sunday
+2,CAHİDEBİR KG SK,4y k k,GÜNTAY,52 +1.90,F.ÇETİNBAŞ AP,MUSTAFA ÇEÇAN,﻿Diyarbakır,2021-11-28,4,,Kum,English,Sunday
+3,KIRMIZIBAHÇE KG DB SK,5y a k,KAIZBERT (RU),"59,5",İ.KATAR AP,HAŞİM TINAS,﻿Diyarbakır,2021-11-28,4,,Kum,English,Sunday
+4,YAKACAN KG DB SK,4y a k,SARRAF,51 +1.60,B.SARIDAL AP,ÖMER KARAÇİZMELİ,﻿Diyarbakır,2021-11-28,4,,Kum,English,Sunday
+5,GÜMÜŞKAVAK DB SK,4y k k,GOBAKBEY,55 +2.00,M.AVŞAR,ÖMER ALAK,﻿Diyarbakır,2021-11-28,4,,Kum,English,Sunday
+6,PARLAKMÜCEVHER KG DB,6y k k,KAIZBERT (RU),55 +1.10,H.SARIDAL AP,MURAT ÇELİK,﻿Diyarbakır,2021-11-28,4,,Kum,English,Sunday
+1.)32.000 TL,2.)12.800 TL,3.)6.400 TL,4.)3.200 TL,1.)5.520 TL,2.)2.208 TL,3.)1.104 TL,﻿Diyarbakır,2021-11-28,5,,Kum,English,Sunday
+1,İSYANIM KG DB,4y a  a,KURUŞAĞA,55 +2.00,M.B.ÇAKMAK,HALİL ARTUN,﻿Diyarbakır,2021-11-28,5,,Kum,English,Sunday
+2,GÜRGÖK KG DB,4y a  a,ALTAHA,60,Y.ÇELİKBAŞ,MEHMET DEMİRKAPI,﻿Diyarbakır,2021-11-28,5,,Kum,English,Sunday
+3,ARZU GELİN KG DB SK GKR,4y a k,KAIZBERT (RU),55,F.ÇETİNBAŞ,SİNAN KORKMAZ,﻿Diyarbakır,2021-11-28,5,,Kum,English,Sunday
+4,ALEVSAÇAN KG,4y a  a,ATEŞTOPU,58,Y.CENGİZ,SABRİ ALTIN,﻿Diyarbakır,2021-11-28,5,,Kum,English,Sunday
+5,ENGEREK KG DB SK GKR,4y a k,KAIZBERT (RU),58,A.ÇANKAYA,FEHMİ DEMİR,﻿Diyarbakır,2021-11-28,5,,Kum,English,Sunday
+6,URFA KRALI DB SKG SK,4y k  a,SERDARHAN,55,B.SARIDAL,HÜSEYİN BECENE,﻿Diyarbakır,2021-11-28,5,,Kum,English,Sunday
+7,UZAYHAN KG,4y k  a,GOBAKBEY,58 +0.10,H.ALTUNDAĞ,YAKUP ELĞAÇ,﻿Diyarbakır,2021-11-28,5,,Kum,English,Sunday
+8,UÇAUÇA KG SK,4y a  a,KAIZBERT (RU),56 +0.30,H.SARIDAL,FEHMİ DEMİR,﻿Diyarbakır,2021-11-28,5,,Kum,English,Sunday
+9,YIKILMAZ KG K,4y a  a,ATİKBEY,54 +0.10,M.ŞAKİR,MURAT ÇELİK,﻿Diyarbakır,2021-11-28,5,,Kum,English,Sunday
+1.)23.000 TL,2.)9.200 TL,3.)4.600 TL,4.)2.300 TL,1.)6.613 TL,2.)2.645 TL,3.)1.323 TL,﻿Diyarbakır,2021-11-28,6,,Kum,English,Sunday
+1,DURDUR BENİ SKG SK,3y a  d,ŞİMŞEĞİNOĞLU,55 +2.00,İ.KATAR AP,HÜSEYİN ATAKAYA,﻿Diyarbakır,2021-11-28,6,,Kum,English,Sunday
+2,SEY NEHRİ KG SK,3y a  e,BİTİRİMKARINCA,55 +1.30,H.SARIDAL AP,MEHMET DOĞAN,﻿Diyarbakır,2021-11-28,6,,Kum,English,Sunday
+3,MİNİ UÇANBEY KG DB SK,3y a  e,UÇANBEY,55,M.ŞAKİR AP,MAHMUT KARAOĞLAN,﻿Diyarbakır,2021-11-28,6,,Kum,English,Sunday
+4,RODİ BABA KG K DB,3y a  e,YILMAZER,"57,5",C.TEPE,SELİM DEMİRKAPU,﻿Diyarbakır,2021-11-28,6,,Kum,English,Sunday
+5,ÇİNLİYAR DB SKG SK,3y k  d,UÇANBEY,58,B.BEKTAŞ,MEHMET GÜMÜŞKOLAN,﻿Diyarbakır,2021-11-28,6,,Kum,English,Sunday
+6,KANHA KG K,3y k  e,SON MARTI,59,F.YARDIMCI,ADİL YARDIMCI,﻿Diyarbakır,2021-11-28,6,,Kum,English,Sunday
+7,SARIYALÇIN KG K DB,3y a  e,UÇARLIM,58,M.AVŞAR,MURAT ÇELİK,﻿Diyarbakır,2021-11-28,6,,Kum,English,Sunday
+8,KARA PATOZ KG DB SK,3y d  e,ATİKBEY,52 +1.70,F.ÇETİNBAŞ AP,ALİ ŞEŞEN,﻿Diyarbakır,2021-11-28,6,,Kum,English,Sunday
+9,PABLO KG K,3y k  e,YAŞARCIK,"53,5 +1.60",Y.ÇELİKBAŞ AP,MEHMET DEMİRKAPI,﻿Diyarbakır,2021-11-28,6,,Kum,English,Sunday
+10,BOTANİK KG K (Koşmaz),3y k  e,BERKSOY,"55,5",Y.CENGİZ AP,RECEP KÜÇÜKÇAY,﻿Diyarbakır,2021-11-28,6,,Kum,English,Sunday

@@ -1,0 +1,104 @@
+horse_no,horse_name,age,origin,weight,jockey,owner_trainer,venue,file_date,race_no,distance_track,race_type,horse_type,race_day
+1.)84.000 TL,2.)33.600 TL,3.)16.800 TL,4.)8.400 TL,1.)24.150 TL,2.)9.660 TL,3.)4.830 TL,﻿İstanbul,2021-10-01,1,,Çim,English,Friday
+1,ALKATTAN KG SK,3y k  e,TURBO,57,C.PASO AP,BİHTERCAN ATAÇ,﻿İstanbul,2021-10-01,1,,Çim,English,Friday
+2,YAVUZKEYF KG K,3y a  e,UÇANOĞLU,57 +0.20,A.ÇELİK,ADNAN TÜRKOĞLU,﻿İstanbul,2021-10-01,1,,Çim,English,Friday
+3,ÖRSKAN KG BB,3y k  e,ÖZGÜNHAN,57,H.KARATAŞ,ABDULLATİF BATMACI,﻿İstanbul,2021-10-01,1,,Çim,English,Friday
+4,BÜYÜK SARRAF KG,3y a  e,SARRAF,57 +0.70,M.KAYA,ALİ KARPUZ,﻿İstanbul,2021-10-01,1,,Çim,English,Friday
+5,CANOĞLUCAN KG SK,3y a  e,HIZLITAY,57,M.AKYAVUZ,MUHARREM CAN,﻿İstanbul,2021-10-01,1,,Çim,English,Friday
+6,GÜLSÜM SULTAN KG DB SK,3y k  d,BABA MEVLÜT,55,H.ÇİZİK,ALİ YILDIRIM,﻿İstanbul,2021-10-01,1,,Çim,English,Friday
+7,İSMAİLHANBEY KG,3y k  e,TURBO,57,A.ASLAN,DİLAN ATİK BATMAZ,﻿İstanbul,2021-10-01,1,,Çim,English,Friday
+8,ARIMAN KG DB,3y a  e,ÖZGÜNHAN,57,GÖKH.GÖKÇE,ZEKİ SÖKMEN,﻿İstanbul,2021-10-01,1,,Çim,English,Friday
+9,KOÇUM KG K,3y k  e,TURBO,57,S.BOYRAZ,KOSTANTİNOS MAKRİ,﻿İstanbul,2021-10-01,1,,Çim,English,Friday
+10,DİDOR KG K,3y a  d,ÖZGÜNHAN,55,F.ARSLAN AP,BERAT ŞİMŞEK,﻿İstanbul,2021-10-01,1,,Çim,English,Friday
+11,FENOMEN BEY KG DB SK,3y a  e,ŞEREFKAR,57,D.YILDIZ,MUHAMMET YAĞMURLU,﻿İstanbul,2021-10-01,1,,Çim,English,Friday
+12,GOCA BARTINLI KG K,3y k  e,UÇANOĞLU,57,F.YÜKSEL,FERHAT TOPUZ,﻿İstanbul,2021-10-01,1,,Çim,English,Friday
+1.)66.000 TL,2.)26.400 TL,3.)13.200 TL,4.)6.600 TL,1.)11.385 TL,2.)4.554 TL,3.)2.277 TL,﻿İstanbul,2021-10-01,2,,,English,Friday
+1,YOLDAŞHAN KG K DB,7y k  a,TURBO,"59,5",G.KOCAKAYA,ENGİN AKALTUN,﻿İstanbul,2021-10-01,2,,,English,Friday
+2,KARAÇELİK KG SK GKR,6y d  a,KAIZBERT (RU),"57,5",M.AKYAVUZ,ŞEMSETTİN TOYDEMİR,﻿İstanbul,2021-10-01,2,,,English,Friday
+3,KARAGÜL BEYİ KG DB SK GKR,6y a  a,ALTAHA,"55,5",Ö.YILDIRIM,MUSTAFA KARAGÜL,﻿İstanbul,2021-10-01,2,,,English,Friday
+4,YALVAÇHAN KG DB SK,4y k  a,ONURKAAN,56,GÖKH.GÖKÇE,H.HAZAL KAYAHAN,﻿İstanbul,2021-10-01,2,,,English,Friday
+5,DEMİRYILDIZ SK,5y k k,TOŞUR,"53,5 +2.00",G.YILDIZ,İBRAHİM HALİL YILDIZ,﻿İstanbul,2021-10-01,2,,,English,Friday
+6,BEKİR KG GKR,6y k  a,BİLGİN,"55,5 +2.00",M.KAYA,İBRAHİM ALTUNBAŞ,﻿İstanbul,2021-10-01,2,,,English,Friday
+7,BÖLÜKBEY KG DB,5y k  a,BİLGİN,"52,5 +0.50",H.YOLAÇICI AP,ZEYNEP DOĞANAY ÇİLEK,﻿İstanbul,2021-10-01,2,,,English,Friday
+8,DANIŞMAN KG K,5y k  a,MURATAĞA,"51,5 +0.30",C.PASO AP,ERSOY GERSMAN,﻿İstanbul,2021-10-01,2,,,English,Friday
+9,YETİM ALİ KG K DB,5y a  a,BURUKCAN,"62,5",A.ASLAN,MEHMETAKİF KAYA,﻿İstanbul,2021-10-01,2,,,English,Friday
+10,YEŞİLKALE KG DB SK,5y a  a,ALTAHA,"55,5",O.AKEL AP,ÖMER ARSLAN,﻿İstanbul,2021-10-01,2,,,English,Friday
+1.)80.500 TL,2.)32.200 TL,3.)16.100 TL,4.)8.050 TL,1.)23.144 TL,2.)9.258 TL,3.)4.629 TL,﻿İstanbul,2021-10-01,3,,,English,Friday
+1,KATSU SKG SK,2y d  e,KANEKO,55 +0.50,G.KOCAKAYA,MEHMET EMİN EKENLER,﻿İstanbul,2021-10-01,3,,,English,Friday
+2,ENTERDONAT KG K DB,2y d  d,KING DAVID (USA),55 +0.30,H.KARATAŞ,FEDAİ KAHRAMAN,﻿İstanbul,2021-10-01,3,,,English,Friday
+3,SANSASYONEL,2y d  e,WIENER WALZER (GER),53 +0.30,A.ASLAN,M.YAVUZ SALİHOĞLU,﻿İstanbul,2021-10-01,3,,,English,Friday
+4,GÖKHAN BABAM KG DB SK,2y d  e,GÜNGÖR BABA,57,VEDAT ABİŞ AP,MAHİR TEKİNALP,﻿İstanbul,2021-10-01,3,,,English,Friday
+5,RAMMSTEIN SK,2y d  e,SCARFACE,55 +2.00,A.ÇELİK,SEMİH POLAT,﻿İstanbul,2021-10-01,3,,,English,Friday
+6,GENCERHAN KG,2y d  e,GENERAL QUARTERS (USA),54 +1.00,A.SÖZEN,CUMHUR ÇİNPOLAT,﻿İstanbul,2021-10-01,3,,,English,Friday
+7,ATABEYİM,2y a  e,AVANGARD (IRE),57,F.YÜKSEL,CUMHUR ÇİNPOLAT,﻿İstanbul,2021-10-01,3,,,English,Friday
+1.)60.000 TL,2.)24.000 TL,3.)12.000 TL,4.)6.000 TL,1.)17.250 TL,2.)6.900 TL,3.)3.450 TL,﻿İstanbul,2021-10-01,4,,Çim,English,Friday
+1,WAR PLAVE KG K DB,2y d  d,AKINDAYIM (IRE),55 +2.00,M.KAYA,YAŞAR GÖLBAŞ,﻿İstanbul,2021-10-01,4,,Çim,English,Friday
+2,KEKEM DB,2y a  e,SIDNEY`S CANDY (USA),57,T.KERESTECİ AP,ŞEREF AĞRI,﻿İstanbul,2021-10-01,4,,Çim,English,Friday
+3,TIBIDABO DB SK,2y d  d,WIENER WALZER (GER),55,VEDAT ABİŞ AP,DUYGU FATURA,﻿İstanbul,2021-10-01,4,,Çim,English,Friday
+4,NAZLIM ŞUŞU DB SKG SK,2y k  d,NATIVE KHAN (FR),52,A.ASLAN,HASAN AKMEŞE,﻿İstanbul,2021-10-01,4,,Çim,English,Friday
+5,ADASUYUM KG,2y d  d,ZANJERO (USA),55 +2.00,M.AKYAVUZ,İSMAİL SATIK,﻿İstanbul,2021-10-01,4,,Çim,English,Friday
+1.)84.000 TL,2.)33.600 TL,3.)16.800 TL,4.)8.400 TL,1.)24.150 TL,2.)9.660 TL,3.)4.830 TL,﻿İstanbul,2021-10-01,5,,Çim,English,Friday
+1,ŞİMŞEK EFE SK BB,3y k  e,ALTAHA,57,H.ÇİZİK,BİRKAN BORA AKARSU,﻿İstanbul,2021-10-01,5,,Çim,English,Friday
+2,SAFİHA K BB,3y k  d,ATEŞTOPU,55 +2.00,A.ÇELİK,MAHİR LAHAM,﻿İstanbul,2021-10-01,5,,Çim,English,Friday
+3,İLLEDE SÜRMELİ,3y a  e,TURBO,57 +0.30,M.KAYA,ŞAHNUR KARACA,﻿İstanbul,2021-10-01,5,,Çim,English,Friday
+4,JUMBOJET DB SK,3y a  e,USTA,57,GÖKH.GÖKÇE,CELANİ YILDIRIM,﻿İstanbul,2021-10-01,5,,Çim,English,Friday
+5,RAGNER KG K,3y a  e,SARUHANAĞA,57,D.YILDIZ,FATİH HAYIRLIOĞLU,﻿İstanbul,2021-10-01,5,,Çim,English,Friday
+6,BERATIM KG SK,3y a  e,TÜMÖZ BEY,57,M.AKYAVUZ,HAKAN ÇELİK,﻿İstanbul,2021-10-01,5,,Çim,English,Friday
+7,RENK KG,3y d  e,HIZLITAY,57,A.SÖZEN,ZAFER TEMUÇİN,﻿İstanbul,2021-10-01,5,,Çim,English,Friday
+8,CANSABİHA KG SK,3y a  d,DEMİRSOY,55 +1.20,F.YÜKSEL,ERDEM ARAL,﻿İstanbul,2021-10-01,5,,Çim,English,Friday
+9,GÜLDAĞI K BB,3y k  e,GOBAKBEY,57,A.ASLAN,MAHİR LAHAM,﻿İstanbul,2021-10-01,5,,Çim,English,Friday
+10,TANJU KG K,3y a  e,CANGIL,57,S.BOYRAZ,ALİ TAHİR VARUŞ,﻿İstanbul,2021-10-01,5,,Çim,English,Friday
+11,SERTBORA KG SK,3y d  e,KURTEL,57,H.YOLAÇICI AP,MURAT KAPLAN,﻿İstanbul,2021-10-01,5,,Çim,English,Friday
+12,GÖĞÜN OĞLU KG K (Koşmaz),3y a  e,TOŞUR,57 +0.50,MAHSUN TURAN,HACİ DİNÇER,﻿İstanbul,2021-10-01,5,,Çim,English,Friday
+1.)66.000 TL,2.)26.400 TL,3.)13.200 TL,4.)6.600 TL,1.)11.385 TL,2.)4.554 TL,3.)2.277 TL,﻿İstanbul,2021-10-01,6,,,English,Friday
+1,STRAWBERRY GIRL DB SKG SK,3y d  d,KANEKO,"50,5 +2.00",O.AKEL,ZEYNEP DOĞANAY ÇİLEK,﻿İstanbul,2021-10-01,6,,,English,Friday
+2,MYSTERY FOCUS KG K DB,4y a  g,LION HEART (USA),53,E.KADİRLER,HÜSEYİN YÜKSEL,﻿İstanbul,2021-10-01,6,,,English,Friday
+3,KOCA SEYİD KG SK SGKR,4y d  a,SMART ROBIN (JPN),63,T.KERESTECİ,MEHMET ÇAVUŞ,﻿İstanbul,2021-10-01,6,,,English,Friday
+4,YELLOW STONE DB SKG SK,4y d  a,KANEKO,53 +1.30,SER.YILDIZ,GÜLNUR GÜLERCE,﻿İstanbul,2021-10-01,6,,,English,Friday
+5,CLOUD WALKER KG DB SK,5y a  a,LION HEART (USA),63,İ.KOYUNCU,ONUR TÜRKER,﻿İstanbul,2021-10-01,6,,,English,Friday
+6,BOUJEE DB SKG SK,4y d k,MARCAVELLY (USA),61,İS.YILDIRIM,CEM KAAN PARSAK,﻿İstanbul,2021-10-01,6,,,English,Friday
+7,CANDY CAT K,3y d  d,DR FONG (USA),50 +2.00,H.YOLAÇICI,ALİ RIZA ÇELİKOĞLU,﻿İstanbul,2021-10-01,6,,,English,Friday
+8,FİLANDOZ K,4y d  a,GRAND EKINOKS,"51,5 +1.00",E.AVŞAR,BARIŞ GÖRGÜN,﻿İstanbul,2021-10-01,6,,,English,Friday
+9,GREYHOUND DB SKG SK,3y d  e,APPROVE (IRE),"58,5",C.PASO,İLHAMİ TURAN,﻿İstanbul,2021-10-01,6,,,English,Friday
+10,PRIDE OF TURKS KG SK BB,3y a  d,AFTER MARKET (USA),51 +0.50,M.AKDAĞ,ARZU GÜNEŞ,﻿İstanbul,2021-10-01,6,,,English,Friday
+11,AWARENESS KG K ÖG,4y d k,HAKKAR,51,ŞEV.GÖKÇE,TURGAY YILDIZ,﻿İstanbul,2021-10-01,6,,,English,Friday
+12,MYSTIC STAR,4y d k,DR FONG (USA),"56,5",M.KAYİŞ,ALİ RIZA ÇELİKOĞLU,﻿İstanbul,2021-10-01,6,,,English,Friday
+1.)312.000 TL,2.)124.800 TL,3.)62.400 TL,4.)31.200 TL,1.)89.700 TL,2.)35.880 TL,3.)17.940 TL,﻿İstanbul,2021-10-01,7,,Çim,English,Friday
+1,GÜLHATMİ KG SK,4y k k,TAMERİNOĞLU,56 +1.00,A.ÇELİK,MELİS KURTEL EMİN,﻿İstanbul,2021-10-01,7,,Çim,English,Friday
+2,KERVANTAY KG,4y k  a,ONURKAAN,58,H.KARATAŞ,ÖMER KARAÇİZMELİ,﻿İstanbul,2021-10-01,7,,Çim,English,Friday
+3,KOCAPOLAT KG SK,4y a  a,AYABAKAN,58,Ö.YILDIRIM,GÖKHAN ALVEROĞLU,﻿İstanbul,2021-10-01,7,,Çim,English,Friday
+4,ÖZGALİP KG SK,4y a  a,ÖZHABER,58,H.ÇİZİK,İBRAHİM HALİL ARSLAN,﻿İstanbul,2021-10-01,7,,Çim,English,Friday
+5,BOZAĞA SKG SK,4y k  a,TAMERİNOĞLU,58,A.SÖZEN,YÜKSEL GÖKTÜRK,﻿İstanbul,2021-10-01,7,,Çim,English,Friday
+6,ARAPOĞLU KG,4y k  a,TAMERİNOĞLU,58,VEDAT ABİŞ AP,SIRAÇ DEMİR,﻿İstanbul,2021-10-01,7,,Çim,English,Friday
+7,SANCAR KG K DB,4y k  a,ALTAHA,58,S.BOYRAZ,MURAT AKTAŞ,﻿İstanbul,2021-10-01,7,,Çim,English,Friday
+8,MUSLİH AĞA KG DB SK,4y k  a,SÖNMEZ,58,GÖKH.GÖKÇE,HAŞİM TINAS,﻿İstanbul,2021-10-01,7,,Çim,English,Friday
+9,BEŞKAZALI KG,4y k  a,ALTAHA,58,M.AKYAVUZ,MURAT SÖNMEZ,﻿İstanbul,2021-10-01,7,,Çim,English,Friday
+1.)126.000 TL,2.)50.400 TL,3.)25.200 TL,4.)12.600 TL,1.)28.980 TL,2.)11.592 TL,3.)5.796 TL,﻿İstanbul,2021-10-01,8,,Çim,English,Friday
+1,EGREGIOUS ROCK,3y d  e,LUXOR,57,G.KOCAKAYA,YAMAN ZİNGAL,﻿İstanbul,2021-10-01,8,,Çim,English,Friday
+2,AZMANTOR SK,5y d  a,KANEKO,60,H.KARATAŞ,CEM ÖZBELGE,﻿İstanbul,2021-10-01,8,,Çim,English,Friday
+3,YAMANBEY DB SKG SK BB,4y d  a,THREE VALLEYS (USA),61,A.ÇELİK,Ö.FARUK BİNBAŞIOĞLU,﻿İstanbul,2021-10-01,8,,Çim,English,Friday
+4,ARDAŞAH KG SK BB,4y d  a,PERFECTO,61,A.SÖZEN,MURAT YILDIZ,﻿İstanbul,2021-10-01,8,,Çim,English,Friday
+5,WOLF POLAT SK,4y d  a,LUXOR,60,H.ÇİZİK,ZAFER TEMUÇİN,﻿İstanbul,2021-10-01,8,,Çim,English,Friday
+1.)66.000 TL,2.)26.400 TL,3.)13.200 TL,4.)6.600 TL,1.)11.385 TL,2.)4.554 TL,3.)2.277 TL,﻿İstanbul,2021-10-01,9,,Çim,English,Friday
+1,HYPER LOOP K,3y d  e,CAPTAIN RIO (GB),58,S.BOYRAZ,KAMİL AKIN,﻿İstanbul,2021-10-01,9,,Çim,English,Friday
+2,AVIATOR KG DB SK,3y d  e,KING DAVID (USA),56 +0.20,GÖKH.GÖKÇE,ERDAL GÜLLÜK,﻿İstanbul,2021-10-01,9,,Çim,English,Friday
+3,MOGAAVO KG SK,3y d  d,WIENER WALZER (GER),58 +0.30,H.ÇİZİK,SERDAR ZABUN,﻿İstanbul,2021-10-01,9,,Çim,English,Friday
+4,LUCEZIA K BB,3y d  d,WIENER WALZER (GER),58,G.KOCAKAYA,SELMAN ERDEMİRCİ,﻿İstanbul,2021-10-01,9,,Çim,English,Friday
+5,YİĞİDO SK,3y d  e,RED GIANT (USA),56,A.ASLAN,MURAT ÇİÇEK,﻿İstanbul,2021-10-01,9,,Çim,English,Friday
+6,FREE CHILDREN SKG SK,3y d  e,AFTER MARKET (USA),59,VEDAT ABİŞ AP,MEHMET ALİ PEKİN,﻿İstanbul,2021-10-01,9,,Çim,English,Friday
+7,BARON SETRAK DB BB,3y a  g,GIO PONTI (USA),54 +0.70,G.YILDIZ,CEM SEVİM,﻿İstanbul,2021-10-01,9,,Çim,English,Friday
+8,MODA KG DB SK,3y d  e,PLEASANTLY PERFECT (USA),58,A.SÖZEN,HALİL FAHRİ NARMANLI,﻿İstanbul,2021-10-01,9,,Çim,English,Friday
+9,MCGONAGALL KG DB SK,3y d  d,HALICARNASSUS (IRE),52 +2.00,SER.YILDIZ AP,FERAHNAZ KANDİL,﻿İstanbul,2021-10-01,9,,Çim,English,Friday
+1.)84.000 TL,2.)33.600 TL,3.)16.800 TL,4.)8.400 TL,1.)24.150 TL,2.)9.660 TL,3.)4.830 TL,﻿İstanbul,2021-10-01,10,,Çim,English,Friday
+1,BERKTİMUR KG DB SK,3y k  e,TURBO,57,H.KARATAŞ,GÜNSEN SOYUPAK,﻿İstanbul,2021-10-01,10,,Çim,English,Friday
+2,SARNIÇ BEYİ KG DB SK,3y k  e,BABA MEVLÜT,57,H.ÇİZİK,MELİS KURTEL EMİN,﻿İstanbul,2021-10-01,10,,Çim,English,Friday
+3,AFŞAR K,3y a  e,AYABAKAN,57,H.YOLAÇICI AP,ABDULVAHAP GÜNEŞ,﻿İstanbul,2021-10-01,10,,Çim,English,Friday
+4,FISTIKCAN SKG SK,3y a  d,TURBO,55,VEDAT ABİŞ AP,MUZAFFER CAN,﻿İstanbul,2021-10-01,10,,Çim,English,Friday
+5,BY BECERİK K,3y k  e,SARRAF,57 +0.20,M.AKYAVUZ,ŞÜKRÜ POLAT,﻿İstanbul,2021-10-01,10,,Çim,English,Friday
+6,TEKFORD STAR KG K,3y a  e,GELİBOLU,57,S.BOYRAZ,TEYFİK ORAN,﻿İstanbul,2021-10-01,10,,Çim,English,Friday
+7,COŞTAGEL,3y k  d,BERKSOY,55 +1.40,F.YÜKSEL,BAKIR YAŞARTEKİN,﻿İstanbul,2021-10-01,10,,Çim,English,Friday
+8,TEMELKAN KG SK,3y d  e,BABA MEVLÜT,57,A.SÖZEN,HÜLYA TEMEL,﻿İstanbul,2021-10-01,10,,Çim,English,Friday
+9,YÜREKSİN KG,3y k  e,YÜREKKAYA,57,G.YILDIZ,AHMET KAYA,﻿İstanbul,2021-10-01,10,,Çim,English,Friday
+10,ÜKSÜZ SKG SK,3y k  e,HABERKAN,57,C.PASO AP,KAYA KAYA,﻿İstanbul,2021-10-01,10,,Çim,English,Friday
+11,CESURBUĞRA KG DB,3y a  e,KURTEL,57,A.ASLAN,MEHMETAKİF KAYA,﻿İstanbul,2021-10-01,10,,Çim,English,Friday
+12,YAŞARE HATUN KG K,3y k  d,DEMİRDÖVEN,55 +0.70,M.KAYİŞ AP,FERHAT TOPUZ,﻿İstanbul,2021-10-01,10,,Çim,English,Friday

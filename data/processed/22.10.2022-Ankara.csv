@@ -1,0 +1,85 @@
+horse_no,horse_name,age,origin,weight,jockey,owner_trainer,venue,file_date,race_no,distance_track,race_type,horse_type,race_day
+1.)108.000 TL,2.)43.200 TL,3.)21.600 TL,4.)10.800 TL,1.)31.050 TL,2.)12.420 TL,3.)6.210 TL,﻿Ankara,2022-10-22,1,,Çim,English,Saturday
+1,YELSESİ KG K,3y k  e,ŞİMŞEĞİNOĞLU,57,H.KARATAŞ,MEHMET NUR BECENE,﻿Ankara,2022-10-22,1,,Çim,English,Saturday
+2,UÇAN ADAM KG SK,3y a  e,TURBO,55,VEDAT ABİŞ,MELİS KURTEL EMİN,﻿Ankara,2022-10-22,1,,Çim,English,Saturday
+3,KILINÇBEY KG K,3y d  e,ULUER,57,A.KURŞUN,ATİLLA SERİNER,﻿Ankara,2022-10-22,1,,Çim,English,Saturday
+4,KUZEYEFE KG,3y a  e,ATEŞTOPU,54 +2.00,S.BOYRAZ,NİHAD KAYĞIN,﻿Ankara,2022-10-22,1,,Çim,English,Saturday
+5,SULTANBEŞİR KG DB SK,3y a  e,SULTAN DE FAUST (FR),57,E.ÇANKAYA,BEŞİR KAYA,﻿Ankara,2022-10-22,1,,Çim,English,Saturday
+6,ALTINÜZÜM KG K DB,3y a  e,KARAÜZÜM,57,A.SÖZEN,HÜLYA TEMEL,﻿Ankara,2022-10-22,1,,Çim,English,Saturday
+7,ALZENGİNOĞLU KG,3y d  e,TÜMÖZ BEY,54 +1.30,A.AKDEMİR AP,MEHMET CAMUZ,﻿Ankara,2022-10-22,1,,Çim,English,Saturday
+8,HARDİN KG SK (Koşmaz),3y k  e,SAKARBAŞI,59,H.ÇİZİK,AHMET ÇELİK,﻿Ankara,2022-10-22,1,,Çim,English,Saturday
+1.)90.000 TL,2.)36.000 TL,3.)18.000 TL,4.)9.000 TL,1.)25.875 TL,2.)10.350 TL,3.)5.175 TL,﻿Ankara,2022-10-22,2,,Çim,English,Saturday
+1,PAPER QUEEN KG K DB,2y d  d,DAILY MAIL,57,VEDAT ABİŞ,MEHMET ALTUNBAŞ,﻿Ankara,2022-10-22,2,,Çim,English,Saturday
+2,TOUCH OF COLOR K SKG,2y d  d,PERFECT STORM,57 +0.10,F.R.BEBEK,NİMET ARİF KURTEL,﻿Ankara,2022-10-22,2,,Çim,English,Saturday
+3,MOONLIGHT FAIRY SKG SK,2y k  d,GRAYSTORM,57,A.ÇELİK,AHMET GÜZELOCAK,﻿Ankara,2022-10-22,2,,Çim,English,Saturday
+4,ARYA SANSA SK,2y d  d,KANEKO,57,A.SÖZEN,MEHMET YILDIZ,﻿Ankara,2022-10-22,2,,Çim,English,Saturday
+5,MY LIONESS KG DB SK,2y a  d,LION HEART (USA),57,H.ÇİZİK,CEMİL ÇİZİK,﻿Ankara,2022-10-22,2,,Çim,English,Saturday
+6,KELPİE KG K,2y d  d,CORINTHIAN (USA),57 +0.10,A.KURŞUN,AYTURAL BOZ,﻿Ankara,2022-10-22,2,,Çim,English,Saturday
+7,ROCKET SCIENCE DB SK,2y d  d,TAMARKUZ (USA),57 +0.10,G.KOCAKAYA,CEM ÖZBELGE,﻿Ankara,2022-10-22,2,,Çim,English,Saturday
+8,DİDEM YILDIZI,2y d  d,LAST EXIT,57,H.KILIÇARSLAN,İSMAİL DOKAK,﻿Ankara,2022-10-22,2,,Çim,English,Saturday
+1.)91.000 TL,2.)36.400 TL,3.)18.200 TL,4.)9.100 TL,1.)15.698 TL,2.)6.279 TL,3.)3.140 TL,﻿Ankara,2022-10-22,3,,Çim,English,Saturday
+1,TEKÇAREM KG K DB,4y a k,KAIZBERT (RU),56 +0.90,M.AKYAVUZ,HİKMET ÖYLÜ,﻿Ankara,2022-10-22,3,,Çim,English,Saturday
+2,GÖZDESULTAN K,4y a k,KAIZBERT (RU),56 +0.40,E.ÇANKAYA,ATALAY TURAN,﻿Ankara,2022-10-22,3,,Çim,English,Saturday
+3,SUFLE KG DB SK,4y k k,ÖZGÜNHAN,54 +2.00,F.R.BEBEK,GÜNSEN SOYUPAK,﻿Ankara,2022-10-22,3,,Çim,English,Saturday
+4,AZAD KG DB SK,4y a  a,ŞİMŞEĞİNOĞLU,51 +1.80,N.DEMİR AP,BÜLENT TOYDEMİR,﻿Ankara,2022-10-22,3,,Çim,English,Saturday
+5,GÜLALLAR KG DB,4y a  a,TURBO,57,A.AKDEMİR AP,HAKKI GÜLAL,﻿Ankara,2022-10-22,3,,Çim,English,Saturday
+6,SAFİŞ KG K DB,4y k k,UÇANBEY,54,H.KILIÇARSLAN,SEÇKİN TOYDEMİR,﻿Ankara,2022-10-22,3,,Çim,English,Saturday
+7,MACAROVİŞ KG DB,4y a k,KAIZBERT (RU),52 +1.40,SER.YILDIZ AP,ABDULKADİR DURMAZ,﻿Ankara,2022-10-22,3,,Çim,English,Saturday
+8,KRAL ARDA KG DB,4y d  a,KURTEL,53,M.N.SUNKAR AP,MUSTAFA CENGİZ,﻿Ankara,2022-10-22,3,,Çim,English,Saturday
+9,SARI KARINCA KG DB SK GKR,4y a  a,ATİKBEY,56,G.KOCAKAYA,KEMAL ALTIN,﻿Ankara,2022-10-22,3,,Çim,English,Saturday
+1.)126.000 TL,2.)50.400 TL,3.)25.200 TL,4.)12.600 TL,1.)28.980 TL,2.)11.592 TL,3.)5.796 TL,﻿Ankara,2022-10-22,4,,Kum,English,Saturday
+1,KERVANTAY KG,5y k  a,ONURKAAN,57,A.ÇELİK,ÖMER KARAÇİZMELİ,﻿Ankara,2022-10-22,4,,Kum,English,Saturday
+2,ERTEMİZ KG,9y d  a,DEMİRKAZIK,61,G.KOCAKAYA,TARKAN H. ONAR,﻿Ankara,2022-10-22,4,,Kum,English,Saturday
+3,ÖZBİLDEN KG DB,7y k  a,ÖZGÜNHAN,60,VEDAT ABİŞ,ERDEM BEKMEZCİ,﻿Ankara,2022-10-22,4,,Kum,English,Saturday
+4,ÖZBATU KG GKR,7y k  a,TAMERİNOĞLU,60,A.SÖZEN,ÖMER BİLİR,﻿Ankara,2022-10-22,4,,Kum,English,Saturday
+5,SELDA HANIM DB SK,6y k k,ÖZGÜNHAN,58 +0.10,V.DEMİR,MEHMET KARATOPRAK,﻿Ankara,2022-10-22,4,,Kum,English,Saturday
+6,KARA ESKİ KG K,4y k  a,KARA YAĞIZ,"59,5",H.ÇİZİK,İBRAHİM HAKKI BOYRAZ,﻿Ankara,2022-10-22,4,,Kum,English,Saturday
+7,ALİBEĞ KG K,5y a  a,UÇANBEY,60,A.KURŞUN,EMİNE DİREKLİ,﻿Ankara,2022-10-22,4,,Kum,English,Saturday
+8,BEYAZ ADAM DB SKG SK,7y a  a,GOBAKBEY,60,E.ÇANKAYA,SELİM ÖZEKİCİ,﻿Ankara,2022-10-22,4,,Kum,English,Saturday
+9,MEGA STAR K,6y a  a,TURBO,62,H.KARATAŞ,YUNUS ADVAN,﻿Ankara,2022-10-22,4,,Kum,English,Saturday
+10,SAİTBEY KG DB,5y a  a,ANKA,58,M.AKYAVUZ,İBRAHİM YALÇIN,﻿Ankara,2022-10-22,4,,Kum,English,Saturday
+11,FAHRENHEİT KG SK,7y k  a,UÇANBEY,62,F.ÇETİN AP,M.NEZİF ŞEKER,﻿Ankara,2022-10-22,4,,Kum,English,Saturday
+1.)550.000 TL,2.)220.000 TL,3.)110.000 TL,4.)55.000 TL,1.)158.125 TL,2.)63.250 TL,3.)31.625 TL,﻿Ankara,2022-10-22,5,,Kum,English,Saturday
+1,KING MAN GO KG DB SK,5y d  a,MENDIP (USA),60,Ö.YILDIRIM,HÜSEYİN AKARSU,﻿Ankara,2022-10-22,5,,Kum,English,Saturday
+2,REGARDLESS KG DB SK,4y a  a,CAPTAIN RIO (GB),60,VEDAT ABİŞ,ENGİN BEKİROĞULLARI,﻿Ankara,2022-10-22,5,,Kum,English,Saturday
+3,AEGEAN FINALE,3y d  e,NOT THIS TIME (USA),"57,5",A.KURŞUN,NİMET ARİF KURTEL,﻿Ankara,2022-10-22,5,,Kum,English,Saturday
+4,KING BERKAY KG SK,5y a  a,BOSPORUS (IRE),60,H.KARATAŞ,A.MURAT ŞEN,﻿Ankara,2022-10-22,5,,Kum,English,Saturday
+5,VINCITORE DB BB,4y d  a,VICTORY GALLOP (CAN),60,H.ÇİZİK,NECATİ DEMİRKOL,﻿Ankara,2022-10-22,5,,Kum,English,Saturday
+6,KING FARRIER KG DB SK,3y d  e,HAKEEM (USA),"57,5",S.BOYRAZ,A. ALPER SİLSÜPÜR,﻿Ankara,2022-10-22,5,,Kum,English,Saturday
+7,HEADMAN K DB ÖG BB,7y d  a,DABIRSIM (FR),60,G.KOCAKAYA,SANEM KAHRAMAN,﻿Ankara,2022-10-22,5,,Kum,English,Saturday
+8,HAMASET SK,3y a  e,EL CORREDOR (USA),"57,5",MÜS.ÇELİK,ERKUTAY ÖZYURTERİ,﻿Ankara,2022-10-22,5,,Kum,English,Saturday
+9,SUMEL HAN DB SK ÖG,7y d  a,SPORTS HERO (USA),60,M.AKYAVUZ,NEJDET SUMEL,﻿Ankara,2022-10-22,5,,Kum,English,Saturday
+10,MARATONCU KG K DB,4y d  a,LION HEART (USA),60,A.ÇELİK,KADRİYE VATANSEVER,﻿Ankara,2022-10-22,5,,Kum,English,Saturday
+1.)270.000 TL,2.)108.000 TL,3.)54.000 TL,4.)27.000 TL,1.)77.625 TL,2.)31.050 TL,3.)15.525 TL,﻿Ankara,2022-10-22,6,,Kum,English,Saturday
+1,GENERAL BRIELLA KG K,2y k  d,GENERAL QUARTERS (USA),55 +1.60,M.AKYAVUZ,MERT ALİ KARABULUT,﻿Ankara,2022-10-22,6,,Kum,English,Saturday
+2,REPAIR MAN KG SK ÖG,2y d  e,SMART ROBIN (JPN),57,F.R.BEBEK,AYDIN AYDOĞDU,﻿Ankara,2022-10-22,6,,Kum,English,Saturday
+3,ALTINSİMA KG DB SK,2y d  e,KIRDEMİRKIR,57,VEDAT ABİŞ,RESUL ÜNLÜ,﻿Ankara,2022-10-22,6,,Kum,English,Saturday
+4,TURDEMİRKIR SK,2y a  e,CAPTAIN RIO (GB),57,H.KARATAŞ,MAHMUT KARAKEÇİ,﻿Ankara,2022-10-22,6,,Kum,English,Saturday
+5,BOATMAN KG DB SK,2y k  e,LION HEART (USA),57,MÜS.ÇELİK,ERAY KOKTAY,﻿Ankara,2022-10-22,6,,Kum,English,Saturday
+6,BRAVE HORSE KG SK,2y a  e,CAPTAIN RIO (GB),57,H.ÇİZİK,HAKAN SANER,﻿Ankara,2022-10-22,6,,Kum,English,Saturday
+1.)126.000 TL,2.)50.400 TL,3.)25.200 TL,4.)12.600 TL,1.)28.980 TL,2.)11.592 TL,3.)5.796 TL,﻿Ankara,2022-10-22,7,,Çim,English,Saturday
+1,BLACK LION KG K DB,3y a  e,SIDNEY`S CANDY (USA),60,Ö.YILDIRIM,MEHMET KARAARSLAN,﻿Ankara,2022-10-22,7,,Çim,English,Saturday
+2,SERİDAY DB SK,3y d  d,VICTORY GALLOP (CAN),56 +0.10,A.KURŞUN,TOLGA KARAKARTAL,﻿Ankara,2022-10-22,7,,Çim,English,Saturday
+3,KÜBRA HANIM KG DB SK,3y d  d,WIN RIVER WIN (USA),59 +0.10,S.BOYRAZ,ABDURRAHMAN POLAT,﻿Ankara,2022-10-22,7,,Çim,English,Saturday
+4,ZOLO MUUM DB SK,3y d  e,PAPA CLEM (USA),61,H.KARATAŞ,ŞÜKRÜ POLAT,﻿Ankara,2022-10-22,7,,Çim,English,Saturday
+5,ULTRA SHOOTER KG DB,3y d  e,LUXOR,58,MÜS.ÇELİK,AYHAN AHRASOĞLU,﻿Ankara,2022-10-22,7,,Çim,English,Saturday
+6,ACT OF GOD K DB,3y d  e,SMART ROBIN (JPN),54,M.N.SUNKAR AP,MUSTAFA CENGİZ,﻿Ankara,2022-10-22,7,,Çim,English,Saturday
+1.)150.000 TL,2.)60.000 TL,3.)30.000 TL,4.)15.000 TL,1.)34.500 TL,2.)13.800 TL,3.)6.900 TL,﻿Ankara,2022-10-22,8,,Çim,English,Saturday
+1,LA BREZZA K,4y d k,NATIVE KHAN (FR),55 +1.20,A.ÇELİK,V.İBRAHİM ARACI,﻿Ankara,2022-10-22,8,,Çim,English,Saturday
+2,HANİFE SULTAN DB SKG SK YP,4y d k,JUSTENUFFHUMOR (USA),51 +1.50,H.KILIÇARSLAN,CEREN SUBAŞI,﻿Ankara,2022-10-22,8,,Çim,English,Saturday
+3,HONORABLE K,6y d  a,PLEASANTLY PERFECT (USA),"60,5",M.AKYAVUZ,TAYLAN DEMİR,﻿Ankara,2022-10-22,8,,Çim,English,Saturday
+4,LUMINESCENCE KG SK,6y a  a,UTOPIA (JPN),60,M.N.SUNKAR AP,SABRİ AKSU,﻿Ankara,2022-10-22,8,,Çim,English,Saturday
+5,ATICI BEY DB,5y a  a,CARDINAL PIONEER,58,N.DEMİR AP,TUĞÇE CANPOLAT,﻿Ankara,2022-10-22,8,,Çim,English,Saturday
+6,GÖKDENİZİM KG K DB,3y d  e,MENDIP (USA),58,A.KURŞUN,MURAT TİNİZ,﻿Ankara,2022-10-22,8,,Çim,English,Saturday
+7,NAVONA KG DB SK,5y k k,NATIVE KHAN (FR),"51,5 +2.00",M.S.ÇELİK,SEZAİ USTA,﻿Ankara,2022-10-22,8,,Çim,English,Saturday
+8,CAMBAZ SK YP,6y d  a,YAVUZSTAR,52,M.A.SOLMAZ,MÜTHİŞ ÖLÇER,﻿Ankara,2022-10-22,8,,Çim,English,Saturday
+1.)90.000 TL,2.)36.000 TL,3.)18.000 TL,4.)9.000 TL,1.)25.875 TL,2.)10.350 TL,3.)5.175 TL,﻿Ankara,2022-10-22,9,,Çim,English,Saturday
+1,UNSTOPPABLE FORCE KG K,2y d  d,PACO BOY (IRE),57,MÜS.ÇELİK,FIRAT YILDIRIM,﻿Ankara,2022-10-22,9,,Çim,English,Saturday
+2,MA CHERIE DB SK,2y d  d,ASTERN (AUS),57,G.KOCAKAYA,CEM ÖZBELGE,﻿Ankara,2022-10-22,9,,Çim,English,Saturday
+3,THUNDER WOMAN,2y d  d,OĞLUM MELİH,57,A.SÖZEN,HÜLYA TEMEL,﻿Ankara,2022-10-22,9,,Çim,English,Saturday
+4,NERMİNİM DB SK,2y d  d,SIDNEY`S CANDY (USA),54 +0.20,N.DEMİR AP,MUSTAFA ÖZSARI,﻿Ankara,2022-10-22,9,,Çim,English,Saturday
+5,SHEGRA KG K DB,2y d  d,MEHMET BORA,57 +0.10,E.ÇANKAYA,ADNAN DOĞAN,﻿Ankara,2022-10-22,9,,Çim,English,Saturday
+6,SECRET SONG KG SK,2y d  d,SCARFACE,57,F.R.BEBEK,MELİS KURTEL EMİN,﻿Ankara,2022-10-22,9,,Çim,English,Saturday
+7,ANARRES KG SK,2y d  d,LUXOR,57,H.KARATAŞ,TOLGA KARAKARTAL,﻿Ankara,2022-10-22,9,,Çim,English,Saturday
+8,MOON EFFECT KG DB SK,2y d  d,LION HEART (USA),57 +0.20,A.KURŞUN,AYÇA ERKOÇ,﻿Ankara,2022-10-22,9,,Çim,English,Saturday
+9,PRENSES MİZAN KG K,2y d  d,GÜNGÖR BABA,54 +1.00,F.ÇETİN AP,AHMET MİZAN,﻿Ankara,2022-10-22,9,,Çim,English,Saturday

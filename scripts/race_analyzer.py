@@ -2,319 +2,64 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
 import json
 from predict_race import RacePredictor
 from collections import defaultdict
+from src.utils.db_utils import DatabaseManager
 
 class RaceAnalyzer:
-    def __init__(self, historical_data):
-        self.historical_data = historical_data
+    def __init__(self):
         self.history_file = 'data/history/prediction_history.json'
-        self.load_prediction_history()
-        
-    def load_prediction_history(self):
+        self.db = None
         try:
-            with open(self.history_file, 'r') as f:
-                self.prediction_history = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
-            self.prediction_history = []
-            
-    def save_prediction_history(self):
-        os.makedirs(os.path.dirname(self.history_file), exist_ok=True)
-        with open(self.history_file, 'w') as f:
-            json.dump(self.prediction_history, f)
-            
-    def get_horse_history(self, horse_name, last_n_races=10):
-        """Get historical performance data for a horse"""
-        horse_races = []
-        for race in self.historical_data:
-            for horse in race['horses']:
-                if horse['horse_name'] == horse_name:
-                    horse_races.append({
-                        'date': race['race_info']['date'],
-                        'track': race['race_info']['track'],
-                        'finish_time': horse['finish_time'],
-                        'weight': horse['weight'],
-                        'jockey': horse['jockey']
-                    })
-        return sorted(horse_races, key=lambda x: x['date'], reverse=True)[:last_n_races]
+            self.db = DatabaseManager()
+            self.db.connect()
+            self.load_history()
+        except Exception as e:
+            print(f"Error initializing RaceAnalyzer: {e}")
+            if self.db:
+                self.db.close()
+            raise
         
-    def get_jockey_stats(self, jockey_name, days=180):
-        """Get performance statistics for a jockey"""
-        jockey_races = []
-        cutoff_date = datetime.now() - timedelta(days=days)
-        
-        for race in self.historical_data:
-            try:
-                race_date = datetime.strptime(race['race_info']['date'], '%d/%m/%Y')
-                if race_date >= cutoff_date:
-                    for horse in race['horses']:
-                        if horse['jockey'] == jockey_name:
-                            finish_time = horse.get('finish_time')
-                            if finish_time and ':' in finish_time:
-                                time_parts = finish_time.split(':')
-                                if len(time_parts) == 2:
-                                    seconds = float(time_parts[1])
-                                    jockey_races.append({
-                                        'date': race['race_info']['date'],
-                                        'track': race['race_info']['track'],
-                                        'horse_name': horse['horse_name'],
-                                        'finish_time': seconds,
-                                        'position': 1 if seconds < 25 else 2  # Simplified position based on time
-                                    })
-            except (ValueError, KeyError):
-                continue
-        return jockey_races
-        
-    def analyze_horse(self, horse, race_info):
-        """Analyze a horse's chances based on historical data"""
-        score = 0
-        factors = []
-        
-        # Get historical races for this horse
-        horse_history = self.get_horse_history(horse['horse_name'])
-        
-        # Track surface performance
-        surface_races = [h for h in horse_history if h.get('track_condition') == race_info['track_condition']]
-        if surface_races:
-            surface_wins = len([r for r in surface_races if r.get('position') == '1'])
-            surface_places = len([r for r in surface_races if r.get('position') in ['1', '2', '3']])
-            
-            if surface_wins > 0:
-                win_rate = surface_wins / len(surface_races)
-                score += win_rate * 35
-                factors.append(f"Surface win rate: {win_rate:.1%} ({surface_wins}/{len(surface_races)})")
-            
-            if surface_places > 0:
-                place_rate = surface_places / len(surface_races)
-                score += place_rate * 15
-                factors.append(f"Surface place rate: {place_rate:.1%}")
-            
-            # Surface consistency
-            if len(surface_races) >= 3:
-                avg_position = sum(float(r.get('position', 0)) for r in surface_races[-3:]) / 3
-                if avg_position <= 3:
-                    score += 20
-                    factors.append(f"Strong surface form (avg pos: {avg_position:.1f})")
-        
-        # Track specific performance
-        track_races = [h for h in horse_history if h['track'] == race_info['track']]
-        if track_races:
-            track_wins = len([r for r in track_races if r.get('position') == '1'])
-            track_places = len([r for r in track_races if r.get('position') in ['1', '2', '3']])
-            
-            if track_wins > 0:
-                win_rate = track_wins / len(track_races)
-                score += win_rate * 40
-                factors.append(f"Track win rate: {win_rate:.1%} ({track_wins}/{len(track_races)})")
-            
-            if track_places > 0:
-                place_rate = track_places / len(track_races)
-                score += place_rate * 20
-                factors.append(f"Track place rate: {place_rate:.1%}")
-        
-        # Distance performance
-        distance_races = [h for h in horse_history if h.get('distance') == race_info['distance']]
-        if distance_races:
-            distance_wins = len([r for r in distance_races if r.get('position') == '1'])
-            if distance_wins > 0:
-                win_rate = distance_wins / len(distance_races)
-                score += win_rate * 30
-                factors.append(f"Distance win rate: {win_rate:.1%} ({distance_wins}/{len(distance_races)})")
-        
-        # Recent form analysis
-        if 'recent_form' in horse:
-            recent_positions = [int(pos) for pos in horse['recent_form'].split() if pos.isdigit()]
-            if recent_positions:
-                # Calculate weighted recent form (more recent races count more)
-                weighted_positions = [pos * (1.2 ** i) for i, pos in enumerate(reversed(recent_positions))]
-                avg_position = sum(weighted_positions) / len(weighted_positions)
-                
-                if avg_position <= 2:
-                    score += 50
-                    factors.append(f"Excellent recent form (avg pos: {avg_position:.1f})")
-                elif avg_position <= 3:
-                    score += 40
-                    factors.append(f"Strong recent form (avg pos: {avg_position:.1f})")
-                elif avg_position <= 4:
-                    score += 30
-                    factors.append(f"Good recent form (avg pos: {avg_position:.1f})")
-                elif avg_position <= 5:
-                    score += 20
-                    factors.append(f"Consistent top-5 finisher (avg pos: {avg_position:.1f})")
-                
-                # Consistency analysis
-                if len(recent_positions) >= 4:
-                    positions_set = set(recent_positions[-4:])
-                    if all(pos <= 3 for pos in positions_set):
-                        score += 25
-                        factors.append("Consistently finishing in top 3")
-                    elif all(pos <= 5 for pos in positions_set):
-                        score += 20
-                        factors.append("Consistently finishing in top 5")
-        
-        # Best time analysis
-        if 'best_time' in horse and horse['best_time']:
-            try:
-                time_parts = horse['best_time'].split('.')
-                if len(time_parts) == 3:
-                    minutes, seconds, hundredths = map(int, time_parts)
-                    total_seconds = minutes * 60 + seconds + hundredths/100
-                    if total_seconds <= 84:  # 1:24.00 for 1400m
-                        score += 40
-                        factors.append(f"Excellent best time ({horse['best_time']})")
-                    elif total_seconds <= 85:  # 1:25.00
-                        score += 25
-                        factors.append(f"Good best time ({horse['best_time']})")
-                    else:
-                        score -= 10
-                        factors.append(f"Below average time ({horse['best_time']})")
-            except (ValueError, IndexError):
-                pass
-        
-        # Handicap points analysis
-        if 'handicap' in horse and horse['handicap'] != '0':
-            try:
-                handicap = float(horse['handicap'])
-                if handicap >= 85:
-                    score += 45
-                    factors.append(f"Excellent handicap rating ({handicap})")
-                elif handicap >= 75:
-                    score += 35
-                    factors.append(f"Strong handicap rating ({handicap})")
-                elif handicap >= 65:
-                    score += 25
-                    factors.append(f"Good handicap rating ({handicap})")
-                else:
-                    score -= 5
-                    factors.append(f"Below average handicap ({handicap})")
-            except ValueError:
-                pass
-        else:
-            score -= 15
-            factors.append("No handicap rating")
-        
-        # Weight analysis
+    def load_history(self):
+        """Load prediction history"""
         try:
-            weight = float(horse['weight'].split()[0])
-            if weight <= 54:
-                score += 30
-                factors.append("Very favorable weight")
-            elif weight <= 56:
-                score += 20
-                factors.append("Favorable weight")
-            elif weight <= 58:
-                score += 10
-                factors.append("Acceptable weight")
+            os.makedirs('data/history', exist_ok=True)
+            if os.path.exists(self.history_file):
+                with open(self.history_file, 'r') as f:
+                    try:
+                        self.history = json.load(f)
+                    except json.JSONDecodeError as e:
+                        print(f"Error decoding history file: {e}")
+                        self._initialize_empty_history()
             else:
-                score -= 5
-                factors.append("High weight")
-        except (ValueError, IndexError):
-            pass
-        
-        # Jockey performance at this track
-        jockey_races = [h for h in self.historical_data if h.get('jockey') == horse['jockey'] and h['track'] == race_info['track']]
-        if jockey_races:
-            jockey_wins = len([r for r in jockey_races if r.get('position') == '1'])
-            if jockey_wins > 0:
-                win_rate = jockey_wins / len(jockey_races)
-                score += win_rate * 25
-                factors.append(f"Jockey track win rate: {win_rate:.1%} ({jockey_wins}/{len(jockey_races)})")
-        
-        # Ensure minimum score is 0
-        score = max(0, score)
-                
-        return score, factors
-        
-    def analyze_race(self, race_entries, race_info):
-        """Analyze all horses in a race and return predictions"""
-        predictions = []
-        
-        # Analyze each horse
-        total_score = 0
-        for horse in race_entries:
-            score, factors = self.analyze_horse(horse, race_info)
-            total_score += score
-            predictions.append({
-                'horse_name': horse['horse_name'],
-                'score': score,
-                'factors': factors
-            })
-            
-        # Convert scores to probabilities
-        if total_score > 0:
-            for pred in predictions:
-                pred['win_probability'] = pred['score'] / total_score
-        else:
-            # Equal probabilities if no scores
-            prob = 1.0 / len(predictions)
-            for pred in predictions:
-                pred['win_probability'] = prob
-                
-        # Sort by probability
-        predictions.sort(key=lambda x: x['win_probability'], reverse=True)
-        
-        # Save prediction
-        self.prediction_history.append({
-            'date': race_info['date'],
-            'track': race_info['track'],
-            'predictions': predictions
-        })
-        self.save_prediction_history()
-        
-        return predictions
+                self._initialize_empty_history()
+        except Exception as e:
+            print(f"Error loading history: {e}")
+            self._initialize_empty_history()
+    
+    def _initialize_empty_history(self):
+        """Initialize empty history structure"""
+        self.history = {
+            'predictions': [],
+            'track_stats': {},
+            'horse_stats': {},
+            'accuracy': {'correct': 0, 'total': 0}
+        }
+
+    def save_history(self):
+        """Save prediction history"""
+        with open(self.history_file, 'w') as f:
+            json.dump(self.history, f, indent=4)
 
     def calculate_head_to_head(self, horse1, horse2):
-        """Calculate head-to-head statistics between two horses"""
-        h2h_stats = {
-            'total_races': 0,
-            'wins_horse1': 0,
-            'wins_horse2': 0,
-            'better_finish_horse1': 0
-        }
-        
-        for pred in self.prediction_history:
-            if horse1 in pred['predictions'] and horse2 in pred['predictions']:
-                h2h_stats['total_races'] += 1
-                pos1 = pred['predictions'].index(horse1)
-                pos2 = pred['predictions'].index(horse2)
-                
-                if pos1 == 0: h2h_stats['wins_horse1'] += 1
-                if pos2 == 0: h2h_stats['wins_horse2'] += 1
-                if pos1 < pos2: h2h_stats['better_finish_horse1'] += 1
-        
-        return h2h_stats
+        """Calculate head-to-head statistics between two horses using database"""
+        return self.db.get_head_to_head(horse1, horse2)
 
     def get_track_performance(self, horse, track):
-        """Get horse's performance statistics at specific track"""
-        track_stats = {
-            'races': 0,
-            'wins': 0,
-            'places': 0,
-            'avg_position': 0,
-            'best_time': None
-        }
-        
-        positions = []
-        for pred in self.prediction_history:
-            if pred['track'] == track and horse in pred['predictions']:
-                track_stats['races'] += 1
-                pos = pred['predictions'].index(horse)
-                positions.append(pos)
-                
-                if pos == 0: track_stats['wins'] += 1
-                if pos <= 3: track_stats['places'] += 1
-                
-                if 'times' in pred and horse in pred['times']:
-                    time = pred['times'][horse]
-                    if not track_stats['best_time'] or time < track_stats['best_time']:
-                        track_stats['best_time'] = time
-        
-        if positions:
-            track_stats['avg_position'] = np.mean(positions)
-            
-        return track_stats
+        """Get horse's performance statistics at specific track using database"""
+        return self.db.get_track_statistics(track)
 
     def get_city_performance(self, horse, city):
         """Get horse's performance statistics in specific city"""
@@ -326,12 +71,12 @@ class RaceAnalyzer:
             'best_tracks': defaultdict(int)
         }
         
-        for pred in self.prediction_history:
-            if pred['city'] == city and horse in pred['predictions']:
+        for pred in self.history['predictions']:
+            if pred['city'] == city and horse in pred['results']:
                 city_stats['races'] += 1
-                pos = pred['predictions'].index(horse)
+                pos = pred['results'][horse]
                 
-                if pos == 0:
+                if pos == 1:
                     city_stats['wins'] += 1
                     city_stats['best_tracks'][pred['track']] += 1
                 if pos <= 3:
@@ -340,9 +85,9 @@ class RaceAnalyzer:
                 # Calculate earnings if prize information is available
                 if 'prize' in pred and pred['prize']:
                     prize = float(pred['prize'].replace('.', '').replace('TL', ''))
-                    if pos == 0: city_stats['earnings'] += prize * 0.6
-                    elif pos == 1: city_stats['earnings'] += prize * 0.2
-                    elif pos == 2: city_stats['earnings'] += prize * 0.1
+                    if pos == 1: city_stats['earnings'] += prize * 0.6
+                    elif pos == 2: city_stats['earnings'] += prize * 0.2
+                    elif pos == 3: city_stats['earnings'] += prize * 0.1
         
         return city_stats
 
@@ -356,24 +101,24 @@ class RaceAnalyzer:
             'avg_position': []
         }
         
-        for pred in self.prediction_history:
-            if pred['city'] == city and horse in pred['predictions']:
+        for pred in self.history['predictions']:
+            if pred['city'] == city and horse in pred['results']:
                 race_date = datetime.strptime(pred['date'], '%Y-%m-%d')
                 race_season = (race_date.month % 12 + 3) // 3  # Convert month to season (1-4)
                 
                 if race_season == season:
                     seasonal_stats['races'] += 1
-                    pos = pred['predictions'].index(horse)
+                    pos = pred['results'][horse]
                     seasonal_stats['avg_position'].append(pos)
                     
-                    if pos == 0: seasonal_stats['wins'] += 1
+                    if pos == 1: seasonal_stats['wins'] += 1
                     if pos <= 3: seasonal_stats['places'] += 1
                     
                     if 'prize' in pred and pred['prize']:
                         prize = float(pred['prize'].replace('.', '').replace('TL', ''))
-                        if pos == 0: seasonal_stats['earnings'] += prize * 0.6
-                        elif pos == 1: seasonal_stats['earnings'] += prize * 0.2
-                        elif pos == 2: seasonal_stats['earnings'] += prize * 0.1
+                        if pos == 1: seasonal_stats['earnings'] += prize * 0.6
+                        elif pos == 2: seasonal_stats['earnings'] += prize * 0.2
+                        elif pos == 3: seasonal_stats['earnings'] += prize * 0.1
         
         if seasonal_stats['avg_position']:
             seasonal_stats['avg_position'] = np.mean(seasonal_stats['avg_position'])
@@ -389,19 +134,19 @@ class RaceAnalyzer:
             'recovery_time': []  # Days between races when traveling
         }
         
-        sorted_predictions = sorted(self.prediction_history, key=lambda x: x['date'])
+        sorted_predictions = sorted(self.history['predictions'], key=lambda x: x['date'])
         
         for i in range(1, len(sorted_predictions)):
             prev_race = sorted_predictions[i-1]
             curr_race = sorted_predictions[i]
             
-            if horse in prev_race['predictions'] and horse in curr_race['predictions']:
+            if horse in prev_race['results'] and horse in curr_race['results']:
                 if prev_race['city'] == from_city and curr_race['city'] == to_city:
                     impact_stats['races_after_travel'] += 1
-                    pos = curr_race['predictions'].index(horse)
+                    pos = curr_race['results'][horse]
                     impact_stats['avg_position_after_travel'].append(pos)
                     
-                    if pos == 0:
+                    if pos == 1:
                         impact_stats['wins_after_travel'] += 1
                     
                     # Calculate days between races
@@ -419,12 +164,12 @@ class RaceAnalyzer:
 
     def get_last_race_city(self, horse):
         """Get the city of horse's last race"""
-        sorted_predictions = sorted(self.prediction_history, 
+        sorted_predictions = sorted(self.history['predictions'], 
                                   key=lambda x: datetime.strptime(x['date'], '%Y-%m-%d'),
                                   reverse=True)
         
         for pred in sorted_predictions:
-            if horse in pred['predictions']:
+            if horse in pred['results']:
                 return pred['city']
         return None
 
@@ -438,13 +183,13 @@ class RaceAnalyzer:
             'by_city': defaultdict(lambda: {'races': 0, 'wins': 0})
         }
         
-        for pred in self.prediction_history:
-            if horse in pred['predictions'] and pred.get('weather') == weather_condition:
+        for pred in self.history['predictions']:
+            if horse in pred['results'] and pred.get('weather') == weather_condition:
                 weather_stats['races'] += 1
-                pos = pred['predictions'].index(horse)
+                pos = pred['results'][horse]
                 weather_stats['avg_position'].append(pos)
                 
-                if pos == 0:
+                if pos == 1:
                     weather_stats['wins'] += 1
                     weather_stats['by_city'][pred['city']]['wins'] += 1
                 if pos <= 3:
@@ -465,19 +210,19 @@ class RaceAnalyzer:
             'sentetik': {'races': 0, 'wins': 0, 'places': 0, 'avg_position': []}
         }
         
-        for pred in self.prediction_history:
-            if horse in pred['predictions']:
+        for pred in self.history['predictions']:
+            if horse in pred['results']:
                 if city and pred['city'] != city:
                     continue
                     
                 surface = pred.get('surface', '').lower()
                 if surface in surface_stats:
                     stats = surface_stats[surface]
-                    pos = pred['predictions'].index(horse)
+                    pos = pred['results'][horse]
                     
                     stats['races'] += 1
                     stats['avg_position'].append(pos)
-                    if pos == 0: stats['wins'] += 1
+                    if pos == 1: stats['wins'] += 1
                     if pos <= 3: stats['places'] += 1
         
         # Calculate averages
@@ -502,11 +247,11 @@ class RaceAnalyzer:
             'progression': []  # Track improvement over time
         }
         
-        sorted_races = sorted(self.prediction_history, 
+        sorted_races = sorted(self.history['predictions'], 
                              key=lambda x: datetime.strptime(x['date'], '%Y-%m-%d'))
         
         for pred in sorted_races:
-            if horse in pred['predictions']:
+            if horse in pred['results']:
                 race_distance = pred.get('distance')
                 if not race_distance:
                     continue
@@ -520,11 +265,11 @@ class RaceAnalyzer:
                     if venue and pred['city'] != venue:
                         continue
                         
-                    pos = pred['predictions'].index(horse)
+                    pos = pred['results'][horse]
                     distance_stats['races'] += 1
                     distance_stats['avg_position'].append(pos)
                     
-                    if pos == 0:
+                    if pos == 1:
                         distance_stats['wins'] += 1
                     if pos <= 3:
                         distance_stats['places'] += 1
@@ -532,7 +277,7 @@ class RaceAnalyzer:
                     # Track surface performance
                     surface = pred.get('surface', '').lower()
                     distance_stats['by_surface'][surface]['races'] += 1
-                    if pos == 0:
+                    if pos == 1:
                         distance_stats['by_surface'][surface]['wins'] += 1
                     
                     # Track progression
@@ -558,70 +303,194 @@ class RaceAnalyzer:
         
         return distance_stats
 
+    def analyze_race(self, race_entries, race_info):
+        """Enhanced comprehensive race analysis with weather, surface, and distance factors"""
+        if not race_entries or not race_info:
+            raise ValueError("Race entries and race info must be provided")
+
+        try:
+            predictor = RacePredictor()
+            predictions = predictor.predict_race(race_entries)
+            
+            if not predictions:
+                raise ValueError("No predictions generated")
+                
+            current_season = (datetime.now().month % 12 + 3) // 3
+        except Exception as e:
+            raise ValueError(f"Error during race prediction: {str(e)}")
+        
+        # Add enhanced location-specific analysis
+        for horse in predictions:
+            horse_name = horse['horse_name']  # Changed from horse['name'] to horse['horse_name']
+            
+            # City performance
+            city_stats = self.get_city_performance(horse_name, race_info['City'])
+            if city_stats['races'] > 0:
+                city_win_rate = city_stats['wins'] / city_stats['races']
+                horse['win_chance'] *= (1 + city_win_rate * 0.2)
+                horse['factors'].append(f"City Win Rate: {city_win_rate:.1%}")
+                horse['factors'].append(f"City Earnings: {city_stats['earnings']:,.0f} TL")
+            
+            # Seasonal performance at this location
+            seasonal_stats = self.get_seasonal_city_performance(horse_name, race_info['City'], current_season)
+            if seasonal_stats['races'] > 0:
+                seasonal_win_rate = seasonal_stats['wins'] / seasonal_stats['races']
+                horse['win_chance'] *= (1 + seasonal_win_rate * 0.15)
+                horse['factors'].append(f"Seasonal Win Rate: {seasonal_win_rate:.1%}")
+                horse['factors'].append(f"Avg Seasonal Position: {seasonal_stats['avg_position']:.1f}")
+            
+            # Travel impact if horse's last race was in different city
+            last_race_city = self.get_last_race_city(horse_name)
+            if last_race_city and last_race_city != race_info['City']:
+                travel_stats = self.get_travel_impact(horse_name, last_race_city, race_info['City'])
+                if travel_stats['races_after_travel'] > 0:
+                    travel_win_rate = travel_stats['wins_after_travel'] / travel_stats['races_after_travel']
+                    adjustment = 0.9 if travel_win_rate < 0.1 else (1 + travel_win_rate * 0.1)
+                    horse['win_chance'] *= adjustment
+                    horse['factors'].append(f"Travel Impact: {travel_win_rate:.1%} win rate after travel")
+                    if 'avg_recovery_time' in travel_stats:
+                        horse['factors'].append(f"Avg Recovery: {travel_stats['avg_recovery_time']:.0f} days")
+            
+            # Weather impact
+            weather_stats = self.get_weather_performance(horse_name, race_info['Weather'])
+            if weather_stats['races'] > 0:
+                weather_win_rate = weather_stats['wins'] / weather_stats['races']
+                horse['win_chance'] *= (1 + weather_win_rate * 0.15)
+                horse['factors'].append(f"Weather Performance: {weather_win_rate:.1%} win rate")
+                
+                # City-specific weather performance
+                city_weather_stats = weather_stats['by_city'][race_info['City']]
+                if city_weather_stats['races'] > 0:
+                    city_weather_win_rate = city_weather_stats['wins'] / city_weather_stats['races']
+                    horse['factors'].append(f"Local Weather Performance: {city_weather_win_rate:.1%}")
+            
+            # Surface preferences
+            surface_stats = self.get_surface_preferences(horse_name, race_info['City'])
+            current_surface = race_info['Surface'].lower()
+            if current_surface in surface_stats:
+                surface_perf = surface_stats[current_surface]
+                if surface_perf['races'] > 0:
+                    surface_win_rate = surface_perf['wins'] / surface_perf['races']
+                    horse['win_chance'] *= (1 + surface_win_rate * 0.2)
+                    horse['factors'].append(f"Surface Win Rate: {surface_win_rate:.1%}")
+            
+            # Distance analysis
+            distance = int(race_info['Distance'].replace('m', ''))
+            distance_stats = self.get_distance_performance(horse_name, distance, race_info['City'])
+            if distance_stats['races'] > 0:
+                distance_win_rate = distance_stats['wins'] / distance_stats['races']
+                horse['win_chance'] *= (1 + distance_win_rate * 0.25)
+                horse['factors'].append(f"Distance Win Rate: {distance_win_rate:.1%}")
+                
+                if distance_stats.get('improving'):
+                    horse['win_chance'] *= 1.1
+                    horse['factors'].append("Improving at this distance")
+                
+                if distance_stats['best_time']:
+                    horse['factors'].append(f"Best Time: {distance_stats['best_time']}")
+        
+        # Normalize probabilities
+        total_prob = sum(h['win_chance'] for h in predictions)
+        for horse in predictions:
+            horse['win_chance'] = (horse['win_chance'] / total_prob) * 100
+        
+        # Enhanced prediction dataframe
+        pred_df = pd.DataFrame([
+            {
+                'Horse': p['horse_name'],
+                'Win %': p['win_chance'],
+                'Form': p['recent_form'],
+                'Weight': race_entries[i]['weight'],
+                'Jockey': race_entries[i]['jockey'],
+                'Trainer': race_entries[i]['trainer'],
+                'Type': 'Dişi' if race_entries[i]['type'] == 'd' else 'Erkek',
+                'Best Time': race_entries[i]['best_time'] or 'N/A',
+                'Track Stats': self.get_track_performance(p['horse_name'], race_info['Track'])
+            } for i, p in enumerate(predictions)
+        ])
+        
+        # Create visualizations
+        self.create_visualizations(pred_df, race_info)
+        
+        # Generate head-to-head matrix
+        self.create_h2h_matrix(pred_df)
+        
+        # Print comprehensive analysis
+        self.print_analysis(pred_df, race_info)
+        
+        return predictions
+
     def create_visualizations(self, pred_df, race_info):
         """Create comprehensive visualizations with all metrics"""
-        # Create a larger figure with multiple subplots
-        fig = plt.figure(figsize=(20, 15))
-        gs = plt.GridSpec(3, 3, figure=fig)
-        
-        # 1. Win Probability Chart (Top Left)
-        ax1 = fig.add_subplot(gs[0, 0])
-        self.plot_win_probabilities(ax1, pred_df)
-        
-        # 2. Recent Form Heatmap (Top Middle)
-        ax2 = fig.add_subplot(gs[0, 1])
-        self.plot_form_heatmap(ax2, pred_df)
-        
-        # 3. Surface Performance (Top Right)
-        ax3 = fig.add_subplot(gs[0, 2])
-        self.plot_surface_performance(ax3, pred_df, race_info)
-        
-        # 4. Distance Performance (Middle Left)
-        ax4 = fig.add_subplot(gs[1, 0])
-        self.plot_distance_performance(ax4, pred_df, race_info)
-        
-        # 5. Weather Impact (Middle Middle)
-        ax5 = fig.add_subplot(gs[1, 1])
-        self.plot_weather_performance(ax5, pred_df, race_info)
-        
-        # 6. Track History (Middle Right)
-        ax6 = fig.add_subplot(gs[1, 2])
-        self.plot_track_history(ax6, pred_df, race_info)
-        
-        # 7. Race Details Table (Bottom)
-        ax7 = fig.add_subplot(gs[2, :])
-        self.create_race_details_table(ax7, race_info)
-        
-        plt.tight_layout()
-        os.makedirs('data/visualizations', exist_ok=True)
-        plt.savefig('data/visualizations/race_analysis.png', dpi=300, bbox_inches='tight')
+        try:
+            # Create a larger figure with multiple subplots
+            fig = plt.figure(figsize=(20, 15))
+            gs = plt.GridSpec(3, 3, figure=fig)
+            
+            # 1. Win Probability Chart (Top Left)
+            ax1 = fig.add_subplot(gs[0, 0])
+            self.plot_win_probabilities(ax1, pred_df)
+            
+            # 2. Recent Form Heatmap (Top Middle)
+            ax2 = fig.add_subplot(gs[0, 1])
+            self.plot_form_heatmap(ax2, pred_df)
+            
+            # 3. Surface Performance (Top Right)
+            ax3 = fig.add_subplot(gs[0, 2])
+            self.plot_surface_performance(ax3, pred_df, race_info)
+            
+            # 4. Distance Performance (Middle Left)
+            ax4 = fig.add_subplot(gs[1, 0])
+            self.plot_distance_performance(ax4, pred_df, race_info)
+            
+            # 5. Weather Impact (Middle Middle)
+            ax5 = fig.add_subplot(gs[1, 1])
+            self.plot_weather_performance(ax5, pred_df, race_info)
+            
+            # 6. Track History (Middle Right)
+            ax6 = fig.add_subplot(gs[1, 2])
+            self.plot_track_history(ax6, pred_df, race_info)
+            
+            # 7. Race Details Table (Bottom)
+            ax7 = fig.add_subplot(gs[2, :])
+            self.create_race_details_table(ax7, race_info)
+            
+            plt.tight_layout()
+            os.makedirs('data/visualizations', exist_ok=True)
+            plt.savefig('data/visualizations/race_analysis.png', dpi=300, bbox_inches='tight')
+        finally:
+            plt.close(fig)  # Ensure figure is closed to prevent memory leaks
 
     def create_h2h_matrix(self, pred_df):
         """Create head-to-head comparison matrix"""
-        horses = pred_df['Horse'].tolist()
-        h2h_matrix = pd.DataFrame(index=horses, columns=horses)
-        
-        for h1 in horses:
-            for h2 in horses:
-                if h1 != h2:
-                    stats = self.calculate_head_to_head(h1, h2)
-                    h2h_matrix.loc[h1, h2] = f"{stats['wins_horse1']}-{stats['wins_horse2']}"
-        
-        # Save matrix visualization
-        plt.figure(figsize=(10, 8))
-        plt.imshow(h2h_matrix.notna(), cmap='YlOrRd')
-        plt.xticks(range(len(horses)), horses, rotation=45, ha='right')
-        plt.yticks(range(len(horses)), horses)
-        
-        for i in range(len(horses)):
-            for j in range(len(horses)):
-                text = h2h_matrix.iloc[i, j]
-                if pd.notna(text):
-                    plt.text(j, i, text, ha='center', va='center')
-        
-        plt.title('Head-to-Head Record')
-        plt.tight_layout()
-        plt.savefig('data/visualizations/h2h_matrix.png', dpi=300, bbox_inches='tight')
+        try:
+            horses = pred_df['Horse'].tolist()
+            h2h_matrix = pd.DataFrame(index=horses, columns=horses)
+            
+            for h1 in horses:
+                for h2 in horses:
+                    if h1 != h2:
+                        stats = self.calculate_head_to_head(h1, h2)
+                        h2h_matrix.loc[h1, h2] = f"{stats['wins_horse1']}-{stats['wins_horse2']}"
+            
+            # Save matrix visualization
+            fig = plt.figure(figsize=(10, 8))
+            plt.imshow(h2h_matrix.notna(), cmap='YlOrRd')
+            plt.xticks(range(len(horses)), horses, rotation=45, ha='right')
+            plt.yticks(range(len(horses)), horses)
+            
+            for i in range(len(horses)):
+                for j in range(len(horses)):
+                    text = h2h_matrix.iloc[i, j]
+                    if pd.notna(text):
+                        plt.text(j, i, text, ha='center', va='center')
+            
+            plt.title('Head-to-Head Record')
+            plt.tight_layout()
+            os.makedirs('data/visualizations', exist_ok=True)
+            plt.savefig('data/visualizations/h2h_matrix.png', dpi=300, bbox_inches='tight')
+        finally:
+            plt.close('all')  # Ensure all figures are closed to prevent memory leaks
 
     def print_analysis(self, pred_df, race_info):
         """Print comprehensive analysis report"""
@@ -796,14 +665,14 @@ class RaceAnalyzer:
                     ax.text(j, i, str(text), ha='center', va='center')
 
 def main():
-    analyzer = RaceAnalyzer(...)  # Your historical data
+    analyzer = RaceAnalyzer()
     
     # Your existing race_info and race_entries
     race_info = {...}  # Your race information
     race_entries = [...] # Your race entries
     
-    predictions = analyzer.analyze_race(race_entries, race_info)
+    analyzer.analyze_race(race_entries, race_info)
     print("\nAnalysis complete. Check data/visualizations/ for detailed charts.")
 
 if __name__ == "__main__":
-    main() 
+    main()

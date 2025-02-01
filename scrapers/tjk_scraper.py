@@ -80,8 +80,66 @@ class TJKScraper:
     
     def scrape_daily_races(self, date_str):
         """Scrape all races for a given date"""
-        # Implementation depends on TJK's API/website structure
-        pass
+        try:
+            # Format date for the request
+            date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+            formatted_date = date_obj.strftime('%d.%m.%Y')
+            
+            # Get the race programs page
+            url = "https://www.tjk.org/TR/YarisSever/Info/Page/GunlukYarisSonuclari"
+            response = self.session.get(url, headers=self.headers)
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            # Get the verification token
+            token = soup.find('input', {'name': '__RequestVerificationToken'})['value']
+            
+            # Make POST request to get the data for the specific date
+            post_data = {
+                '__RequestVerificationToken': token,
+                'QueryParameter.DateParameter': formatted_date,
+                'QueryParameter.TrackId': ''
+            }
+            
+            response = self.session.post(url, data=post_data, headers=self.headers)
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            # Find all race result links
+            race_links = []
+            for link in soup.find_all('a', href=True):
+                href = link.get('href', '')
+                if 'RaceResult' in href:
+                    race_links.append(href)
+            
+            # Process each race
+            for race_link in race_links:
+                race_data = self.scrape_race_details(race_link)
+                if race_data:
+                    race_data['date'] = date_str
+                    self.save_to_database(race_data)
+                    
+                    # Save to CSV in processed directory
+                    track = race_data['track']
+                    if track:
+                        os.makedirs('data/processed', exist_ok=True)
+                        csv_filename = f"data/processed/{formatted_date.replace('.', '-')}-{track}.csv"
+                        
+                        # Convert race data to DataFrame
+                        results_df = pd.DataFrame(race_data['results'])
+                        results_df['race_no'] = race_data['race_no']
+                        results_df['distance'] = race_data['distance']
+                        results_df['track_condition'] = race_data['track_condition']
+                        
+                        # Save to CSV
+                        results_df.to_csv(csv_filename, index=False, encoding='utf-8')
+                
+                # Add delay between requests
+                time.sleep(1)
+                
+            return True
+            
+        except Exception as e:
+            logging.error(f"Error scraping races for {date_str}: {str(e)}")
+            return False
     
     def scrape_date_range(self, start_date, end_date):
         """Scrape race data for a date range"""
@@ -407,4 +465,4 @@ class TJKScraper:
             
         except Exception as e:
             print(f"Error processing date {date_str}: {str(e)}")
-            return [] 
+            return []

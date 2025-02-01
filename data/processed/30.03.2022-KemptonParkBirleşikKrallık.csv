@@ -1,0 +1,73 @@
+horse_no,horse_name,age,origin,weight,jockey,owner_trainer,venue,file_date,race_no,distance_track,race_type,horse_type,race_day
+1,OCEAN CLOUD (IRE),2y d d,CAMACHO,"57,5",L MORRİS,MİSS GAY KELLEWAY,﻿Kempton Park Birleşik Krallık,2022-03-30,1,,,English,Wednesday
+2,SHE'S HOT,2y a d,SIOUX NATION (USA),"57,5",ROSSA RYAN,P F I COLE LTD,﻿Kempton Park Birleşik Krallık,2022-03-30,1,,,English,Wednesday
+3,CORAJE,2y d d,EXPERT EYE,"57,5",B CURTİS,THE COURAGEOUS SYNDİ,﻿Kempton Park Birleşik Krallık,2022-03-30,1,,,English,Wednesday
+4,COMEDIAN LEADER,2y d d,ACLAIM (IRE),"57,5",T HAMMER HANSEN,NİCK BRADLEY RACİNG,﻿Kempton Park Birleşik Krallık,2022-03-30,1,,,English,Wednesday
+5,ZEPHINA,2y d d,ZOUSTAR (AUS),"57,5",P COSGRAVE,MR S W BANKS,﻿Kempton Park Birleşik Krallık,2022-03-30,1,,,English,Wednesday
+6,ON THE PULSE (IRE),2y d d,DRAGON PULSE (IRE),"57,5",N CALLAN,MR P D EVANS,﻿Kempton Park Birleşik Krallık,2022-03-30,1,,,English,Wednesday
+7,XENACONTESSA (IRE),2y a d,PRINCE OF LIR (IRE),"57,5",G DOWNİNG,MR E A  R  MORGANS,﻿Kempton Park Birleşik Krallık,2022-03-30,1,,,English,Wednesday
+8,LILY IN THE JUNGLE (IRE),2y a d,BUNGLE INTHEJUNGLE,"57,5",C BİSHOP,"ROB EMMANUELLE, T BU",﻿Kempton Park Birleşik Krallık,2022-03-30,1,,,English,Wednesday
+9,HOT IN HAVANA,2y d d,HAVANA GREY,"57,5",D KEENAN,CROSS CHANNEL RACİNG,﻿Kempton Park Birleşik Krallık,2022-03-30,1,,,English,Wednesday
+10,MOUNTAIN RUN,2y k d,HELLVELYN,"57,5",L BROWNE,MRS R PEASE,﻿Kempton Park Birleşik Krallık,2022-03-30,1,,,English,Wednesday
+1,DYNAMIC TALENT,3y d g,ACLAIM (IRE),"60,5",DAVID EGAN,HARRATON COURT STABL,﻿Kempton Park Birleşik Krallık,2022-03-30,2,,,English,Wednesday
+2,MOUNT KOSCIUSZKO,3y k g,NATIONAL DEFENSE,"60,5",J P SPENCER,SUN BLOODSTOCK SARL,﻿Kempton Park Birleşik Krallık,2022-03-30,2,,,English,Wednesday
+3,WAR BRAVE (IRE) KG,3y d g,DUE DILIGENCE (USA),58,ROSSA RYAN,MR P CLIFTON,﻿Kempton Park Birleşik Krallık,2022-03-30,2,,,English,Wednesday
+4,ELSAAB,3y k d,EL KABEIR (USA),60,T MARQUAND,THE STORM AGAİN SYND,﻿Kempton Park Birleşik Krallık,2022-03-30,2,,,English,Wednesday
+5,JUST AN INKLING,3y d d,EQUIANO (FR),"57,5",P COSGRAVE,HARRİER RACİNG 2,﻿Kempton Park Birleşik Krallık,2022-03-30,2,,,English,Wednesday
+6,UMMSUQUAIM (USA),3y a d,MORE THAN READY (USA),61,H TURNER,NİGEL KELLY & STUART,﻿Kempton Park Birleşik Krallık,2022-03-30,2,,,English,Wednesday
+7,MISS HOUDINI (IRE),3y k d,GUTAIFAN (IRE),"59,5",G DOWNİNG,MR R BARNEY,﻿Kempton Park Birleşik Krallık,2022-03-30,2,,,English,Wednesday
+8,PLUPERFECT KG,3y d d,INVINCIBLE SPIRIT (IRE),60,R HAVLİN,JUDDMONTE,﻿Kempton Park Birleşik Krallık,2022-03-30,2,,,English,Wednesday
+9,NEMORUM (Koşmaz),3y d e,STIMULATION (IRE),57,N CALLAN,T J KENT,﻿Kempton Park Birleşik Krallık,2022-03-30,2,,,English,Wednesday
+1,ABOVE IT ALL (IRE) KG,3y d g,KODIAC,"57,5",T MARQUAND,EBURY RACING 7,﻿Kempton Park Birleşik Krallık,2022-03-30,3,,,English,Wednesday
+2,TWILIGHT REVENGE,3y a g,TWILIGHT SON,"60,5",D MUSCUTT,THE RIDGEWAY PARTNER,﻿Kempton Park Birleşik Krallık,2022-03-30,3,,,English,Wednesday
+3,CONNIE'S ROSE,3y d d,ADAAY (IRE),"55,5",L MORRİS,PAUL & ANN DE WECK,﻿Kempton Park Birleşik Krallık,2022-03-30,3,,,English,Wednesday
+4,ACCELERANDO (IRE),3y a d,NO NAY NEVER (USA),60,M GHİANİ,FLEXFORD PARTNERS,﻿Kempton Park Birleşik Krallık,2022-03-30,3,,,English,Wednesday
+5,SIMPLY GORGEOUS,3y d d,TIME TEST,61,T HEARD,MR E A CONDON,﻿Kempton Park Birleşik Krallık,2022-03-30,3,,,English,Wednesday
+6,NIGHT TRAVELLER,3y a d,NIGHT OF THUNDER (IRE),"60,5",J HAYNES,LONGVİEW STUD & BLOO,﻿Kempton Park Birleşik Krallık,2022-03-30,3,,,English,Wednesday
+7,LIV LUCKY (IRE),3y d d,PROFITABLE (IRE),"57,5",O STAMMERS,JOHNSTON RACİNG LTD,﻿Kempton Park Birleşik Krallık,2022-03-30,3,,,English,Wednesday
+8,NAFEE (IRE),3y d g,MEHMAS (IRE),59,R TART,MR BASEL ALSHRAIKA,﻿Kempton Park Birleşik Krallık,2022-03-30,3,,,English,Wednesday
+9,JACKMEISTER RUDI,3y d g,CHURCHILL (IRE),60,G DOWNING,SHROPSHIRE WOLVES,﻿Kempton Park Birleşik Krallık,2022-03-30,3,,,English,Wednesday
+1,SOLANNA,3y a e,HELMET (AUS),59,D MUSCUTT,MR K SNELL,﻿Kempton Park Birleşik Krallık,2022-03-30,4,,,English,Wednesday
+2,CIRCLE TIME (IRE),3y d g,OASIS DREAM,60,M GHIANI,MR J NORRIS,﻿Kempton Park Birleşik Krallık,2022-03-30,4,,,English,Wednesday
+3,SURREY TERRITORIES (IRE),3y d g,TERRITORIES (IRE),"57,5",ROSSA RYAN,KESTONRACINGCLUB,﻿Kempton Park Birleşik Krallık,2022-03-30,4,,,English,Wednesday
+4,SANDIE'S DREAM KG,3y d d,BELARDO (IRE),"58,5",N CALLAN,NİCK BRADLEY RACİNG,﻿Kempton Park Birleşik Krallık,2022-03-30,4,,,English,Wednesday
+5,DREAM LOFTY DREAMS,3y d g,LAWMAN (FR),"58,5",T HEARD,ROB NUGENT & HARRATO,﻿Kempton Park Birleşik Krallık,2022-03-30,4,,,English,Wednesday
+6,VIVE LA REINE YP,3y d d,TWILIGHT SON,60,H TURNER,CHOLA DYNASTY,﻿Kempton Park Birleşik Krallık,2022-03-30,4,,,English,Wednesday
+7,MUCUNA (GER) YP,3y d d,GUILIANI (IRE),"56,5",D KEENAN,MR DAVİD KEİTH TYE,﻿Kempton Park Birleşik Krallık,2022-03-30,4,,,English,Wednesday
+8,MISS MALOU,3y d d,WAR COMMAND (USA),58,G ROOKE,MR M MADGWİCK,﻿Kempton Park Birleşik Krallık,2022-03-30,4,,,English,Wednesday
+9,JOANIE'S GIRL YP,3y d d,PEARL SECRET,"56,5",T GREATREX,ONLY FOOLS HAVE HORS,﻿Kempton Park Birleşik Krallık,2022-03-30,4,,,English,Wednesday
+10,EDDY MAY (IRE),3y d d,PROFITABLE (IRE),"56,5",R HAVLİN,EDDY MAY RACİNG PART,﻿Kempton Park Birleşik Krallık,2022-03-30,4,,,English,Wednesday
+11,POWEREDBYLIGHTNING,3y d g,CABLE BAY (IRE),"56,5",S W KELLY,MR R MOORE,﻿Kempton Park Birleşik Krallık,2022-03-30,4,,,English,Wednesday
+12,FRA ANGELICO (IRE),3y d g,DARK ANGEL (IRE),"60,5",S OSBORNE,MR R J TUFFT,﻿Kempton Park Birleşik Krallık,2022-03-30,4,,,English,Wednesday
+13,ALPINE LADY,3y d d,POSTPONED (IRE),61,L MORRİS,ATHENA THOROUGHBRED,﻿Kempton Park Birleşik Krallık,2022-03-30,4,,,English,Wednesday
+14,MILD REFLECTION YP,3y d d,ACLAIM (IRE),"57,5",R KİNGSCOTE,BERKELEY RACİNG,﻿Kempton Park Birleşik Krallık,2022-03-30,4,,,English,Wednesday
+1,RHYTHM N ROCK (IRE),4y d a,FASCINATING ROCK (IRE),"61,5",DAVİD EGAN,NEWTOWN ANNER STUD F,﻿Kempton Park Birleşik Krallık,2022-03-30,5,,,English,Wednesday
+2,RAINBOW FIRE (IRE),4y d a,KODIAC,"61,5",R HAVLİN,MR SAEED SUHAİL,﻿Kempton Park Birleşik Krallık,2022-03-30,5,,,English,Wednesday
+3,MYSTICAL AIR,4y d k,KINGMAN,59,A ATZENİ,LORDSHİP STUD,﻿Kempton Park Birleşik Krallık,2022-03-30,5,,,English,Wednesday
+4,MONTERIA (IRE),4y d g,MEHMAS (IRE),58,ROSSA RYAN,THE LATE REG GIFFORD,﻿Kempton Park Birleşik Krallık,2022-03-30,5,,,English,Wednesday
+5,SAIGON,4y d g,FRANKEL,58,N CALLAN,"BENGOUGH, BOOTH, SIL",﻿Kempton Park Birleşik Krallık,2022-03-30,5,,,English,Wednesday
+6,DEAR HEART K,4y d k,KINGMAN,56,B SAYETTE,MS RACHEL D S HOOD,﻿Kempton Park Birleşik Krallık,2022-03-30,5,,,English,Wednesday
+7,TAQSEEMAAT,4y d k,NAYEF (USA),56,J CROWLEY,MRS AMANDA PERRETT,﻿Kempton Park Birleşik Krallık,2022-03-30,5,,,English,Wednesday
+8,ALKHATTAAF,4y d g,MUKHADRAM,58,GEORGIA DOBIE,KNIGHTS OF NI,﻿Kempton Park Birleşik Krallık,2022-03-30,5,,,English,Wednesday
+9,DOYOUKNOWMYUNCLES K,4y d k,PROCONSUL,56,S W KELLY,SP9 RACİNG CLUB,﻿Kempton Park Birleşik Krallık,2022-03-30,5,,,English,Wednesday
+10,MORNING SYMPHONY (IRE),4y d k,SHAMARDAL (USA),56,B CURTİS,MR GEORGE BOUGHEY,﻿Kempton Park Birleşik Krallık,2022-03-30,5,,,English,Wednesday
+11,JACALAN (USA) (Koşmaz),4y a g,FAST ANNA (USA),58,S M LEVEY,DJ RACING,﻿Kempton Park Birleşik Krallık,2022-03-30,5,,,English,Wednesday
+1,PENSIERO D'AMORE (IRE),6y d k,ZOFFANY (IRE),"60,5",N CALLAN,MR R BRUNİ & PARTNER,﻿Kempton Park Birleşik Krallık,2022-03-30,6,,,English,Wednesday
+2,ROMAN MIST (IRE),4y k k,HOLY ROMAN EMPEROR (IRE),60,T MARQUAND,HOT TO TROT RACİNG 1,﻿Kempton Park Birleşik Krallık,2022-03-30,6,,,English,Wednesday
+3,DIDEROT K,4y a g,BATED BREATH,"58,5",D MUSCUTT,OWNERS GROUP 091,﻿Kempton Park Birleşik Krallık,2022-03-30,6,,,English,Wednesday
+4,FANTASY BELIEVER (IRE),5y d g,MAKE BELIEVE,54,S OSBORNE,CHRIS & DAVID STAM,﻿Kempton Park Birleşik Krallık,2022-03-30,6,,,English,Wednesday
+5,ARCTICIAN (IRE),4y k a,DARK ANGEL (IRE),"53,5",L MORRİS,MR RİCHARD A MURRAY,﻿Kempton Park Birleşik Krallık,2022-03-30,6,,,English,Wednesday
+6,REVOLUTIONISE (IRE),6y k g,LOPE DE VEGA (IRE),"55,5",M GHIANI,T W MORLEY & REGENTS,﻿Kempton Park Birleşik Krallık,2022-03-30,6,,,English,Wednesday
+7,OH THIS IS US (IRE),9y d k,ACCLAMATION,60,ROSSA RYAN,TEAM WALLOP,﻿Kempton Park Birleşik Krallık,2022-03-30,6,,,English,Wednesday
+8,PASSIONOVA (IRE) YP,4y d k,BATED BREATH,"55,5",P COSGRAVE,"SİR JOHN RİTBLAT, P",﻿Kempton Park Birleşik Krallık,2022-03-30,6,,,English,Wednesday
+9,TO THE BAR (IRE),4y a g,TAMAYUZ,55,S W KELLY,MR JABER ABDULLAH,﻿Kempton Park Birleşik Krallık,2022-03-30,6,,,English,Wednesday
+1,KALAMITY KITTY,4y d k,CITYSCAPE,"56,5",ROSSA RYAN,FAİR WİND PARTNERSHİ,﻿Kempton Park Birleşik Krallık,2022-03-30,7,,,English,Wednesday
+2,STUDY THE STARS,4y d g,DUE DILIGENCE (USA),59,P COSGRAVE,HOMEBRED RACING,﻿Kempton Park Birleşik Krallık,2022-03-30,7,,,English,Wednesday
+3,LARGO BAY (USA) KG,4y a g,FLINTSHIRE,62,G ROOKE,MR JOE LANE,﻿Kempton Park Birleşik Krallık,2022-03-30,7,,,English,Wednesday
+4,LIBBRETTA,7y a k,LIBRANNO,"57,5",T MARQUAND,MRS A M STURGES,﻿Kempton Park Birleşik Krallık,2022-03-30,7,,,English,Wednesday
+5,CAPRICORN PRINCE KG,6y a g,GARSWOOD,"60,5",R CLUTTERBUCK,MRS ANDREA WILKINSON,﻿Kempton Park Birleşik Krallık,2022-03-30,7,,,English,Wednesday
+6,SAVOY BROWN,6y d g,EPAULETTE (AUS),"57,5",W CARVER,CANISBAY BLOODSTOCK,﻿Kempton Park Birleşik Krallık,2022-03-30,7,,,English,Wednesday
+7,SIR JOSEPH SWAN KG,4y d g,PACO BOY (IRE),56,R HAVLIN,MRS BRENDA KARN-SMIT,﻿Kempton Park Birleşik Krallık,2022-03-30,7,,,English,Wednesday
+8,IT'S HOW WE ROLL (IRE) YP,8y d g,FASTNET ROCK (AUS),"54,5",L MORRIS,KINNERSLEY PARTNERSH,﻿Kempton Park Birleşik Krallık,2022-03-30,7,,,English,Wednesday
+9,RUSHMORE,4y d g,LOPE DE VEGA (IRE),59,J HAYNES,CHELSEA BANHAM PRE T,﻿Kempton Park Birleşik Krallık,2022-03-30,7,,,English,Wednesday
+10,GERTCHA (IRE) YP,5y d g,SLADE POWER (IRE),60,W COX,MR J L FLINT,﻿Kempton Park Birleşik Krallık,2022-03-30,7,,,English,Wednesday

@@ -1,0 +1,98 @@
+horse_no,horse_name,age,origin,weight,jockey,owner_trainer,venue,file_date,race_no,distance_track,race_type,horse_type,race_day
+1.)54.000 TL,2.)21.600 TL,3.)10.800 TL,4.)5.400 TL,1.)9.315 TL,2.)3.726 TL,3.)1.863 TL,﻿İstanbul,2021-12-25,1,,,English,Saturday
+1,ÖZGÜRHAN KG DB SK,4y d  a,BATUKAN,50 +2.00,GÖK.BEKTAŞ,Ö.FARUK GİRGİN,﻿İstanbul,2021-12-25,1,,,English,Saturday
+2,HÜR UÇAN KG,4y k  a,UÇANOĞLU,"56,5",M.ÇİÇEK,ADNAN GELEN,﻿İstanbul,2021-12-25,1,,,English,Saturday
+3,ESERALP SK,7y d  a,TIGRES LIGHT (US),53 +0.50,VEDAT ABİŞ,BİLAL AVCI,﻿İstanbul,2021-12-25,1,,,English,Saturday
+4,BABA İLHAMİ KG,10y k  a,GOBAKBEY,50 +2.00,D.KAYA AP,M.ASIM ÇÖMLEKÇİOĞLU,﻿İstanbul,2021-12-25,1,,,English,Saturday
+5,DEMİRYILDIZ KG SK,5y k k,TOŞUR,59,H.ÇİZİK,İBRAHİM HALİL YILDIZ,﻿İstanbul,2021-12-25,1,,,English,Saturday
+6,YARİSSA,8y k  a,İZBATUR,"58,5 +0.10",Z.KARABULUT AP,H.TARIK DİKENCİK,﻿İstanbul,2021-12-25,1,,,English,Saturday
+7,GÖKÇEKENT SKG SK,4y a k,AYABAKAN,"51,5 +1.00",M.HAMEDİ,M.TEVFİK DEVRİMCİ,﻿İstanbul,2021-12-25,1,,,English,Saturday
+8,MUHSİN KG K DB,6y a  a,BOZOK,50 +2.00,N.AVCİ,ERGÜN CAN,﻿İstanbul,2021-12-25,1,,,English,Saturday
+9,TUĞTEKİN,6y d  a,DEHA,53 +0.40,Y.E.YÜKSEL AP,H.TARIK DİKENCİK,﻿İstanbul,2021-12-25,1,,,English,Saturday
+10,BARUTHAN KG,4y a  a,ÖZGÜNHAN,"51,5 +1.20",G.ÖZÇELİK AP,ASKERİ CANPOLAT,﻿İstanbul,2021-12-25,1,,,English,Saturday
+11,BEŞKAZALI KG,4y k  a,ALTAHA,56 +2.00,M.KAYA,MURAT SÖNMEZ,﻿İstanbul,2021-12-25,1,,,English,Saturday
+12,GUBAZ DB SK,5y a  a,TURBO,60,M.KAYİŞ AP,MEHMET DOĞAN,﻿İstanbul,2021-12-25,1,,,English,Saturday
+13,FIRTINAKASIM KG SK,5y a  a,ODİNHAN,59,D.YILDIZ,REŞİT TUMBUL,﻿İstanbul,2021-12-25,1,,,English,Saturday
+1.)69.000 TL,2.)27.600 TL,3.)13.800 TL,4.)6.900 TL,1.)11.903 TL,2.)4.761 TL,3.)2.381 TL,﻿İstanbul,2021-12-25,2,,,English,Saturday
+1,NEW WORLD SK,3y d  e,VICTORY GALLOP (CAN),56,VEDAT ABİŞ,T. İZZET AKSOY,﻿İstanbul,2021-12-25,2,,,English,Saturday
+2,MODA KG DB SK,3y d  e,PLEASANTLY PERFECT (USA),"58,5",A.KURŞUN,HALİL FAHRİ NARMANLI,﻿İstanbul,2021-12-25,2,,,English,Saturday
+3,WIN THE RACE K DB SKG SGKR,3y d  e,LION HEART (USA),50 +2.00,H.YOLAÇICI AP,KAZIM YARAREL,﻿İstanbul,2021-12-25,2,,,English,Saturday
+4,TEVAZU KG DB SK,3y d  e,TOROK (IRE),"55,5 +0.70",M.KAYİŞ AP,ONUR YETKİN,﻿İstanbul,2021-12-25,2,,,English,Saturday
+5,BLACK ROCK DB,3y d  e,PERFECT STORM,61,M.KAYA,ELİF KAYA,﻿İstanbul,2021-12-25,2,,,English,Saturday
+6,BREAK THE CHAIN DB SKG SK YP SGKR,3y a  e,INVINCIBLE SON (IRE),"59,5",M.AKIN AP,GÜNSEN SOYUPAK,﻿İstanbul,2021-12-25,2,,,English,Saturday
+7,SAN SEBASTIAN KG K,3y d  e,KARABEYHAN (GB),50 +2.00,D.KAYA AP,MURAT KARABULUT,﻿İstanbul,2021-12-25,2,,,English,Saturday
+8,PASSION RUNNER KG DB,3y d  d,CHURCH PICTURES (GB),"60,5",B.ÇIĞLA AP,YASEMİN TURAKTEKİN,﻿İstanbul,2021-12-25,2,,,English,Saturday
+9,SUMMER BOY KG SK,3y d  g,SUMMER FRONT (USA),50 +2.00,G.ÖZÇELİK AP,YİĞİT KILIÇÇI,﻿İstanbul,2021-12-25,2,,,English,Saturday
+10,ANNA HENRIETTA KG SK,3y d  d,ROCKMASTER (IRE),56,N.AVCİ,GÖRKEM GEDİKOĞLU,﻿İstanbul,2021-12-25,2,,,English,Saturday
+11,KIZIL ASLAN,3y a  e,FLYING BOY (IRE),"53,5",M.HAMEDİ,DURSUN ÖZTÜRK,﻿İstanbul,2021-12-25,2,,,English,Saturday
+12,LUCEZIA SK,3y d  d,WIENER WALZER (GER),"53,5 +1.60",GÖKH.GÖKÇE,SELMAN ERDEMİRCİ,﻿İstanbul,2021-12-25,2,,,English,Saturday
+13,SARAH CONNOR SK,3y d  d,DAI JIN (GB),50 +2.00,GÖK.BEKTAŞ,YÜKSEL GÖKTÜRK,﻿İstanbul,2021-12-25,2,,,English,Saturday
+1.)60.000 TL,2.)24.000 TL,3.)12.000 TL,4.)6.000 TL,1.)17.250 TL,2.)6.900 TL,3.)3.450 TL,﻿İstanbul,2021-12-25,3,,,English,Saturday
+1,TWIST AND SHOUT K,2y d  d,SCARFACE,57,H.KARATAŞ,LALE M. ATMAN,﻿İstanbul,2021-12-25,3,,,English,Saturday
+2,PRINCESS KHAN KG K,2y d  d,NATIVE KHAN (FR),55,G.ÖZÇELİK AP,İSMAİL KARAMAN,﻿İstanbul,2021-12-25,3,,,English,Saturday
+3,ANADOLU PRENSESİ K,2y d  d,MENDIP (USA),57,VEDAT ABİŞ,T. İZZET AKSOY,﻿İstanbul,2021-12-25,3,,,English,Saturday
+4,NATIVE GIFT,2y k  d,NATIVE KHAN (FR),57,A.KURŞUN,V.İBRAHİM ARACI,﻿İstanbul,2021-12-25,3,,,English,Saturday
+5,ANOTHER LOVE KG SK,2y a  d,EL CORREDOR (USA),57,N.AVCİ,GÜNSEN SOYUPAK,﻿İstanbul,2021-12-25,3,,,English,Saturday
+6,QUEEN AYÇA SK,2y d  d,EL CORREDOR (USA),57,H.ÇİZİK,MURAT ÇİÇEK,﻿İstanbul,2021-12-25,3,,,English,Saturday
+7,NEW MELBOURNE KG K DB,2y d  d,KANEKO,57,M.HAMEDİ,M.KEREM ALKAN,﻿İstanbul,2021-12-25,3,,,English,Saturday
+8,MASTER QUEEN K DB,2y a  d,LION HEART (USA),57,S.BOYRAZ,M.SENCER GİRGİN,﻿İstanbul,2021-12-25,3,,,English,Saturday
+9,SHOCK K,2y d  d,BOSPORUS (IRE),53 +0.20,H.YOLAÇICI AP,AHMET KARAOĞLU,﻿İstanbul,2021-12-25,3,,,English,Saturday
+10,HAZY DAISY SK,2y a  d,LUXOR,57 +0.50,B.KURDU,AYŞE MERVE KİTAPÇI,﻿İstanbul,2021-12-25,3,,,English,Saturday
+11,FU HAO ASIA KG K,2y a  d,GENERAL QUARTERS (USA),54 +2.00,M.KAYİŞ AP,METEHAN YALÇINKAYA,﻿İstanbul,2021-12-25,3,,,English,Saturday
+12,ALTO BELLA DB SKG SK,2y d  d,LION HEART (USA),57,G.YILDIZ,TUNÇ CAVCAV,﻿İstanbul,2021-12-25,3,,,English,Saturday
+13,LUNAR CURVE  KG SK,2y d  d,TOROK (IRE),57,GÖKH.GÖKÇE,ALARA BAKIR,﻿İstanbul,2021-12-25,3,,,English,Saturday
+1.)90.000 TL,2.)36.000 TL,3.)18.000 TL,4.)9.000 TL,1.)20.700 TL,2.)8.280 TL,3.)4.140 TL,﻿İstanbul,2021-12-25,4,,,English,Saturday
+1,ATOMIC BLONDE SK,3y a  d,CAPTAIN RIO (GB),"62,5",H.KARATAŞ,ADİL MERT KAYA,﻿İstanbul,2021-12-25,4,,,English,Saturday
+2,WOLF POLAT SK,4y d  a,LUXOR,"59,5",H.ÇİZİK,ZAFER TEMUÇİN,﻿İstanbul,2021-12-25,4,,,English,Saturday
+3,JUNO K YP,5y a k,RIP VAN WINKLE (IRE),"59,5",M.KAYA,ALİ RIZA ÇELİKOĞLU,﻿İstanbul,2021-12-25,4,,,English,Saturday
+4,PADRE PADRONE DB SK,5y d  a,THEWAYYOUARE (USA),"62,5",VEDAT ABİŞ,DUYGU FATURA,﻿İstanbul,2021-12-25,4,,,English,Saturday
+5,SEMİH BEY K DB BB,6y d  g,POWERSCOURT (GB),55 +1.70,A.KURŞUN,İSMAİL GÜL,﻿İstanbul,2021-12-25,4,,,English,Saturday
+6,WATASHI NO KISEKI KG K,3y d  d,KANEKO,52,M.HAMEDİ,M.KEREM ALKAN,﻿İstanbul,2021-12-25,4,,,English,Saturday
+7,AZMANTOR SK,5y d  a,KANEKO,63,S.BOYRAZ,CEM ÖZBELGE,﻿İstanbul,2021-12-25,4,,,English,Saturday
+8,GOLDENPASS K DB,5y d  a,PERFECT STORM,"58,5",M.KAYİŞ AP,METE ALBAYRAK,﻿İstanbul,2021-12-25,4,,,English,Saturday
+9,TİVOLİ K DB,4y d  a,TRIPLE BONUS,"62,5",B.KURDU,N.AREK KUYUMCİYAN,﻿İstanbul,2021-12-25,4,,,English,Saturday
+10,UĞUR BUBAM DB SK BB,5y d  a,WIN RIVER WIN (USA),51 +1.50,GÖK.BEKTAŞ,MASİS MARKARYAN,﻿İstanbul,2021-12-25,4,,,English,Saturday
+11,CRIMINAL DB SKG SK,4y a  a,DUTYFREE,60,GÖKH.GÖKÇE,SERHAT SUNA,﻿İstanbul,2021-12-25,4,,,English,Saturday
+12,LEX TALLIONIS KG DB,5y a  a,THREE VALLEYS (USA),"54,5 +2.00",M.ÇİÇEK,İLHAN DURAK,﻿İstanbul,2021-12-25,4,,,English,Saturday
+1.)80.000 TL,2.)32.000 TL,3.)16.000 TL,4.)8.000 TL,1.)18.400 TL,2.)7.360 TL,3.)3.680 TL,﻿İstanbul,2021-12-25,5,,,English,Saturday
+1,AKKULA KG DB SK,7y k  a,TURBO,"56,5",H.KARATAŞ,SONER SÖKMEN,﻿İstanbul,2021-12-25,5,,,English,Saturday
+2,AFACAN KG K,6y k  a,YAŞARCIK,"59,5",H.ÇİZİK,N.AREK KUYUMCİYAN,﻿İstanbul,2021-12-25,5,,,English,Saturday
+3,UMUTLU KG DB SK,7y a  a,SARUHANAĞA,"61,5",M.ÇİÇEK,DAVUT ARSLANCA,﻿İstanbul,2021-12-25,5,,,English,Saturday
+4,ALTIN SUYU KG SK,5y a k,TURBO,"57,5",M.HAMEDİ,ALİ ÖZBAKIR,﻿İstanbul,2021-12-25,5,,,English,Saturday
+5,YÜKSELABİ,4y a  a,BİLGİN,"59,5",VEDAT ABİŞ,T. İZZET AKSOY,﻿İstanbul,2021-12-25,5,,,English,Saturday
+6,SONEMİR,7y a  a,ZENGİNOĞLU,"59,5",G.ÖZÇELİK AP,BESİRE GÜNDÜZELİ,﻿İstanbul,2021-12-25,5,,,English,Saturday
+7,AKSAKAL KG,8y k  a,CAŞ,"57,5",A.ASLAN,BURCU TEMELKURAN,﻿İstanbul,2021-12-25,5,,,English,Saturday
+8,CANSEKLAVİ KG SK,5y a  a,ALTAHA,"59,5",A.KURŞUN,SABRİ AKSU,﻿İstanbul,2021-12-25,5,,,English,Saturday
+9,SUBİKE KG DB SK,5y k k,ARASLI,"59,5",GÖKH.GÖKÇE,TÜLAY ÇİFTÇİ,﻿İstanbul,2021-12-25,5,,,English,Saturday
+10,BERKALP KG GKR,8y k  a,BEN ANADOLU,"61,5",S.BOYRAZ,ALİ ERKAN YILMAZ,﻿İstanbul,2021-12-25,5,,,English,Saturday
+11,HİLALEDA KG SK,7y a k,KAIZBERT (RU),"54,5 +2.00",İ.SOYAD,TUĞÇE TOSUMOĞLU,﻿İstanbul,2021-12-25,5,,,English,Saturday
+12,MAVRA KG SK,7y k  a,KAIZBERT (RU),"61,5",M.KAYA,MEHMET ÇELİK,﻿İstanbul,2021-12-25,5,,,English,Saturday
+1.)60.000 TL,2.)24.000 TL,3.)12.000 TL,4.)6.000 TL,1.)17.250 TL,2.)6.900 TL,3.)3.450 TL,﻿İstanbul,2021-12-25,6,,,English,Saturday
+1,ÖYKÜ CAN  SK,2y d  d,MENDIP (USA),57,A.KURŞUN,HALE EKMEKÇİ EMRE,﻿İstanbul,2021-12-25,6,,,English,Saturday
+2,SPLENDID KG,2y d  d,LUXOR,57,H.ÇİZİK,VOLKAN R. EKİNCİ,﻿İstanbul,2021-12-25,6,,,English,Saturday
+3,LOVE ME AGAIN SK,2y d  d,BLACK KING,57,S.BOYRAZ,CEM ÖZBELGE,﻿İstanbul,2021-12-25,6,,,English,Saturday
+4,BELLA BONITA  KG K GKR ÖG,2y d  d,SUMMER FRONT (USA),57,N.AVCİ,GÜNSEN SOYUPAK,﻿İstanbul,2021-12-25,6,,,English,Saturday
+5,REDBERRY,2y d  d,LION HEART (USA),57,M.HAMEDİ,TOLGA SEVİNÇ,﻿İstanbul,2021-12-25,6,,,English,Saturday
+6,MOON POWER SK,2y a  d,SIDNEY`S CANDY (USA),57 +1.00,M.KAYA,ERTAN ÖZTÜRK,﻿İstanbul,2021-12-25,6,,,English,Saturday
+7,BELLA STORIA SK,2y d  d,ELUSIVE CITY (USA),57,VEDAT ABİŞ,DUYGU FATURA,﻿İstanbul,2021-12-25,6,,,English,Saturday
+8,TRUE BLACK SK,2y d  d,ÇAKAL CARLOS,57,M.ÇİÇEK,BARAN D. CEMİLOĞLU,﻿İstanbul,2021-12-25,6,,,English,Saturday
+9,MORGANA DB SK,2y a  d,THREE VALLEYS (USA),54 +2.00,M.KAYİŞ AP,DUYGU FATURA,﻿İstanbul,2021-12-25,6,,,English,Saturday
+10,KIZIM SİMGE  KG SK,2y d  d,THREE VALLEYS (USA),57 +0.40,D.YILDIZ,ENİS BADIŞOĞLU,﻿İstanbul,2021-12-25,6,,,English,Saturday
+11,QUAICH DB SK,2y k  d,HIGHLAND REEL (IRE),57,GÖKH.GÖKÇE,FERHAT YAVAŞ,﻿İstanbul,2021-12-25,6,,,English,Saturday
+12,QUIET STORM KG K,2y d  d,TORUK MACTO (IRE),57,GÖK.BEKTAŞ,GÜLSÜN TAŞKIRAN,﻿İstanbul,2021-12-25,6,,,English,Saturday
+13,MONTH ONE KG K,2y d  d,LION HEART (USA),55,G.ÖZÇELİK AP,İLHAMİ GÜLTEPE,﻿İstanbul,2021-12-25,6,,,English,Saturday
+1.)54.000 TL,2.)21.600 TL,3.)10.800 TL,4.)5.400 TL,1.)15.525 TL,2.)6.210 TL,3.)3.105 TL,﻿İstanbul,2021-12-25,7,,,English,Saturday
+1,GÜLAĞA KG SK,3y k  e,JOKER,"57,5",GÖKH.GÖKÇE,SONER GÜL,﻿İstanbul,2021-12-25,7,,,English,Saturday
+2,ŞİMŞEK EFE KG SK BB,3y k  e,ALTAHA,"59,5",A.KURŞUN,BİRKAN BORA AKARSU,﻿İstanbul,2021-12-25,7,,,English,Saturday
+3,FERFECİR KG,3y d  e,BABA MEVLÜT,53 +1.60,H.KARATAŞ,ZEYNEP L. ATMAN,﻿İstanbul,2021-12-25,7,,,English,Saturday
+4,MÜBARİZ KG,3y a  e,ATEŞTOPU,"57,5",VEDAT ABİŞ,T. İZZET AKSOY,﻿İstanbul,2021-12-25,7,,,English,Saturday
+5,DOBBY KG SK,3y k  e,KOŞANEFE,"58,5",G.YILDIZ,AHMET KAYA,﻿İstanbul,2021-12-25,7,,,English,Saturday
+6,TURAÇBEY KG SK,3y a  e,KURTEL,51 +1.40,M.HAMEDİ,SERKAN TUĞDAŞ,﻿İstanbul,2021-12-25,7,,,English,Saturday
+7,ERSAVAŞ KG K,3y a  e,UÇANOĞLU,56 +0.40,M.ÇİÇEK,DEMİRHAN YILMAZ,﻿İstanbul,2021-12-25,7,,,English,Saturday
+8,YAVUZ REİS KG DB,3y d  e,BABA MEVLÜT,55 +0.90,D.YILDIZ,ULAŞ YILDIZ,﻿İstanbul,2021-12-25,7,,,English,Saturday
+9,GÜLDAĞI KG SK,3y k  e,GOBAKBEY,50 +2.00,G.ÖZÇELİK AP,MAHİR LAHAM,﻿İstanbul,2021-12-25,7,,,English,Saturday
+10,YENİÇAĞLI KG DB SK,3y d  e,KURTEL,51 +2.00,D.KAYA AP,FERHAN GÖKTÜRK,﻿İstanbul,2021-12-25,7,,,English,Saturday
+11,PERLA KG SK,3y d  d,BABA MEVLÜT,57,S.BOYRAZ,ERSAN ÖZBELGE,﻿İstanbul,2021-12-25,7,,,English,Saturday
+12,AMASRA DB BB,3y k  e,TÜMÖZ BEY,50 +2.00,H.YOLAÇICI AP,MURAT GÜLLÜK,﻿İstanbul,2021-12-25,7,,,English,Saturday
+13,RAGNER KG K DB,3y a  e,SARUHANAĞA,"51,5 +2.00",A.ASLAN,FATİH HAYIRLIOĞLU,﻿İstanbul,2021-12-25,7,,,English,Saturday
+14,ARİFCAN KG SK,3y a  e,KURTEL,"51,5 +0.60",N.AVCİ,ERDEM BEKMEZCİ,﻿İstanbul,2021-12-25,7,,,English,Saturday

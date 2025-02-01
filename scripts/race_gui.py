@@ -12,7 +12,7 @@ import matplotlib.gridspec as gridspec
 class RaceAnalyzerGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("Horse Race Analyzer")
+        self.root.title("At Yarışı Analiz Programı")
         self.root.geometry("1200x800")
         
         # Initialize analyzer
@@ -28,12 +28,12 @@ class RaceAnalyzerGUI:
         
     def create_race_info_frame(self):
         """Create frame for race information"""
-        frame = ttk.LabelFrame(self.root, text="Race Information", padding="10")
+        frame = ttk.LabelFrame(self.root, text="Yarış Bilgileri", padding="10")
         frame.grid(row=0, column=0, columnspan=2, padx=10, pady=5, sticky="ew")
         
         # Race info fields - add City field
-        labels = ['Track:', 'City:', 'Distance (m):', 'Surface:', 'Weather:', 
-                  'Temperature:', 'Class:', 'Prize:']
+        labels = ['Pist:', 'Şehir:', 'Mesafe (m):', 'Zemin:', 'Hava Durumu:', 
+                  'Sıcaklık:', 'Sınıf:', 'Ödül:']
         self.race_info_vars = {}
         
         # Create a dictionary of common Turkish racing cities and their tracks
@@ -106,14 +106,13 @@ class RaceAnalyzerGUI:
         frame = ttk.Frame(self.root, padding="10")
         frame.grid(row=2, column=0, columnspan=2, pady=10)
         
-        ttk.Button(frame, text="Save Race", command=self.save_race).grid(row=0, column=0, padx=5)
-        ttk.Button(frame, text="Load Race", command=self.load_race).grid(row=0, column=1, padx=5)
-        ttk.Button(frame, text="Analyze Race", command=self.analyze_race).grid(row=0, column=2, padx=5)
-        ttk.Button(frame, text="Clear Form", command=self.clear_form).grid(row=0, column=3, padx=5)
-        ttk.Button(frame, text="Update Results", command=self.show_results_window).grid(row=0, column=4, padx=5)
+        ttk.Button(frame, text="Yarışı Kaydet", command=self.save_race).grid(row=0, column=0, padx=5)
+        ttk.Button(frame, text="Yarış Yükle", command=self.load_race).grid(row=0, column=1, padx=5)
+        ttk.Button(frame, text="Yarışı Analiz Et", command=self.analyze_race).grid(row=0, column=2, padx=5)
+        ttk.Button(frame, text="Formu Temizle", command=self.clear_form).grid(row=0, column=3, padx=5)
+        ttk.Button(frame, text="Sonuçları Güncelle", command=self.show_results_window).grid(row=0, column=4, padx=5)
         
-        # Add visualization frame
-        self.viz_frame = ttk.LabelFrame(self.root, text="Analysis Results", padding="10")
+        self.viz_frame = ttk.LabelFrame(self.root, text="Analiz Sonuçları", padding="10")
         self.viz_frame.grid(row=3, column=0, columnspan=2, padx=10, pady=5, sticky="nsew")
         
     def save_race(self):
@@ -132,7 +131,7 @@ class RaceAnalyzerGUI:
                 horses.append(horse)
         
         if not horses:
-            messagebox.showwarning("Warning", "No horses entered!")
+            messagebox.showwarning("Uyarı", "Hiç at girilmedi!")
             return
             
         race_data = {
@@ -147,13 +146,13 @@ class RaceAnalyzerGUI:
         with open(f'data/saved_races/{filename}', 'w') as f:
             json.dump(race_data, f, indent=4)
             
-        messagebox.showinfo("Success", "Race saved successfully!")
+        messagebox.showinfo("Başarılı", "Yarış başarıyla kaydedildi!")
         
     def load_race(self):
         """Load a saved race"""
         # Show saved races in a new window
         load_window = tk.Toplevel(self.root)
-        load_window.title("Load Saved Race")
+        load_window.title("Kayıtlı Yarış Yükle")
         load_window.geometry("400x300")
         
         # Create listbox with saved races
@@ -235,8 +234,8 @@ class RaceAnalyzerGUI:
         horses = [p['horse_name'] for p in predictions]
         probabilities = [p['win_chance'] for p in predictions]
         ax1.barh(horses, probabilities)
-        ax1.set_title('Win Probabilities')
-        ax1.set_xlabel('Probability (%)')
+        ax1.set_title('Kazanma Olasılıkları')
+        ax1.set_xlabel('Olasılık (%)')
         
         # 2. Recent Form Heatmap
         ax2 = fig.add_subplot(gs[0, 1])
@@ -245,7 +244,7 @@ class RaceAnalyzerGUI:
             positions = [int(pos) for pos in p['recent_form'].split() if pos.isdigit()]
             form_data.append(positions[-6:] if len(positions) > 6 else positions)
         ax2.imshow(form_data, cmap='RdYlGn_r')
-        ax2.set_title('Recent Form')
+        ax2.set_title('Son Form')
         ax2.set_yticks(range(len(horses)))
         ax2.set_yticklabels(horses)
         
@@ -253,14 +252,14 @@ class RaceAnalyzerGUI:
         ax3 = fig.add_subplot(gs[1, :])
         ax3.axis('off')
         details = [
-            f"City: {race_info['City']}",
-            f"Track: {race_info['Track']}",
-            f"Distance: {race_info['Distance']}m",
-            f"Surface: {race_info['Surface']}",
-            f"Weather: {race_info['Weather']}",
-            f"Temperature: {race_info['Temperature']}",
-            f"Class: {race_info['Class']}",
-            f"Prize: {race_info['Prize']}"
+            f"Şehir: {race_info['City']}",
+            f"Pist: {race_info['Track']}",
+            f"Mesafe: {race_info['Distance']}m",
+            f"Zemin: {race_info['Surface']}",
+            f"Hava Durumu: {race_info['Weather']}",
+            f"Sıcaklık: {race_info['Temperature']}",
+            f"Sınıf: {race_info['Class']}",
+            f"Ödül: {race_info['Prize']}"
         ]
         ax3.text(0.5, 0.5, '\n'.join(details), 
                 ha='center', va='center', 
@@ -293,7 +292,7 @@ class RaceAnalyzerGUI:
     def show_results_window(self):
         """Show window to update race results"""
         results_window = tk.Toplevel(self.root)
-        results_window.title("Update Race Results")
+        results_window.title("Yarış Sonuçlarını Güncelle")
         results_window.geometry("500x600")
         
         # Create frame for results
@@ -353,10 +352,10 @@ class RaceAnalyzerGUI:
                     race_info['Track'],
                     results
                 )
-                messagebox.showinfo("Success", "Results updated successfully!")
+                messagebox.showinfo("Başarılı", "Sonuçlar başarıyla güncellendi!")
                 results_window.destroy()
             else:
-                messagebox.showwarning("Warning", "Please specify the winner (position 1)")
+                messagebox.showwarning("Uyarı", "Lütfen kazananı belirtin (1. pozisyon)")
         
         ttk.Button(frame, text="Save Results", command=save_results).grid(
             row=row, column=0, columnspan=3, pady=20)
@@ -367,4 +366,4 @@ def main():
     root.mainloop()
 
 if __name__ == "__main__":
-    main() 
+    main()

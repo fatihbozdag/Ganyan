@@ -1,0 +1,81 @@
+horse_no,horse_name,age,origin,weight,jockey,owner_trainer,venue,file_date,race_no,distance_track,race_type,horse_type,race_day
+1,BLUE ARTEMIS,3y d d,SHOWCASING,"59,5",D MUSCUTT,FRED ARCHER RACİNG -,﻿Kempton Park Birleşik Krallık,2021-11-01,1,,,English,Monday
+2,CHILLSEA (USA),3y a d,MSHAWISH (USA),61,T MARQUAND,BEDSON INVESTMENTS L,﻿Kempton Park Birleşik Krallık,2021-11-01,1,,,English,Monday
+3,MR FUSTIC (IRE),3y d g,EPAULETTE (AUS),60,D E HOGAN,"DAVE TONGE, STEPH CO",﻿Kempton Park Birleşik Krallık,2021-11-01,1,,,English,Monday
+4,AGENT OF FORTUNE YP,6y a k,KHELEYF (USA),"59,5",MİCHAEL BERESFORD,MR J BUTLER,﻿Kempton Park Birleşik Krallık,2021-11-01,1,,,English,Monday
+5,SURREY PRINCESS K,3y d d,KINGMAN,59,T WHELAN,SURREY RACİNG (SPR),﻿Kempton Park Birleşik Krallık,2021-11-01,1,,,English,Monday
+6,FITZROVIA KG,6y a g,POET'S VOICE,"60,5",D PROBERT,CLARISSA CASDAGALI &,﻿Kempton Park Birleşik Krallık,2021-11-01,1,,,English,Monday
+7,CHEAT (IRE),4y k g,GUTAIFAN (IRE),62,R HORNBY,SIMON & CHRISTINE PR,﻿Kempton Park Birleşik Krallık,2021-11-01,1,,,English,Monday
+8,JOLI'S LEGACY (IRE),3y d d,ELZAAM (AUS),55,W COX,JOLİ RACİNG,﻿Kempton Park Birleşik Krallık,2021-11-01,1,,,English,Monday
+9,ASK THE WIND (IRE) YP,3y a d,ZOFFANY (IRE),58,H DOYLE,MR A W CARROLL,﻿Kempton Park Birleşik Krallık,2021-11-01,1,,,English,Monday
+10,MABO KG,6y k g,AUSSIE RULES (USA),62,J WATSON,PAUL & ANN DE WECK,﻿Kempton Park Birleşik Krallık,2021-11-01,1,,,English,Monday
+1,MISS MARBLE,3y d d,IFFRAAJ,"60,5",S DE SOUSA,SHEİKH HAMED DALMOOK,﻿Kempton Park Birleşik Krallık,2021-11-01,2,,,English,Monday
+2,WARM SMILE,3y a d,NEW APPROACH (IRE),"57,5",H CROUCH,GODOLPHİN,﻿Kempton Park Birleşik Krallık,2021-11-01,2,,,English,Monday
+3,SEA SPEEDWELL,3y a d,SEA THE STARS (IRE),"57,5",T MARQUAND,SUNDERLAND HOLDİNG I,﻿Kempton Park Birleşik Krallık,2021-11-01,2,,,English,Monday
+4,OPTICALITY,3y d d,COACH HOUSE (IRE),"57,5",ELLİE MACKENZİE,MR PAUL SİMMONS,﻿Kempton Park Birleşik Krallık,2021-11-01,2,,,English,Monday
+5,TEARDROP ROCK,3y d d,FASTNET ROCK (AUS),"57,5",R HAVLİN,SHEİKH JUMA DALMOOK,﻿Kempton Park Birleşik Krallık,2021-11-01,2,,,English,Monday
+6,ETERNAL LIGHT (IRE),3y a d,NEW APPROACH (IRE),"57,5",C FALLON,QATAR RACİNG LİMİTED,﻿Kempton Park Birleşik Krallık,2021-11-01,2,,,English,Monday
+7,ALLOWED,3y d d,AL KAZEEM,"57,5",R HORNBY,MRS DOREEN M SWİNBUR,﻿Kempton Park Birleşik Krallık,2021-11-01,2,,,English,Monday
+8,L'ENCLUME,3y a d,GLENEAGLES (IRE),"57,5",DAVİD EGAN,MR & MRS G MİDDLEBRO,﻿Kempton Park Birleşik Krallık,2021-11-01,2,,,English,Monday
+9,HONEYSUCKLE MOON,4y d k,MAKE BELIEVE,58,T WHELAN,LADY MARCHWOOD,﻿Kempton Park Birleşik Krallık,2021-11-01,2,,,English,Monday
+10,YOU DIDN'T DID YOU,3y a d,TWILIGHT SON,"57,5",D E HOGAN,MR DON CLARK,﻿Kempton Park Birleşik Krallık,2021-11-01,2,,,English,Monday
+11,NAHAAB (FR),3y d d,LE HAVRE (IRE),"57,5",DARRAGH KEENAN,SELECT-RACING-CLUB C,﻿Kempton Park Birleşik Krallık,2021-11-01,2,,,English,Monday
+12,ETHEL C (IRE),3y d d,ZEBEDEE,"57,5",L JONES,DETHRONE RACİNG,﻿Kempton Park Birleşik Krallık,2021-11-01,2,,,English,Monday
+13,DOLLY DRAKE,3y d d,HAVANA GOLD (IRE),"57,5",R CLUTTERBUCK,MR M DRAKE,﻿Kempton Park Birleşik Krallık,2021-11-01,2,,,English,Monday
+14,INFITAAH,4y d k,INTELLO (GER),58,J BRYAN,SAM TİNGEY & CHARLİE,﻿Kempton Park Birleşik Krallık,2021-11-01,2,,,English,Monday
+1,BRAINS (IRE) KG,5y d g,DANDY MAN (IRE),"62,5",N CURRIE,THE JUDGES & PARTNER,﻿Kempton Park Birleşik Krallık,2021-11-01,3,,,English,Monday
+2,ALEZAN,4y a k,DAWN APPROACH (IRE),55,GEORGİA DOBİE,MR MARC MİDDLETON-HE,﻿Kempton Park Birleşik Krallık,2021-11-01,3,,,English,Monday
+3,CRIMEWAVE (IRE) YP,5y d g,TEOFILO (IRE),"62,5",DAVID EGAN,THE ROGUES GALLERY,﻿Kempton Park Birleşik Krallık,2021-11-01,3,,,English,Monday
+4,LOST IN TIME,4y d g,DUBAWI (IRE),"62,5",P COSGRAVE,GODOLPHIN,﻿Kempton Park Birleşik Krallık,2021-11-01,3,,,English,Monday
+5,TARAVARA (IRE),3y d g,THE GURKHA (IRE),"60,5",H DOYLE,KILLARNEY GLEN,﻿Kempton Park Birleşik Krallık,2021-11-01,3,,,English,Monday
+6,CITYZEN SERG (IRE),4y d g,RAVEN'S PASS (USA),"63,5",D MUSCUTT,URSA MAJOR RACING,﻿Kempton Park Birleşik Krallık,2021-11-01,3,,,English,Monday
+7,HOLD FAST (IRE) YP,4y d k,FASTNET ROCK (AUS),59,D PROBERT,MİLDMAY RACİNG & D H,﻿Kempton Park Birleşik Krallık,2021-11-01,3,,,English,Monday
+8,ASDAA (IRE) YP,5y d g,DUTCH ART,"62,5",J FANNING,OWNERS GROUP 045,﻿Kempton Park Birleşik Krallık,2021-11-01,3,,,English,Monday
+9,TOP CLASS ANGEL (IRE),4y d k,DARK ANGEL (IRE),"61,5",R CLUTTERBUCK,MR SCOTT THOMPSON,﻿Kempton Park Birleşik Krallık,2021-11-01,3,,,English,Monday
+10,SHACKLETON HERO (IRE),3y a g,THE GURKHA (IRE),"57,5",J HAYNES,MR J DANIELS,﻿Kempton Park Birleşik Krallık,2021-11-01,3,,,English,Monday
+11,BELOVED (IRE),3y d d,FRANKEL,58,T MARQUAND,DAVİD WARD,﻿Kempton Park Birleşik Krallık,2021-11-01,3,,,English,Monday
+12,SEMSER,4y d g,SIYOUNI (FR),"60,5",T P QUEALLY,MR M WARNER,﻿Kempton Park Birleşik Krallık,2021-11-01,3,,,English,Monday
+1,TANGLED WORDS (IRE),2y d g,DUBAWI (IRE),"59,5",A KIRBY,GODOLPHIN,﻿Kempton Park Birleşik Krallık,2021-11-01,4,,,English,Monday
+2,LATER DARLING,2y d g,POSTPONED (IRE),"59,5",D COSTELLO,"MRS F COTTON,MR & MR",﻿Kempton Park Birleşik Krallık,2021-11-01,4,,,English,Monday
+3,CABINET MAKER (IRE),2y k e,MASTERCRAFTSMAN (IRE),"59,5",J FANNİNG,KENNET VALLEY THOROU,﻿Kempton Park Birleşik Krallık,2021-11-01,4,,,English,Monday
+4,GROUNDBREAKER (GER),2y d e,OASIS DREAM,"59,5",D PROBERT,SHEİKH MOHAMMED OBAİ,﻿Kempton Park Birleşik Krallık,2021-11-01,4,,,English,Monday
+5,IT IS NOW,2y d e,TIME TEST,"59,5",DAVİD EGAN,A D SPENCE & JOHN CO,﻿Kempton Park Birleşik Krallık,2021-11-01,4,,,English,Monday
+6,JELLY BABY (USA) K,2y d d,TWIRLING CANDY (USA),"57,5",ROB HORNBY,MRS MARY SLACK AND M,﻿Kempton Park Birleşik Krallık,2021-11-01,4,,,English,Monday
+7,DUNGEON,2y d e,DUBAWI (IRE),"59,5",R KİNGSCOTE,JAMES WİGAN AND T Hİ,﻿Kempton Park Birleşik Krallık,2021-11-01,4,,,English,Monday
+8,EAGLE'S WAY,2y a e,GLENEAGLES (IRE),"59,5",R TATE,TİM BUNTİNG - OSBORN,﻿Kempton Park Birleşik Krallık,2021-11-01,4,,,English,Monday
+9,JUST PERCY (IRE),2y d e,SIR PERCY,"59,5",D KEENAN,ALAN & BARBARA BROWN,﻿Kempton Park Birleşik Krallık,2021-11-01,4,,,English,Monday
+10,BARQI (IRE),2y a e,LOPE DE VEGA (IRE),"59,5",R HAVLİN,GESTUT AMMERLAND,﻿Kempton Park Birleşik Krallık,2021-11-01,4,,,English,Monday
+11,BRILLIANT BLUE (IRE),2y d e,RIBCHESTER (IRE),"59,5",T P QUEALLY,MR T JACOBS & MR J E,﻿Kempton Park Birleşik Krallık,2021-11-01,4,,,English,Monday
+12,MY BOY JACK (Koşmaz),2y a e,NO NAY NEVER (USA),"59,5",H TURNER,MR MICHAEL BRINGLOE,﻿Kempton Park Birleşik Krallık,2021-11-01,4,,,English,Monday
+1,SHANDOZ,4y d g,GOLDEN HORN,59,DAVID EGAN,MR NURLAN BIZAKOV,﻿Kempton Park Birleşik Krallık,2021-11-01,5,,,English,Monday
+2,DESERT FIRE (IRE) YP,6y d g,CAPE CROSS (IRE),59,H CROUCH,GODOLPHIN,﻿Kempton Park Birleşik Krallık,2021-11-01,5,,,English,Monday
+3,DUBAI FUTURE YP,5y d g,DUBAWI (IRE),59,P COSGRAVE,GODOLPHIN,﻿Kempton Park Birleşik Krallık,2021-11-01,5,,,English,Monday
+4,TARTLETTE,5y d k,CHAMPS ELYSEES,57,N G MCCULLAGH,EYEROLLER SYNDİCATE,﻿Kempton Park Birleşik Krallık,2021-11-01,5,,,English,Monday
+5,ALOUNAK (FR),6y d g,CAMELOT,59,S DE SOUSA,KING POWER RACING CO,﻿Kempton Park Birleşik Krallık,2021-11-01,5,,,English,Monday
+6,OUTBOX YP,6y d g,FRANKEL,"60,5",H DOYLE,HAMBLETON RACING LTD,﻿Kempton Park Birleşik Krallık,2021-11-01,5,,,English,Monday
+7,HAMISH,5y d g,MOTIVATOR,"61,5",T MARQUAND,MR B HAGGAS,﻿Kempton Park Birleşik Krallık,2021-11-01,5,,,English,Monday
+8,JOHN LEEPER (IRE) YP,3y d e,FRANKEL,58,A KİRBY,ANAMOİNE LTD,﻿Kempton Park Birleşik Krallık,2021-11-01,5,,,English,Monday
+9,ALFRED BOUCHER,5y k g,AUSSIE RULES (USA),59,D PROBERT,ROBERT ALLCOCK,﻿Kempton Park Birleşik Krallık,2021-11-01,5,,,English,Monday
+10,NAO DA MAIS (BRZ),5y d k,T.H.APPROVAL,59,P J MCDONALD,MR B STEİNBRUCH,﻿Kempton Park Birleşik Krallık,2021-11-01,5,,,English,Monday
+1,MARCHING ARMY YP,3y a g,IFFRAAJ,57,H DOYLE,GODOLPHIN,﻿Kempton Park Birleşik Krallık,2021-11-01,6,,,English,Monday
+2,NOBLE MASQUERADE KG,4y d g,SIR PERCY,55,D PROBERT,HP RACING NOBLE MASQ,﻿Kempton Park Birleşik Krallık,2021-11-01,6,,,English,Monday
+3,MARCH LAW (IRE),3y d e,LAWMAN (FR),59,J FANNİNG,SUSAN AND JOHN WATER,﻿Kempton Park Birleşik Krallık,2021-11-01,6,,,English,Monday
+4,PISTOLETTO (USA) YP,4y d g,WAR FRONT (USA),"57,5",D KEENAN,J A THOMPSON & S RUS,﻿Kempton Park Birleşik Krallık,2021-11-01,6,,,English,Monday
+5,PROTECTED GUEST YP,6y d g,HELMET (AUS),"56,5",JANE ELLIOTT,JOHN GUEST RACING,﻿Kempton Park Birleşik Krallık,2021-11-01,6,,,English,Monday
+6,UNITED FRONT (USA) K,4y d g,WAR FRONT (USA),62,S DE SOUSA,MR NIC BRERETON,﻿Kempton Park Birleşik Krallık,2021-11-01,6,,,English,Monday
+7,PARTY ISLAND (IRE),4y a g,TAGULA (IRE),"51,5",H TURNER,MR A KILLORAN,﻿Kempton Park Birleşik Krallık,2021-11-01,6,,,English,Monday
+8,LAWN RANGER,6y d g,CITYSCAPE,"56,5",R KINGSCOTE,CANISBAY BLOODSTOCK,﻿Kempton Park Birleşik Krallık,2021-11-01,6,,,English,Monday
+9,CREATIONIST (USA),5y d g,NOBLE MISSION,"57,5",J HAYNES,MR JOHN JOSEPH SMITH,﻿Kempton Park Birleşik Krallık,2021-11-01,6,,,English,Monday
+10,KEEP IT BRIEF,4y d g,MUHAARAR,53,J PEATE,MR EDWARD J WARE,﻿Kempton Park Birleşik Krallık,2021-11-01,6,,,English,Monday
+11,ANDALEEP (IRE),5y d g,SIYOUNI (FR),"52,5",DAVID EGAN,FINCH FORBES MCPHERS,﻿Kempton Park Birleşik Krallık,2021-11-01,6,,,English,Monday
+1,SPRING GLOW,4y k k,MUKHADRAM,"60,5",D PROBERT,RAİNBOW RACİNG,﻿Kempton Park Birleşik Krallık,2021-11-01,7,,,English,Monday
+2,CROWN POWER (IRE),4y d k,CAMELOT,59,S DE SOUSA,KİNG POWER RACİNG CO,﻿Kempton Park Birleşik Krallık,2021-11-01,7,,,English,Monday
+3,PRETTY SWEET (IRE),3y d d,IFFRAAJ,62,A KİRBY,MİDDLEHAM PARK XLİ &,﻿Kempton Park Birleşik Krallık,2021-11-01,7,,,English,Monday
+4,CRYSTAL STARLET KG,3y d d,FRANKEL,57,R KİNGSCOTE,SİR EVELYN DE ROTHSC,﻿Kempton Park Birleşik Krallık,2021-11-01,7,,,English,Monday
+5,KALEIDOSCOPIC YP,4y d k,LE HAVRE (IRE),"61,5",DAVİD EGAN,HUNSCOTE STUD LİMİTE,﻿Kempton Park Birleşik Krallık,2021-11-01,7,,,English,Monday
+6,TOPANTICIPATION,4y d k,MOUNT NELSON,"61,5",H TURNER,M P BOWRİNG AND R SM,﻿Kempton Park Birleşik Krallık,2021-11-01,7,,,English,Monday
+7,BLAZEON FIVE,3y d d,INDIAN HAVEN,"59,5",T WHELAN,CALNE ENGİNEERİNG LT,﻿Kempton Park Birleşik Krallık,2021-11-01,7,,,English,Monday
+8,SKY BRIGHT,3y a d,DAWN APPROACH (IRE),"59,5",T MARQUAND,NAT ROTHSCHİLD,﻿Kempton Park Birleşik Krallık,2021-11-01,7,,,English,Monday
+9,SAMILLE (IRE),4y d k,KODIAC,"59,5",HOLLIE DOYLE,MICK JASELSKY & PART,﻿Kempton Park Birleşik Krallık,2021-11-01,7,,,English,Monday
+10,MAZZURI (IRE),6y a k,RAVEN'S PASS (USA),"62,5",D COSTELLO,MRS S CONWAY,﻿Kempton Park Birleşik Krallık,2021-11-01,7,,,English,Monday
+11,LADY PENDRAGON KG (Koşmaz),4y d k,CAMELOT,"56,5",H DOYLE,SUNVILLE RAIL LIMITE,﻿Kempton Park Birleşik Krallık,2021-11-01,7,,,English,Monday

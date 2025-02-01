@@ -1,0 +1,83 @@
+horse_no,horse_name,age,origin,weight,jockey,owner_trainer,venue,file_date,race_no,distance_track,race_type,horse_type,race_day
+1.)160.000 TL,2.)64.000 TL,3.)32.000 TL,4.)16.000 TL,1.)46.000 TL,2.)18.400 TL,3.)9.200 TL,﻿Ankara,2023-04-13,1,,Kum,English,Thursday
+1,BEYAZIŞIK KG SK,3y k  e,ALTAHA,57,VED.ABİŞ,SABRİ AKSU,﻿Ankara,2023-04-13,1,,Kum,English,Thursday
+2,KARACABEY ŞAHI,3y a  e,SONALP,57,M.KESKİN,FUAT ALBAYRAK,﻿Ankara,2023-04-13,1,,Kum,English,Thursday
+3,AVCIM KG K,3y k  e,JOKER,57,MÜS.ÇELİK,MEHMET AVCI,﻿Ankara,2023-04-13,1,,Kum,English,Thursday
+4,İSYAN ATEŞİ KG K,3y a  e,SERHANTAY,57 +0.20,E.ÇANKAYA,MEHMET NUR BECENE,﻿Ankara,2023-04-13,1,,Kum,English,Thursday
+5,SÜPERTAÇ KG,3y k  e,KAANEFE,57,M.S.ÇELİK,BİŞAR ÇELİK,﻿Ankara,2023-04-13,1,,Kum,English,Thursday
+6,O BİR MUŞLU KG SK,3y d  e,SARRAF,57 +0.30,Y.CENGİZ,KUTBETTİN SAÇAN,﻿Ankara,2023-04-13,1,,Kum,English,Thursday
+7,HAYAL GÖZLÜM KG K,3y a  d,SULTAN DE FAUST (FR),55,E.SİNCAN,MEHMET ÜNLÜ,﻿Ankara,2023-04-13,1,,Kum,English,Thursday
+8,İDİLYILDIZ KG K,3y a  d,KAIZBERT (RU),55,M.N.SUNKAR AP,SONGÜL TEKİNALP,﻿Ankara,2023-04-13,1,,Kum,English,Thursday
+1.)71.500 TL,2.)28.600 TL,3.)14.300 TL,4.)7.150 TL,1.)12.334 TL,2.)4.934 TL,3.)2.467 TL,﻿Ankara,2023-04-13,2,,Kum,English,Thursday
+1,FAHRENHEİT KG SK,8y k  a,UÇANBEY,"57,5",M.S.ÇELİK,M.NEZİF ŞEKER,﻿Ankara,2023-04-13,2,,Kum,English,Thursday
+2,DİYARBEKİR KG SK,6y a  a,UFUKBİR,"57,5",G.KOCAKAYA,ADNAN DOĞAN,﻿Ankara,2023-04-13,2,,Kum,English,Thursday
+3,ZEKAİBEY KG DB,6y k  a,GOBAKBEY,"57,5",G.ÖZÇELİK,ERDEM BEKMEZCİ,﻿Ankara,2023-04-13,2,,Kum,English,Thursday
+4,CAYMAZINOĞLU,5y a  a,UÇANBEY,"57,5",M.N.SUNKAR AP,MÜSLÜM CAYMAZER,﻿Ankara,2023-04-13,2,,Kum,English,Thursday
+5,BÜYÜKKALE KG DB,6y k  a,KAFKAS ŞAHI,"55,5 +1.00",M.ÖZDEMİR AP,NEVZAT ÇANAKÇI,﻿Ankara,2023-04-13,2,,Kum,English,Thursday
+6,KIRKURUŞ KG K GKR,5y k  a,CİHANEFE,"57,5",M.KESKİN,DORUK SÖKMEN,﻿Ankara,2023-04-13,2,,Kum,English,Thursday
+1.)118.500 TL,2.)47.400 TL,3.)23.700 TL,4.)11.850 TL,1.)20.441 TL,2.)8.177 TL,3.)4.088 TL,﻿Ankara,2023-04-13,3,,Kum,English,Thursday
+1,TOM HAGEN DB SK,3y d  e,BUSHRANGER (IRE),55,VED.ABİŞ,ENGİN BEKİROĞULLARI,﻿Ankara,2023-04-13,3,,Kum,English,Thursday
+2,VAY TUNA VAY SK,3y d  e,PAPA CLEM (USA),54 +1.20,G.KOCAKAYA,A.CAVAT HEPER,﻿Ankara,2023-04-13,3,,Kum,English,Thursday
+3,OĞUZUN RÜYASI KG DB SK,3y d  e,NATIVE KHAN (FR),58,A.ÇELİK,SESİL H. TOPÇU,﻿Ankara,2023-04-13,3,,Kum,English,Thursday
+4,BABOŞ ALPER KG DB SK,3y d  e,YAVUZSEL,58 +0.10,MÜS.ÇELİK,ALİ BAKIR,﻿Ankara,2023-04-13,3,,Kum,English,Thursday
+5,ELEXUS KG K DB,3y d  e,MARCAVELLY (USA),54 +2.00,F.ÇETİN AP,FERHAN YETİŞ,﻿Ankara,2023-04-13,3,,Kum,English,Thursday
+6,GERMUŞLU FUAT KG K,3y d  e,KIRDEMİRKIR,54 +2.00,M.ÖZDEMİR AP,FAİK ÜNLÜ,﻿Ankara,2023-04-13,3,,Kum,English,Thursday
+1.)71.500 TL,2.)28.600 TL,3.)14.300 TL,4.)7.150 TL,1.)12.334 TL,2.)4.934 TL,3.)2.467 TL,﻿Ankara,2023-04-13,4,,Kum,English,Thursday
+1,ATLI SULTAN KG SK SGKR,4y a k,SULTAN DE FAUST (FR),55 +1.00,İS.YILDIRIM AP,MEHMET AKTAŞ,﻿Ankara,2023-04-13,4,,Kum,English,Thursday
+2,ŞAH KAYRA KG K,4y k  a,UÇANOĞLU,55,M.S.ÇELİK,CEMİL ÇİZİK,﻿Ankara,2023-04-13,4,,Kum,English,Thursday
+3,SİYAH İNCİ KG K DB,4y a k,UFUKBİR,53,A.KAÇMAZ,ÇAĞRI SEL,﻿Ankara,2023-04-13,4,,Kum,English,Thursday
+4,ATLI ÇAĞLAYAN KG K DB,4y a  a,GÜNTAY,54 +2.00,F.ÇETİNBAŞ AP,BÜLENT EROL,﻿Ankara,2023-04-13,4,,Kum,English,Thursday
+5,SARRAF HATI K,4y d  a,SARRAF,57 +0.10,M.ÖZDEMİR AP,BEKİR ÜNLÜ,﻿Ankara,2023-04-13,4,,Kum,English,Thursday
+6,AL BAYHAN KG K,4y a  a,BAYHAN,55 +1.60,E.ÇANKAYA,MEHMET KORKMAZ,﻿Ankara,2023-04-13,4,,Kum,English,Thursday
+7,BOZKIRIN GÜCÜ KG SK,4y a k,ANKA,56,E.SİNCAN,SERHAT KAYA,﻿Ankara,2023-04-13,4,,Kum,English,Thursday
+8,GELENCAN KG DB SK,4y k k,TAMERİNOĞLU,56,Ö.YILDIRIM,MUHARREM CAN,﻿Ankara,2023-04-13,4,,Kum,English,Thursday
+9,DEMİR ADAM KG,4y k  a,ARASLI,55 +1.60,A.KURŞUN,MEHMET GÜNEŞ,﻿Ankara,2023-04-13,4,,Kum,English,Thursday
+10,CERRAHPAŞALI KG K DB,4y a  a,KAIZBERT (RU),55 +0.20,U.TEMUR,MURAT AKÇA,﻿Ankara,2023-04-13,4,,Kum,English,Thursday
+11,MİRİALEM KG DB SK (Koşmaz),4y d  a,SARRAF,55,MEH.DOĞAN,MEHMET AVCI,﻿Ankara,2023-04-13,4,,Kum,English,Thursday
+1.)160.000 TL,2.)64.000 TL,3.)32.000 TL,4.)16.000 TL,1.)46.000 TL,2.)18.400 TL,3.)9.200 TL,﻿Ankara,2023-04-13,5,,Kum,English,Thursday
+1,ÇETİNREİS KG K,3y k  e,HIZLITAY,57,E.SİNCAN,HAYRİYE KARAKOÇ,﻿Ankara,2023-04-13,5,,Kum,English,Thursday
+2,AKINAY SK,3y k  e,JOKER,57,M.AKYAVUZ,F.SEDAT DAĞYUDAN,﻿Ankara,2023-04-13,5,,Kum,English,Thursday
+3,TAÇMERCAN KG,3y k  e,ENDEREFE,57,M.S.ÇELİK,BİŞAR ÇELİK,﻿Ankara,2023-04-13,5,,Kum,English,Thursday
+4,KILIÇ İBO KG K,3y k  e,KAIZBERT (RU),57,U.TEMUR,ALİ RIZA KÖSEALİ,﻿Ankara,2023-04-13,5,,Kum,English,Thursday
+5,FEYZAHANIM,3y a  d,ORÇUN,55 +1.60,A.KURŞUN,YASEMİN OZAN,﻿Ankara,2023-04-13,5,,Kum,English,Thursday
+6,ERKŞAN K,3y d  e,YAKUPBEY,57,Ö.YILDIRIM,ÜMİT ARSLAN,﻿Ankara,2023-04-13,5,,Kum,English,Thursday
+7,DELİ TURBO KG,3y k  e,TURBO,57,VED.ABİŞ,CEMAL TURAN,﻿Ankara,2023-04-13,5,,Kum,English,Thursday
+8,MİR ASAF KG,3y k  e,YAKUPBEY,57,E.ÇANKAYA,MAHMUT ÇADIRCI,﻿Ankara,2023-04-13,5,,Kum,English,Thursday
+1.)273.000 TL,2.)109.200 TL,3.)54.600 TL,4.)27.300 TL,1.)62.790 TL,2.)25.116 TL,3.)12.558 TL,﻿Ankara,2023-04-13,6,,Çim,English,Thursday
+1,BERKENİN KIZI KG K DB,4y a k,KAIZBERT (RU),"62,5",A.KURŞUN,FATİH KURU,﻿Ankara,2023-04-13,6,,Çim,English,Thursday
+2,ALDA GÖR KG DB SK,4y a  a,BAYHAN,"53,5 +0.10",M.S.ÇELİK,SÜPHİ KORKMAZ,﻿Ankara,2023-04-13,6,,Çim,English,Thursday
+3,CANKO KG,4y k  a,YALNIZEFE,"53,5 +2.00",Ö.YILDIRIM,MUHARREM CAN,﻿Ankara,2023-04-13,6,,Çim,English,Thursday
+4,KATIOĞLU KG K,4y d  a,SARRAF,66,A.SÖZEN,MUSTAFA KATI,﻿Ankara,2023-04-13,6,,Çim,English,Thursday
+5,MUALLİM HALİM KG K,4y k  a,TURBO,50 +2.00,A.KAÇMAZ,ALİ ÖZHAMURKAR,﻿Ankara,2023-04-13,6,,Çim,English,Thursday
+6,ROCK IRON KG DB,4y a  a,SULTAN DE FAUST (FR),61,M.AKYAVUZ,AHMET KAYA,﻿Ankara,2023-04-13,6,,Çim,English,Thursday
+7,PİŞMAN AĞA KG K,4y k  a,KOPUZ,53 +2.00,VED.ABİŞ,ÜMİT ARSLAN,﻿Ankara,2023-04-13,6,,Çim,English,Thursday
+8,CANCANER KG SK,4y k  a,TURBO,"56,5",A.ÇELİK,MELİS KURTEL EMİN,﻿Ankara,2023-04-13,6,,Çim,English,Thursday
+9,MISTER WIN KG DB SK,4y k  a,KAIZBERT (RU),60,T.YILDIZ,MAHMUT BİLGİÇ,﻿Ankara,2023-04-13,6,,Çim,English,Thursday
+1.)195.000 TL,2.)78.000 TL,3.)39.000 TL,4.)19.500 TL,1.)44.850 TL,2.)17.940 TL,3.)8.970 TL,﻿Ankara,2023-04-13,7,,Kum,English,Thursday
+1,ZOLO MUUM DB SK,4y d  a,PAPA CLEM (USA),61,Ö.YILDIRIM,ŞÜKRÜ POLAT,﻿Ankara,2023-04-13,7,,Kum,English,Thursday
+2,LITECOIN DB SKG SK,5y d  a,VICTORY GALLOP (CAN),57,G.KOCAKAYA,BİROL BULUT,﻿Ankara,2023-04-13,7,,Kum,English,Thursday
+3,GÖKHAN BABAM KG DB SK,4y d  a,GÜNGÖR BABA,56,A.ÇELİK,HASAN AKBULUT,﻿Ankara,2023-04-13,7,,Kum,English,Thursday
+4,KUANPO SKG SK,6y d  a,VELOCIRAPTOR (GB),57,VED.ABİŞ,SİNAN KOŞAPINAR,﻿Ankara,2023-04-13,7,,Kum,English,Thursday
+5,BLENDE RENDE DB SK,4y a  a,BOSPORUS (IRE),55 +0.80,M.AKYAVUZ,MEHMET CAHİT MALKOÇ,﻿Ankara,2023-04-13,7,,Kum,English,Thursday
+6,KING SERKAN KG DB SK,8y d  a,YONAGUSKA (USA),56 +0.40,A.KURŞUN,A.MURAT ŞEN,﻿Ankara,2023-04-13,7,,Kum,English,Thursday
+7,ŞANLITAY KG K,5y a  a,EL CORREDOR (USA),56 +0.60,E.ÇANKAYA,F.SEDAT DAĞYUDAN,﻿Ankara,2023-04-13,7,,Kum,English,Thursday
+1.)156.000 TL,2.)62.400 TL,3.)31.200 TL,4.)15.600 TL,1.)35.880 TL,2.)14.352 TL,3.)7.176 TL,﻿Ankara,2023-04-13,8,,Kum,English,Thursday
+1,FORTISSIMUM SKG SK,4y d  a,VICTORY GALLOP (CAN),"54,5 +1.60",A.KURŞUN,MEHMET ERDİNÇ CANLI,﻿Ankara,2023-04-13,8,,Kum,English,Thursday
+2,GRAND SUN DB SKG SK,4y a  a,INVINCIBLE SON (IRE),57,VED.ABİŞ,ERCAN SÖKMEZ,﻿Ankara,2023-04-13,8,,Kum,English,Thursday
+3,CANOBEY DB SKG SK,4y d  a,GENERAL QUARTERS (USA),51 +1.90,N.DEMİR AP,SIRAÇ DEMİR,﻿Ankara,2023-04-13,8,,Kum,English,Thursday
+4,LION MOCCASIN DB SK,5y a k,LION HEART (USA),"51,5 +1.90",SER.YILDIZ AP,HÜSEYİN BECENE,﻿Ankara,2023-04-13,8,,Kum,English,Thursday
+5,GOSPODIN KG DB SK,5y d  a,HAKEEM (USA),55 +0.20,G.KOCAKAYA,ERAY KOKTAY,﻿Ankara,2023-04-13,8,,Kum,English,Thursday
+6,OVER CLOUDS KG DB SK,7y d  a,OVERANALYZE (USA),52 +1.40,M.S.ÇELİK,UĞUR KURTULUŞ,﻿Ankara,2023-04-13,8,,Kum,English,Thursday
+7,ÖZENGER DB SK (Koşmaz),5y d  a,CAPTAIN RIO (GB),60,M.B.ÖNCEL AP,ÖMER DERİN,﻿Ankara,2023-04-13,8,,Kum,English,Thursday
+1.)93.500 TL,2.)37.400 TL,3.)18.700 TL,4.)9.350 TL,1.)16.129 TL,2.)6.452 TL,3.)3.226 TL,﻿Ankara,2023-04-13,9,,Kum,English,Thursday
+1,ALTINDERE KG DB SK,7y k  a,BİLGİN,"59,5",M.S.ÇELİK,SEDAT ŞAHİN,﻿Ankara,2023-04-13,9,,Kum,English,Thursday
+2,AYBARBEYİ KG K,4y a  a,BAYHAN,52 +0.90,N.DEMİR AP,SIRAÇ DEMİR,﻿Ankara,2023-04-13,9,,Kum,English,Thursday
+3,FEYAT BABA KG DB SK,8y k  a,YAŞARCIK,58,MÜS.ÇELİK,SALİH YILDIZER,﻿Ankara,2023-04-13,9,,Kum,English,Thursday
+4,ES ES HAN KG DB SK,5y k  a,HABERBATUR,55,A.KAÇMAZ,A.FİRUZHAN KANATLI,﻿Ankara,2023-04-13,9,,Kum,English,Thursday
+5,BAŞAYDIN KG DB,7y k  a,BİLGİN,60,M.UYAR AP,SEDAT DEMİR,﻿Ankara,2023-04-13,9,,Kum,English,Thursday
+6,FISTIKCAN KG K DB,5y a k,TURBO,"59,5",T.YILDIZ,HAYATİ CAN,﻿Ankara,2023-04-13,9,,Kum,English,Thursday
+7,UÇAN ES ES KG K,6y k  a,UÇANOĞLU,56,G.KOCAKAYA,A.FİRUZHAN KANATLI,﻿Ankara,2023-04-13,9,,Kum,English,Thursday
+8,AKSOYHAN KG K,5y a  a,ATEŞTOPU,57,A.SÖZEN,GÖRKEM GEDİKOĞLU,﻿Ankara,2023-04-13,9,,Kum,English,Thursday
+9,UĞURLUALP KG K DB,4y a  a,ONURKAAN,59,M.N.SUNKAR AP,İBRAHİM YALÇIN,﻿Ankara,2023-04-13,9,,Kum,English,Thursday
+10,ŞADIBEY KG SK,4y a  a,GELİBOLU,"52,5 +1.90",M.G.ARSLAN,HASAN TURAN,﻿Ankara,2023-04-13,9,,Kum,English,Thursday
+11,ASTEROİD KG SK,8y a  a,TURBO,55 +1.20,M.ÖZDEMİR AP,SUNGUR SOYDAM,﻿Ankara,2023-04-13,9,,Kum,English,Thursday

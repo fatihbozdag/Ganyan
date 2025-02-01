@@ -1,0 +1,73 @@
+horse_no,horse_name,age,origin,weight,jockey,owner_trainer,venue,file_date,race_no,distance_track,race_type,horse_type,race_day
+1.)45.500 TL,2.)18.200 TL,3.)9.100 TL,4.)4.550 TL,1.)7.849 TL,2.)3.140 TL,3.)1.570 TL,﻿Diyarbakır,2022-06-05,1,,Kum,English,Sunday
+1,ŞEVAL OĞLU SKG SK,4y k  a,LİDERTAY,56,N.ALTIN,HÜSEYİN ATAKAYA,﻿Diyarbakır,2022-06-05,1,,Kum,English,Sunday
+2,UÇAN DİLBER KG DB SK,4y a  a,ATİKBEY,55 +0.90,F.ÇETİNBAŞ AP,MAHMUT KARAOĞLAN,﻿Diyarbakır,2022-06-05,1,,Kum,English,Sunday
+3,MUSTİCAN KG SK,4y k  a,SON MARTI,55 +1.00,M.E.DOĞAN AP,ÖMER YARDIMCI,﻿Diyarbakır,2022-06-05,1,,Kum,English,Sunday
+4,YUNUSŞAH KG SK,4y d  a,YAKUPBEY,60,Y.CENGİZ AP,AHMET KORKMAZ,﻿Diyarbakır,2022-06-05,1,,Kum,English,Sunday
+5,MIZRAKLIHAN KG SK GKR,4y k  a,BOLKAR,50 +2.00,C.A.MAYDA AP,CEVHER CANLIKA,﻿Diyarbakır,2022-06-05,1,,Kum,English,Sunday
+6,AKIBET KG DB SK,4y a  a,ESKİŞEHİRLİ,57,A.ÇANKAYA AP,ÖMER ARSLAN,﻿Diyarbakır,2022-06-05,1,,Kum,English,Sunday
+7,TUMBUL UÇARLIM KG DB SK,4y a  a,UÇARLIM,50 +1.50,C.TEPE,MUZAFER BAKİ,﻿Diyarbakır,2022-06-05,1,,Kum,English,Sunday
+8,AŞKAR DEVZADE KG K,4y k  a,BERKSOY,56,İ.KATAR AP,HALİL ARTUN,﻿Diyarbakır,2022-06-05,1,,Kum,English,Sunday
+9,DUAYENOĞLU KG K DB,4y a  a,UÇANOĞLU,51 +0.40,A.H.BAYAR AP,MEHMET YILDIZ,﻿Diyarbakır,2022-06-05,1,,Kum,English,Sunday
+10,MÜLAYİM KG DB SK,4y k k,KAIZBERT (RU),"53,5",M.ŞAKİR AP,ŞEMSETTİN TOYDEMİR,﻿Diyarbakır,2022-06-05,1,,Kum,English,Sunday
+11,ÇAĞATAYHAN SKG SK,4y k  a,HİSARBEY,"50,5 +1.40",B.SARIDAL AP,MURAT YAYIK,﻿Diyarbakır,2022-06-05,1,,Kum,English,Sunday
+12,RODİ BABA KG DB SK,4y a  a,YILMAZER,50 +2.00,UMUT DEMİR AP,SELİM DEMİRKAPU,﻿Diyarbakır,2022-06-05,1,,Kum,English,Sunday
+13,NİTROJEN DB SKG SK,4y k k,TURBO,"53,5 +2.00",M.A.AKTÜRK,BAĞNU EĞİLLİ,﻿Diyarbakır,2022-06-05,1,,Kum,English,Sunday
+1.)37.000 TL,2.)14.800 TL,3.)7.400 TL,4.)3.700 TL,1.)6.383 TL,2.)2.553 TL,3.)1.277 TL,﻿Diyarbakır,2022-06-05,2,,Kum,English,Sunday
+1,ERTÜRKER DB,5y k  a,TURBO,54 +2.00,M.E.DOĞAN AP,HÜSEYİN DİLBER,﻿Diyarbakır,2022-06-05,2,,Kum,English,Sunday
+2,ATİKKIRAN DB,5y a  a,ATİKBEY,57,Y.CENGİZ AP,MEHMET YILDIZ,﻿Diyarbakır,2022-06-05,2,,Kum,English,Sunday
+3,SON MAHSÜL K DB,5y k  a,DARBE,"56,5 +0.50",M.IŞIK AP,ELİF KAYA,﻿Diyarbakır,2022-06-05,2,,Kum,English,Sunday
+4,TASARIMCI KG,7y k  a,TURBO,54 +2.00,F.ÇETİNBAŞ AP,REŞAT ARSLAN,﻿Diyarbakır,2022-06-05,2,,Kum,English,Sunday
+5,KEŞTEBATA DB SKG SK,6y a  a,ATİKBEY,57 +2.00,V.KIZMAZ,ABDULBAKİ ÖZKAN,﻿Diyarbakır,2022-06-05,2,,Kum,English,Sunday
+6,IŞITAN KG SK,5y a  a,ORÇUN,60 +0.30,A.ÇANKAYA AP,AZİZ ALTIN,﻿Diyarbakır,2022-06-05,2,,Kum,English,Sunday
+7,BERTİFIRTINASI KG DB SK,4y k  a,BERKSOY,"55,5 +0.40",İ.KATAR AP,SELİM DEMİRKAPU,﻿Diyarbakır,2022-06-05,2,,Kum,English,Sunday
+8,KÖY KG SK,4y a k,BERKSOY,52 +0.50,M.ŞAKİR AP,VEYSEL KELEŞABDİOĞLU,﻿Diyarbakır,2022-06-05,2,,Kum,English,Sunday
+9,LEYLANUR KG K DB,6y a k,KIRIMHAN,58,Y.ÇELİKBAŞ AP,ABDULLAH TEKİNALP,﻿Diyarbakır,2022-06-05,2,,Kum,English,Sunday
+10,TUMBUL ŞİMŞEK KG,7y k  a,ŞİMŞEĞİNOĞLU,"59,5",UMUT DEMİR AP,ABDULLAH POLAT,﻿Diyarbakır,2022-06-05,2,,Kum,English,Sunday
+11,NESLİNUR,4y a k,ORÇUN,51 +1.60,C.A.MAYDA AP,MEHMET DEMİRKAPI,﻿Diyarbakır,2022-06-05,2,,Kum,English,Sunday
+1.)29.000 TL,2.)11.600 TL,3.)5.800 TL,4.)2.900 TL,1.)5.003 TL,2.)2.001 TL,3.)1.001 TL,﻿Diyarbakır,2022-06-05,3,,Kum,English,Sunday
+1,EREBUS DB SKG SK,4y d  a,ÇAKAL CARLOS,55 +2.00,M.IŞIK AP,ALİ POLAT,﻿Diyarbakır,2022-06-05,3,,Kum,English,Sunday
+2,EĞİL ATEŞİ K GKR,6y d  a,DEĞİRMENDERELİ,53 +2.00,Y.ÇELİKBAŞ AP,NİHAT ARSLAN,﻿Diyarbakır,2022-06-05,3,,Kum,English,Sunday
+3,BLUE RIBBON SK,5y a  a,EXCELEBRATION (IRE),58,N.ALTIN,MEHMET DOĞAN,﻿Diyarbakır,2022-06-05,3,,Kum,English,Sunday
+4,WEST GROVE KG DB SK,8y d  a,ROYAL ABJAR (USA),57,M.CANPOLAT AP,MUZAFFER NECEF,﻿Diyarbakır,2022-06-05,3,,Kum,English,Sunday
+5,CANDEMİR KG K DB,4y d  a,NATIVE KHAN (FR),55 +1.10,S.KAPLAN,MEHMET DEMİR,﻿Diyarbakır,2022-06-05,3,,Kum,English,Sunday
+6,KING TAMER KG DB SK,4y a  a,LION HEART (USA),54 +1.90,İ.KATAR AP,AZİZ KARAKEÇİLİ,﻿Diyarbakır,2022-06-05,3,,Kum,English,Sunday
+7,BORDO MAVİ KG DB SK,6y d  g,TO HONOR AND SERVE (USA),56 +0.20,Y.CENGİZ AP,MUHAMMET FELHAN,﻿Diyarbakır,2022-06-05,3,,Kum,English,Sunday
+8,HORASAN DB,5y d  a,VICTORY GALLOP (CAN),51 +1.50,UMUT DEMİR AP,ADİL ÇİZİK,﻿Diyarbakır,2022-06-05,3,,Kum,English,Sunday
+9,PRENSES GOLDA DB SK,6y d k,PAN RIVER,54 +2.00,M.E.DOĞAN AP,AYTEN SALTABAŞ,﻿Diyarbakır,2022-06-05,3,,Kum,English,Sunday
+10,ATABERK KG SK,4y a  a,DEHA,54 +2.00,H.SARIDAL AP,ALİ ÖZDEMİR,﻿Diyarbakır,2022-06-05,3,,Kum,English,Sunday
+11,BOSS TO POISON KG DB,6y a  a,TORUK MACTO (IRE),55 +0.90,F.FELHAN AP,MEHMET ÖKSÜZ,﻿Diyarbakır,2022-06-05,3,,Kum,English,Sunday
+12,CASA FIFTEEN SKG SK ÖG,4y d  g,FRENCH FIFTEEN (FR),56,M.ŞAKİR AP,MAHMUT KARAKEÇİ,﻿Diyarbakır,2022-06-05,3,,Kum,English,Sunday
+1.)37.000 TL,2.)14.800 TL,3.)7.400 TL,4.)3.700 TL,1.)6.383 TL,2.)2.553 TL,3.)1.277 TL,﻿Diyarbakır,2022-06-05,4,,Kum,English,Sunday
+1,SECRET SOUL KG DB SK,3y d  e,FROM HEAVEN (USA),"60,5",N.ALTIN,AHMET KORKMAZ,﻿Diyarbakır,2022-06-05,4,,Kum,English,Sunday
+2,DAI HARD KG DB SK,3y a  e,DAI JIN (GB),"60,5",İ.KATI,SEMİH YARDIMCI,﻿Diyarbakır,2022-06-05,4,,Kum,English,Sunday
+3,INTIMIDATING PRESENCE DB SK,3y d  e,HAKEEM (USA),55,M.ŞAKİR AP,OSMAN Z. TEKİNALP,﻿Diyarbakır,2022-06-05,4,,Kum,English,Sunday
+4,PİRKAN KG SK GKR,3y d  e,GÜNGÖR BABA,58,M.E.DOĞAN AP,MUSTAFA ARSLAN,﻿Diyarbakır,2022-06-05,4,,Kum,English,Sunday
+5,ÇAPRAZ KG,3y a  e,EVOKE (USA),59,F.FELHAN AP,İBRAHİM HALİL ALTINTEN,﻿Diyarbakır,2022-06-05,4,,Kum,English,Sunday
+6,BÜLENT DB SK,3y d  e,KING OF TRAKYA,59,M.IŞIK AP,ALİ ŞEKER,﻿Diyarbakır,2022-06-05,4,,Kum,English,Sunday
+7,GREEN PRINCE KG SK,3y d  e,KULOĞLU,"55,5 +0.50",A.ÇANKAYA AP,ALAETTİN ÖZCAN,﻿Diyarbakır,2022-06-05,4,,Kum,English,Sunday
+8,BÜYÜKALAN BEYİ DB SK,3y d  e,PACO BOY (IRE),"56,5",Y.CENGİZ AP,SEYDİ AKYILDIRIM,﻿Diyarbakır,2022-06-05,4,,Kum,English,Sunday
+9,ANDRIELLA KG SK,3y a  d,CUVEE (USA),54,A.H.BAYAR AP,BERK PELENK,﻿Diyarbakır,2022-06-05,4,,Kum,English,Sunday
+1.)37.000 TL,2.)14.800 TL,3.)7.400 TL,4.)3.700 TL,1.)10.638 TL,2.)4.255 TL,3.)2.128 TL,﻿Diyarbakır,2022-06-05,5,,Kum,English,Sunday
+1,NARİN ÇİÇEK KG K,2y a  d,LION HEART (USA),53 +1.90,Y.ÇELİKBAŞ AP,MEHMET AKDOĞAN,﻿Diyarbakır,2022-06-05,5,,Kum,English,Sunday
+2,LEGENDRUNNER DB SKG SK,2y a  e,CUVEE (USA),55 +0.70,Y.CENGİZ AP,SELÇUK YONTÜRK,﻿Diyarbakır,2022-06-05,5,,Kum,English,Sunday
+3,BERTİKIZI K DB,2y d  d,PERFECTO,55 +1.00,H.ALTUNDAĞ AP,MEHMET EMİN DEMİRKAPU,﻿Diyarbakır,2022-06-05,5,,Kum,English,Sunday
+4,KING ŞEKER SK,2y d  e,GÜNGÖR BABA,54 +2.00,M.E.DOĞAN AP,İBRAHİM HALİL ARSLAN,﻿Diyarbakır,2022-06-05,5,,Kum,English,Sunday
+5,BABOŞ ALPER KG SK,2y d  e,YAVUZSEL,56 +0.50,M.CANPOLAT AP,MUZAFFER NECEF,﻿Diyarbakır,2022-06-05,5,,Kum,English,Sunday
+6,AFFETMEZ KG K,2y a  e,SARSILMAZ,54 +2.00,A.ÇANKAYA AP,YAKUP ÇELİK,﻿Diyarbakır,2022-06-05,5,,Kum,English,Sunday
+1.)50.500 TL,2.)20.200 TL,3.)10.100 TL,4.)5.050 TL,1.)14.519 TL,2.)5.808 TL,3.)2.904 TL,﻿Diyarbakır,2022-06-05,6,,Kum,English,Sunday
+1,NURBAŞI KG SK,3y a  d,AKARÇAY,54 +1.70,Y.CENGİZ AP,İRFAN KARAKEÇİ,﻿Diyarbakır,2022-06-05,6,,Kum,English,Sunday
+2,BİTİRİM SEDA KG SK,3y a  d,BİTİRİMKARINCA,55 +0.50,N.ALTIN,MEHMET TURAN,﻿Diyarbakır,2022-06-05,6,,Kum,English,Sunday
+3,BİRŞİMŞEK SKG SK,3y k  e,ŞİMŞEĞİNOĞLU,54 +2.00,H.ALTUNDAĞ AP,MUSTAFA ÇEÇAN,﻿Diyarbakır,2022-06-05,6,,Kum,English,Sunday
+4,ÜMİDİM SENSİN KG SK,3y a  e,BERKAY EFE,52 +0.40,B.SARIDAL AP,ABDULVAHİT SUNKAR,﻿Diyarbakır,2022-06-05,6,,Kum,English,Sunday
+5,BAKIMLI KG SK,3y d  d,BABA MEVLÜT,54 +2.00,M.E.DOĞAN AP,HALİL YILDIZ,﻿Diyarbakır,2022-06-05,6,,Kum,English,Sunday
+6,MEMİŞ BEY KG K,3y k  e,EFEM,55,C.TEPE,MUSTAFA ÇEÇAN,﻿Diyarbakır,2022-06-05,6,,Kum,English,Sunday
+7,BAYRAM BEY KG K DB,3y a  e,SAKARBAŞI,54 +2.00,F.ÇETİNBAŞ AP,CEVER KARAOĞLAN,﻿Diyarbakır,2022-06-05,6,,Kum,English,Sunday
+8,FIRATIN AKIŞI SKG SK,3y k  e,BAYHAN,51 +1.60,UMUT DEMİR AP,HASAN ALTUNDAĞ,﻿Diyarbakır,2022-06-05,6,,Kum,English,Sunday
+9,SARRAFLI KG K,3y d  d,SARRAF,54 +1.80,F.FELHAN AP,ÖZKAN BAYRAKTAR,﻿Diyarbakır,2022-06-05,6,,Kum,English,Sunday
+10,DEĞER YER SK,3y k  d,ÖZHABER,54 +2.00,A.ÇANKAYA AP,SELÇUK YONTÜRK,﻿Diyarbakır,2022-06-05,6,,Kum,English,Sunday
+11,DERİNNAZ K SKG,3y a  d,MERT,53 +2.00,Y.ÇELİKBAŞ AP,SELÇUK YONTÜRK,﻿Diyarbakır,2022-06-05,6,,Kum,English,Sunday
+12,BOZTEPEKIZI KG DB SK,3y a  d,BATURŞAH,52,M.ŞAKİR AP,İBRAHİM CANLIKA,﻿Diyarbakır,2022-06-05,6,,Kum,English,Sunday
+13,ÇEÇAN KIZI KG SK,3y a  d,ŞİMŞEĞİNOĞLU,55 +1.90,M.IŞIK AP,MEHMET KORKMAZ,﻿Diyarbakır,2022-06-05,6,,Kum,English,Sunday
+14,GÖZÜM SENDE KG SK,3y a  d,BAYHAN,54 +2.00,S.KAPLAN,MEHMET HANİFİ POLAT,﻿Diyarbakır,2022-06-05,6,,Kum,English,Sunday
+15,BABANIN OĞLU KG K DB,3y k  e,UÇARLIM,54 +1.80,İ.KATAR AP,SİNAN SUNKAR,﻿Diyarbakır,2022-06-05,6,,Kum,English,Sunday

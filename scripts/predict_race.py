@@ -4,28 +4,36 @@ from datetime import datetime
 import os
 import glob
 import re
+from src.utils.db_utils import DatabaseManager
 
 class RacePredictor:
     def __init__(self, data_dir='data/raw'):
         self.data_dir = data_dir
+        self.db = DatabaseManager()
+        self.db.connect()
+        self.surface_types = {'K': 'Kum', 'Ç': 'Çim', 'S': 'Sentetik'}
         self.horse_history = {}
         self.jockey_history = {}
         self.track_history = {}
-        self.surface_types = {'K': 'Kum', 'Ç': 'Çim', 'S': 'Sentetik'}
         self.load_historical_data()
         
     def load_historical_data(self):
-        """Load and process historical race data"""
-        for year in range(2021, 2026):
-            year_dir = os.path.join(self.data_dir, str(year))
-            if not os.path.exists(year_dir):
-                continue
+        """Load historical race data from database"""
+        try:
+            # Load horse histories
+            for horse in self.get_all_horses():
+                self.horse_history[horse] = self.db.get_horse_history(horse)
+            
+            # Load jockey histories
+            for jockey in self.get_all_jockeys():
+                self.jockey_history[jockey] = self.db.get_jockey_performance(jockey)
+            
+            # Load track histories
+            for track in self.get_all_tracks():
+                self.track_history[track] = self.db.get_track_statistics(track)
                 
-            for file in glob.glob(os.path.join(year_dir, '*.csv')):
-                try:
-                    self._process_race_file(file)
-                except Exception as e:
-                    print(f"Error processing {file}: {e}")
+        except Exception as e:
+            print(f"Error loading historical data: {e}")
     
     def _process_race_file(self, file_path):
         """Process a single race file and update histories"""
@@ -271,4 +279,4 @@ def main():
         print(f"Error analyzing race: {e}")
 
 if __name__ == "__main__":
-    main() 
+    main()
