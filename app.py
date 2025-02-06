@@ -114,6 +114,7 @@ def clear_race():
     try:
         empty_race = {
             'race_info': {
+                'city': '',
                 'track': '',
                 'time': '',
                 'distance': '',
@@ -130,6 +131,22 @@ def clear_race():
     except Exception as e:
         return jsonify({'success': False, 'error': f'Yarış temizlenirken hata oluştu: {str(e)}'})
 
+@app.route('/update_race_info', methods=['POST'])
+def update_race_info():
+    try:
+        race_data = load_race_data()
+        race_data['race_info'].update({
+            'city': request.form.get('city', ''),
+            'track': request.form.get('track', ''),
+            'time': request.form.get('time', ''),
+            'distance': request.form.get('distance', ''),
+            'surface': request.form.get('surface', '')
+        })
+        save_race_data(race_data)
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Yarış bilgileri güncellenirken hata oluştu: {str(e)}'})
+
 @app.route('/get_race_data')
 def get_race_data():
     try:
@@ -139,4 +156,4 @@ def get_race_data():
         return jsonify({'error': f'Yarış verileri yüklenirken hata oluştu: {str(e)}'}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5002) 
+    app.run(debug=True, port=5003) 

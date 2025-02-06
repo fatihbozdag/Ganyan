@@ -9,30 +9,28 @@ import json
 import os
 import logging
 import urllib3
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 
 # Disable SSL warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 class TJKScraper:
     def __init__(self):
-        """Initialize the TJK scraper"""
-        self.session = requests.Session()
-        self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        })
+        """Initialize the TJK scraper with Safari WebDriver"""
         self.db_path = 'horse_racing.db'
         self.setup_database()
         
-        # Update headers to match browser
-        self.headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7',
-            'Referer': 'https://www.tjk.org/TR/yarissever/Info/Page/GunlukYarisSonuclari',
-        }
-        
-        # Configure session
-        self.session.verify = False  # Disable SSL verification
+        # Initialize Safari WebDriver
+        self.driver = webdriver.Safari()
+        self.driver.maximize_window()
+        self.wait = WebDriverWait(self.driver, 10)  # Wait up to 10 seconds
         
     def setup_database(self):
         """Create SQLite database and tables if they don't exist"""
@@ -52,7 +50,7 @@ class TJKScraper:
                      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
         
         # Create results table
-        c.execute('''CREATE TABLE IF NOT EXISTS race_results
+        c.execute('''CREATE TABLE IF NOT EXISTS results
                     (result_id TEXT PRIMARY KEY,
                      race_id TEXT,
                      horse_name TEXT,
@@ -62,6 +60,7 @@ class TJKScraper:
                      handicap INTEGER,
                      position INTEGER,
                      finish_time TEXT,
+                     odds REAL,
                      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                      FOREIGN KEY(race_id) REFERENCES races(race_id))''')
         
@@ -79,67 +78,95 @@ class TJKScraper:
         pass
     
     def scrape_daily_races(self, date_str):
-        """Scrape all races for a given date"""
+        """Scrape all races for a given date using Safari WebDriver"""
         try:
             # Format date for the request
             date_obj = datetime.strptime(date_str, '%Y-%m-%d')
             formatted_date = date_obj.strftime('%d.%m.%Y')
             
-            # Get the race programs page
-            url = "https://www.tjk.org/TR/YarisSever/Info/Page/GunlukYarisSonuclari"
-            response = self.session.get(url, headers=self.headers)
-            soup = BeautifulSoup(response.content, 'html.parser')
+            # Navigate to the results page
+            url = f"https://www.tjk.org/TR/YarisSever/Info/Sehir/GunlukYarisSonuclari/{formatted_date}"
+            self.driver.get(url)
             
-            # Get the verification token
-            token = soup.find('input', {'name': '__RequestVerificationToken'})['value']
+            # Wait for the page to load
+            try:
+                self.wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'race-results')))
+            except TimeoutException:
+                logging.error("Timeout waiting for race results to load")
+                return False
             
-            # Make POST request to get the data for the specific date
-            post_data = {
-                '__RequestVerificationToken': token,
-                'QueryParameter.DateParameter': formatted_date,
-                'QueryParameter.TrackId': ''
-            }
+            # Find all race cards
+            race_cards = self.driver.find_elements(By.CLASS_NAME, 'race-card')
+            if not race_cards:
+                logging.error("No race cards found")
+                return False
             
-            response = self.session.post(url, data=post_data, headers=self.headers)
-            soup = BeautifulSoup(response.content, 'html.parser')
-            
-            # Find all race result links
-            race_links = []
-            for link in soup.find_all('a', href=True):
-                href = link.get('href', '')
-                if 'RaceResult' in href:
-                    race_links.append(href)
-            
-            # Process each race
-            for race_link in race_links:
-                race_data = self.scrape_race_details(race_link)
-                if race_data:
-                    race_data['date'] = date_str
-                    self.save_to_database(race_data)
+            for race_card in race_cards:
+                try:
+                    # Extract race info
+                    race_info = {
+                        'race_id': race_card.get_attribute('data-race-id'),
+                        'date': date_str,
+                        'track': race_card.find_element(By.CLASS_NAME, 'track-name').text.strip(),
+                        'race_no': int(race_card.find_element(By.CLASS_NAME, 'race-number').text.strip()),
+                        'distance': int(race_card.find_element(By.CLASS_NAME, 'distance').text.replace('m', '').strip()),
+                        'track_condition': race_card.find_element(By.CLASS_NAME, 'track-condition').text.strip(),
+                        'race_type': race_card.find_element(By.CLASS_NAME, 'race-type').text.strip(),
+                        'prize': float(race_card.find_element(By.CLASS_NAME, 'prize').text.replace('TL', '').replace('.', '').strip())
+                    }
                     
-                    # Save to CSV in processed directory
-                    track = race_data['track']
-                    if track:
+                    # Extract results
+                    results_table = race_card.find_element(By.CLASS_NAME, 'results-table')
+                    rows = results_table.find_elements(By.TAG_NAME, 'tr')[1:]  # Skip header row
+                    
+                    results = []
+                    for row in rows:
+                        cols = row.find_elements(By.TAG_NAME, 'td')
+                        if len(cols) >= 8:
+                            result = {
+                                'horse_name': cols[2].text.strip(),
+                                'jockey': cols[3].text.strip(),
+                                'trainer': cols[4].text.strip(),
+                                'weight': self.parse_weight(cols[5].text),
+                                'finish_position': self.parse_position(cols[0].text),
+                                'finish_time': cols[6].text.strip(),
+                                'odds': self.parse_odds(cols[7].text)
+                            }
+                            results.append(result)
+                    
+                    race_info['results'] = results
+                    
+                    # Save to database
+                    self.save_to_database(race_info)
+                    
+                    # Save to CSV
+                    track_name = race_info['track']
+                    if track_name:
                         os.makedirs('data/processed', exist_ok=True)
-                        csv_filename = f"data/processed/{formatted_date.replace('.', '-')}-{track}.csv"
+                        csv_filename = f"data/processed/{formatted_date.replace('.', '-')}-{track_name}.csv"
                         
                         # Convert race data to DataFrame
-                        results_df = pd.DataFrame(race_data['results'])
-                        results_df['race_no'] = race_data['race_no']
-                        results_df['distance'] = race_data['distance']
-                        results_df['track_condition'] = race_data['track_condition']
+                        results_df = pd.DataFrame(results)
+                        results_df['race_no'] = race_info['race_no']
+                        results_df['distance'] = race_info['distance']
+                        results_df['track_condition'] = race_info['track_condition']
                         
                         # Save to CSV
                         results_df.to_csv(csv_filename, index=False, encoding='utf-8')
-                
-                # Add delay between requests
-                time.sleep(1)
-                
+                    
+                except Exception as e:
+                    logging.error(f"Error processing race card: {str(e)}")
+                    continue
+            
             return True
             
         except Exception as e:
             logging.error(f"Error scraping races for {date_str}: {str(e)}")
             return False
+            
+        finally:
+            # Add a delay before the next request
+            time.sleep(random.uniform(2, 5))
     
     def scrape_date_range(self, start_date, end_date):
         """Scrape race data for a date range"""
@@ -158,18 +185,22 @@ class TJKScraper:
     def scrape_race_details(self, race_url):
         """Scrape details for a specific race"""
         try:
-            full_url = f"https://medya-cdn.tjk.org/raporftp/TJKPDF{race_url}"
-            response = self.session.get(full_url, headers=self.headers)
+            full_url = f"https://www.tjk.org{race_url}"
+            response = requests.get(full_url, headers=self.headers)
+            if response.status_code != 200:
+                logging.error(f"Failed to get race details: {response.status_code}")
+                return None
+                
             soup = BeautifulSoup(response.content, 'html.parser')
             
             # Extract race info
             race_info = {
-                'race_id': race_url.split('/')[-1],
+                'race_id': race_url.split('/')[-2],  # Get the race ID from URL
                 'track': self.extract_text(soup, 'hipodrom'),
-                'race_no': self.extract_text(soup, 'koşu_no'),
+                'race_no': self.extract_text(soup, 'kosu_no'),
                 'distance': self.extract_text(soup, 'mesafe'),
                 'track_condition': self.extract_text(soup, 'pist_durumu'),
-                'race_type': self.extract_text(soup, 'koşu_cinsi'),
+                'race_type': self.extract_text(soup, 'kosu_cinsi'),
                 'prize': self.extract_text(soup, 'ikramiye')
             }
             
@@ -197,11 +228,11 @@ class TJKScraper:
             return race_info
             
         except Exception as e:
-            print(f"Error scraping race details for {race_url}: {str(e)}")
+            logging.error(f"Error scraping race details for {race_url}: {str(e)}")
             return None
             
     def save_to_database(self, race_data):
-        """Save scraped data to SQLite database"""
+        """Save race data to database"""
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
         
@@ -213,7 +244,7 @@ class TJKScraper:
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 race_data['race_id'],
-                race_data.get('date'),
+                race_data['date'],
                 race_data['track'],
                 race_data['race_no'],
                 race_data['distance'],
@@ -226,7 +257,7 @@ class TJKScraper:
             for result in race_data.get('results', []):
                 result_id = f"{race_data['race_id']}_{result['horse_name']}"
                 c.execute('''
-                    INSERT OR REPLACE INTO race_results
+                    INSERT OR REPLACE INTO results
                     (result_id, race_id, horse_name, jockey, trainer, weight,
                      position, finish_time, odds)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -245,7 +276,7 @@ class TJKScraper:
             conn.commit()
             
         except Exception as e:
-            print(f"Error saving to database: {str(e)}")
+            logging.error(f"Error saving to database: {str(e)}")
             conn.rollback()
             
         finally:
@@ -259,27 +290,27 @@ class TJKScraper:
         
     @staticmethod
     def parse_weight(weight_str):
-        """Parse weight string to float"""
+        """Parse weight value from string"""
         try:
-            return float(weight_str.replace(',', '.').strip())
+            return float(weight_str.replace('kg', '').strip())
         except:
-            return None
+            return 0.0
             
     @staticmethod
     def parse_position(pos_str):
-        """Parse finish position to integer"""
+        """Parse finishing position from string"""
         try:
             return int(pos_str.strip())
         except:
-            return None
+            return 0
             
     @staticmethod
     def parse_odds(odds_str):
-        """Parse odds string to float"""
+        """Parse odds value from string"""
         try:
             return float(odds_str.replace(',', '.').strip())
         except:
-            return None
+            return 0.0
             
     def get_track_list(self):
         """Return a list of track names exactly as they appear in URLs"""
@@ -310,36 +341,48 @@ class TJKScraper:
         return dates
 
     def get_active_tracks_for_date(self, date_str):
-        """Get list of active tracks for a specific date from the website"""
+        """Get list of active tracks for a given date"""
         try:
-            # Format date for the request
-            date_obj = datetime.strptime(date_str, '%d.%m.%Y')
-            formatted_date = date_obj.strftime('%d.%m.%Y')
+            url = "https://www.tjk.org/TR/YarisSever/Info/GetRacePrograms"
+            
+            # Add random delay
+            time.sleep(random.uniform(1, 3))
             
             # Make POST request to get the data
-            url = "https://www.tjk.org/TR/YarisSever/Info/GetRacePrograms"
             data = {
-                'QueryParameter.RaceDate': formatted_date,
+                'QueryParameter.RaceDate': date_str,
                 'QueryParameter.TrackId': '',
                 'QueryParameter.ProgramType': '0'
             }
             
-            response = self.session.post(url, data=data, headers=self.headers)
-            if response.status_code == 200:
-                soup = BeautifulSoup(response.content, 'html.parser')
-                track_buttons = soup.find_all('button', {'class': 'track-button'})
+            response = self.session.post(
+                url,
+                data=data,
+                headers=self.headers
+            )
+            
+            if response.status_code != 200:
+                logging.error(f"Failed to get active tracks: {response.status_code}")
+                return []
                 
-                active_tracks = []
-                for button in track_buttons:
-                    track_name = button.text.strip()
-                    if '(' in track_name:  # Format: "Bursa (5. Y.G.)"
-                        track_base = track_name.split('(')[0].strip()
-                        active_tracks.append(track_base)
+            soup = BeautifulSoup(response.content, 'html.parser')
+            track_buttons = soup.find_all('button', {'class': 'track-button'})
+            
+            tracks = []
+            for button in track_buttons:
+                track_name = button.text.strip()
+                track_id = button.get('data-track-id', '')
+                if track_id and track_name:
+                    tracks.append({
+                        'id': track_id,
+                        'name': track_name
+                    })
+            
+            return tracks
                 
-                return active_tracks
         except Exception as e:
-            print(f"Error getting active tracks for {date_str}: {str(e)}")
-        return []
+            logging.error(f"Error getting active tracks: {str(e)}")
+            return []
 
     def get_active_tracks_and_links(self, date_str):
         """Get active tracks and their CSV links from the TJK website"""
@@ -466,3 +509,8 @@ class TJKScraper:
         except Exception as e:
             print(f"Error processing date {date_str}: {str(e)}")
             return []
+
+    def __del__(self):
+        """Clean up WebDriver when done"""
+        if hasattr(self, 'driver'):
+            self.driver.quit()
