@@ -152,7 +152,7 @@ Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için `LICENSE` dosy
 
 ## 📞 İletişim
 - 👨‍💻 GitHub: [@fatihbozdag](https://github.com/fatihbozdag)
-- 📧 Email: [fatihbozdag@example.com](mailto:fbozdag1989@gmail.com)
+- 📧 Email: [fbozdag1989@gmail.com](mailto:fbozdag1989@gmail.com)
 
 ## 🙏 Teşekkürler
 Bu projeye katkıda bulunan herkese teşekkürler.
