@@ -1,24 +1,26 @@
-# At Yarışı Tahmin Sistemi
+# 🏇 At Yarışı Tahmin Sistemi
 
-## Genel Bakış
-Bu proje, Türkiye Jokey Kulübü (TJK) yarış verilerini analiz ederek at yarışı sonuçlarını tahmin etmeye yönelik geliştirilmiş bir sistemdir. Makine öğrenimi ve Bayesian analiz yöntemlerini kullanarak yarış sonuçlarını değerlendirir ve tahminler üretir.
+## 📋 Genel Bakış
+Bu proje, Türkiye Jokey Kulübü (TJK) yarış verilerini analiz ederek at yarışı sonuçlarını tahmin etmeye yönelik geliştirilmiş bir yapay zeka destekli sistemdir. Makine öğrenimi ve Bayesian analiz yöntemlerini kullanarak yarış sonuçlarını değerlendirir ve tahminler üretir.
 
-## Özellikler
-- Web tabanlı kullanıcı arayüzü
-- Gerçek zamanlı veri kazıma (TJK websitesinden)
-- Makine öğrenimi tabanlı tahminler
-- Bayesian olasılık hesaplamaları
-- Kombine tahmin sistemi
-- Detaylı yarış ve at istatistikleri
-- CSV ve SQLite veritabanı desteği
+## ⭐️ Özellikler
+- 🌐 Modern web tabanlı kullanıcı arayüzü
+- 🔄 Gerçek zamanlı veri kazıma (TJK websitesinden)
+- 🤖 Makine öğrenimi tabanlı tahminler
+- 📊 Bayesian olasılık hesaplamaları
+- 🎯 Kombine tahmin sistemi
+- 📈 Detaylı yarış ve at istatistikleri
+- 💾 CSV ve SQLite veritabanı desteği
 
-## Sistem Gereksinimleri
-- Python 3.x
+## 🔧 Sistem Gereksinimleri
+- Python 3.8+
 - SQLite3
 - Web tarayıcısı (Chrome, Safari, Firefox vb.)
 - İnternet bağlantısı
+- Minimum 4GB RAM
+- 1GB boş disk alanı
 
-## Kurulum
+## 🚀 Kurulum
 1. Projeyi klonlayın:
 ```bash
 git clone https://github.com/fatihbozdag/Ganyan.git
@@ -42,7 +44,7 @@ pip install -r requirements.txt
 python scripts/create_db_from_processed.py
 ```
 
-## Kullanım
+## 📱 Kullanım
 1. Web uygulamasını başlatın:
 ```bash
 python app.py
@@ -53,34 +55,34 @@ python app.py
 http://localhost:5003
 ```
 
-### Yarış Verisi Ekleme
+### 🎲 Yarış Verisi Ekleme
 1. Ana sayfada "Yeni Yarış Ekle" butonuna tıklayın
 2. Yarış bilgilerini girin:
-   - Şehir
-   - Hipodrom
-   - Yarış saati
-   - Mesafe
-   - Pist tipi
+   - 🏙 Şehir
+   - 🏟 Hipodrom
+   - 🕒 Yarış saati
+   - 📏 Mesafe
+   - 🛣 Pist tipi
 3. At bilgilerini ekleyin:
-   - At adı
-   - Yaş
-   - Kilo
-   - Jokey
-   - Start pozisyonu
-   - HP (Handikap Puanı)
-   - Son 6 yarış
-   - KGS (Koşmama Gün Sayısı)
-   - S20 (Son 20 yarış performansı)
-   - EİD (En iyi derece)
-   - GNY (Günlük Nispi Yarış puanı)
-   - AGF (Ağırlıklı Galibiyet Faktörü)
+   - 🐎 At adı
+   - 📅 Yaş
+   - ⚖️ Kilo
+   - 🏇 Jokey
+   - 🎯 Start pozisyonu
+   - 📊 HP (Handikap Puanı)
+   - 📈 Son 6 yarış
+   - ⏰ KGS (Koşmama Gün Sayısı)
+   - 📊 S20 (Son 20 yarış performansı)
+   - 🏆 EİD (En iyi derece)
+   - 📈 GNY (Günlük Nispi Yarış puanı)
+   - 🎯 AGF (Ağırlıklı Galibiyet Faktörü)
 
-### Tahmin Görüntüleme
-- ML Tahminleri: Makine öğrenimi bazlı tahminler
-- Bayesian Tahminler: Olasılık bazlı tahminler
-- Kombine Tahminler: İki sistemin birleştirilmiş sonuçları
+### 🔮 Tahmin Görüntüleme
+- 🤖 ML Tahminleri: Makine öğrenimi bazlı tahminler
+- 📊 Bayesian Tahminler: Olasılık bazlı tahminler
+- 🎯 Kombine Tahminler: İki sistemin birleştirilmiş sonuçları
 
-## Proje Yapısı
+## 📁 Proje Yapısı
 ```
 ganyan/
 ├── analysis/           # Analiz araçları ve raporlar
@@ -93,33 +95,33 @@ ganyan/
 └── utils/             # Yardımcı fonksiyonlar
 ```
 
-## Veri Kaynakları
-- TJK resmi websitesi (www.tjk.org)
-- Geçmiş yarış sonuçları
-- At performans verileri
-- Hipodrom ve pist bilgileri
+## 📊 Veri Kaynakları
+- 🌐 TJK resmi websitesi (www.tjk.org)
+- 📜 Geçmiş yarış sonuçları
+- 🐎 At performans verileri
+- 🏟 Hipodrom ve pist bilgileri
 
-## Tahmin Faktörleri
+## 🎯 Tahmin Faktörleri
 1. Temel Faktörler:
-   - At performans geçmişi
-   - Jokey performansı
-   - Mesafe uyumu
-   - Pist tipi uyumu
-   - Handikap değerlendirmesi
+   - 🐎 At performans geçmişi
+   - 🏇 Jokey performansı
+   - 📏 Mesafe uyumu
+   - 🛣 Pist tipi uyumu
+   - ⚖️ Handikap değerlendirmesi
 
 2. İstatistiksel Faktörler:
-   - Kazanma oranı
-   - Derece yapma oranı
-   - Form durumu
-   - Yarış sınıfı uyumu
+   - 🏆 Kazanma oranı
+   - 📊 Derece yapma oranı
+   - 📈 Form durumu
+   - 🎯 Yarış sınıfı uyumu
 
 3. Özel Faktörler:
-   - Hava ve pist durumu
-   - Yarış tipi
-   - Rakip analizi
-   - Antrenör faktörü
+   - 🌤 Hava ve pist durumu
+   - 🎲 Yarış tipi
+   - 🏇 Rakip analizi
+   - 👨‍🏫 Antrenör faktörü
 
-## Hata Ayıklama
+## 🛠 Hata Ayıklama
 Yaygın hatalar ve çözümleri:
 1. Veritabanı Hataları:
    ```bash
@@ -132,24 +134,33 @@ Yaygın hatalar ve çözümleri:
    ```
 
 3. Port Çakışması:
-   - app.py dosyasında port numarasını değiştirin
-   - Mevcut process'leri sonlandırın
+   ```bash
+   # Port kullanımda hatası için:
+   lsof -i :5003  # Portu kullanan process'i bul
+   kill -9 PID    # Process'i sonlandır
+   ```
 
-## Katkıda Bulunma
+## 🤝 Katkıda Bulunma
 1. Fork edin
 2. Feature branch oluşturun (`git checkout -b feature/YeniOzellik`)
 3. Değişikliklerinizi commit edin (`git commit -am 'Yeni özellik: XYZ'`)
 4. Branch'inizi push edin (`git push origin feature/YeniOzellik`)
 5. Pull Request oluşturun
 
-## Lisans
+## 📄 Lisans
 Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için `LICENSE` dosyasına bakınız.
 
-## İletişim
-- GitHub: [@fatihbozdag](https://github.com/fatihbozdag)
+## 📞 İletişim
+- 👨‍💻 GitHub: [@fatihbozdag](https://github.com/fatihbozdag)
+- 📧 Email: [fatihbozdag@example.com](mailto:fatihbozdag@example.com)
 
-## Teşekkürler
+## 🙏 Teşekkürler
 Bu projeye katkıda bulunan herkese teşekkürler.
 
+## 🔄 Güncelleme Geçmişi
+- v1.0.0 (2024-02-06): İlk sürüm
+- v1.1.0 (2024-02-06): Selenium entegrasyonu
+- v1.2.0 (2024-02-06): Safari WebDriver desteği
+
 ---
-**Not**: Bu sistem sadece eğitim ve araştırma amaçlıdır. Gerçek bahis oyunları için kullanılması tavsiye edilmez.
+⚠️ **Not**: Bu sistem sadece eğitim ve araştırma amaçlıdır. Gerçek bahis oyunları için kullanılması tavsiye edilmez.
