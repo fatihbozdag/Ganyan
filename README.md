@@ -163,4 +163,4 @@ Bu projeye katkıda bulunan herkese teşekkürler.
 - v1.2.0 (2024-02-06): Safari WebDriver desteği
 
 ---
-⚠️ **Not**: Bu sistem sadece eğitim ve araştırma amaçlıdır. Gerçek bahis oyunları için kullanılması tavsiye edilmez.
+⚠️ **Not**: Bu sistem sadece eğitim ve araştırma amaçlıdır. Gerçek bahis oyunları için kullanılması tavsiye edilmez. Sonuçların doğruluğu garanti edilmez.
