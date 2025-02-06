@@ -1,135 +1,299 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Horse Race Predictor</title>
+    <title>At Yarışı Tahmin Sistemi</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-color: #27ae60;
+            --warning-color: #f1c40f;
+            --danger-color: #e74c3c;
+            --light-bg: #f8f9fa;
+            --border-radius: 8px;
+        }
+
+        body {
+            background-color: #f5f6fa;
+            color: var(--primary-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .navbar {
+            background-color: var(--primary-color);
+            padding: 1rem 0;
+            margin-bottom: 2rem;
+        }
+
+        .navbar-brand {
+            color: white !important;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .card {
+            border: none;
+            border-radius: var(--border-radius);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 1.5rem;
+        }
+
+        .card-header {
+            background-color: white;
+            border-bottom: 2px solid #eee;
+            padding: 1rem;
+            font-weight: bold;
+        }
+
         .prediction-section {
             margin-top: 20px;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
+
         .prediction-list {
             list-style: none;
             padding: 0;
         }
+
         .prediction-item {
-            padding: 10px;
-            margin: 5px 0;
-            background-color: #f8f9fa;
-            border-radius: 3px;
+            padding: 15px;
+            margin: 10px 0;
+            background-color: var(--light-bg);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--secondary-color);
+            transition: transform 0.2s;
         }
+
+        .prediction-item:hover {
+            transform: translateX(5px);
+        }
+
         .current-horses {
             margin-top: 20px;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
         }
+
         .horse-item {
-            padding: 10px;
-            margin: 5px 0;
-            background-color: #f8f9fa;
-            border-radius: 3px;
+            padding: 15px;
+            margin: 10px 0;
+            background-color: white;
+            border-radius: var(--border-radius);
+            border: 1px solid #eee;
+            transition: all 0.3s ease;
+        }
+
+        .horse-item:hover {
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .form-label {
+            font-weight: 500;
+            color: var(--primary-color);
+        }
+
+        .form-control {
+            border-radius: var(--border-radius);
+            border: 1px solid #ddd;
+            padding: 0.5rem 1rem;
+        }
+
+        .form-control:focus {
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+        }
+
+        .btn {
+            border-radius: var(--border-radius);
+            padding: 0.5rem 1.5rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+        }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+            border-color: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background-color: var(--danger-color);
+            border-color: var(--danger-color);
+        }
+
+        .btn-danger:hover {
+            background-color: #c0392b;
+            border-color: #c0392b;
+            transform: translateY(-2px);
+        }
+
+        .stats-badge {
+            background-color: #eee;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            margin-right: 0.5rem;
+        }
+
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .section-title {
+            color: var(--primary-color);
+            font-weight: bold;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #eee;
+        }
+
+        .tooltip-icon {
+            color: var(--secondary-color);
+            margin-left: 0.5rem;
+            cursor: pointer;
+        }
+
+        .alert {
+            border-radius: var(--border-radius);
+            margin-bottom: 1rem;
         }
     </style>
 </head>
 <body>
-    <div class="container mt-4">
-        <h1 class="mb-4">Horse Race Predictor</h1>
-        
+    <nav class="navbar navbar-dark">
+        <div class="container">
+            <span class="navbar-brand">
+                <i class="fas fa-horse-head"></i> At Yarışı Tahmin Sistemi
+            </span>
+        </div>
+    </nav>
+
+    <div class="container">
         <div class="row">
             <div class="col-md-6">
-                <form id="horseForm" class="mb-4">
-                    <div class="mb-3">
-                        <label for="name" class="form-label">Horse Name</label>
-                        <input type="text" class="form-control" id="name" name="name" required>
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-plus-circle"></i> Yeni At Ekle
                     </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="age" class="form-label">Age</label>
-                            <input type="number" class="form-control" id="age" name="age" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="weight" class="form-label">Weight (kg)</label>
-                            <input type="number" step="0.5" class="form-control" id="weight" name="weight" required>
-                        </div>
+                    <div class="card-body">
+                        <form id="horseForm" class="mb-4">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">At İsmi <i class="fas fa-info-circle tooltip-icon" title="Atın tam adını giriniz"></i></label>
+                                <input type="text" class="form-control" id="name" name="name" required>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="age" class="form-label">Yaş</label>
+                                    <input type="number" class="form-control" id="age" name="age" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="weight" class="form-label">Kilo (kg)</label>
+                                    <input type="number" step="0.5" class="form-control" id="weight" name="weight" required>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="jockey" class="form-label">Jokey</label>
+                                    <input type="text" class="form-control" id="jockey" name="jockey" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="start_position" class="form-label">Start Pozisyonu</label>
+                                    <input type="number" class="form-control" id="start_position" name="start_position" required>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="hp" class="form-label">Handikap Puanı <i class="fas fa-info-circle tooltip-icon" title="Atın handikap puanını giriniz"></i></label>
+                                    <input type="number" class="form-control" id="hp" name="hp">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="last_six" class="form-label">Son 6 Yarış</label>
+                                    <input type="text" class="form-control" id="last_six" name="last_six" placeholder="Örn: 1 2 3 4 5 6">
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="kgs" class="form-label">Koşmama Gün Sayısı</label>
+                                    <input type="number" class="form-control" id="kgs" name="kgs">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="s20" class="form-label">Son 20 Yarış</label>
+                                    <input type="number" class="form-control" id="s20" name="s20">
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label for="eid" class="form-label">En İyi Derece</label>
+                                    <input type="text" class="form-control" id="eid" name="eid" placeholder="Örn: 1.34.68">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="gny" class="form-label">Günlük Nispi Yarış</label>
+                                    <input type="number" step="0.01" class="form-control" id="gny" name="gny">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="agf" class="form-label">AGF (%)</label>
+                                    <input type="number" step="0.01" class="form-control" id="agf" name="agf">
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-plus"></i> At Ekle
+                                </button>
+                                <button type="button" id="clearRace" class="btn btn-danger">
+                                    <i class="fas fa-trash"></i> Yarışı Temizle
+                                </button>
+                            </div>
+                        </form>
                     </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="jockey" class="form-label">Jockey</label>
-                            <input type="text" class="form-control" id="jockey" name="jockey" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="start_position" class="form-label">Start Position</label>
-                            <input type="number" class="form-control" id="start_position" name="start_position" required>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="hp" class="form-label">HP</label>
-                            <input type="number" class="form-control" id="hp" name="hp">
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="last_six" class="form-label">Last 6 Results</label>
-                            <input type="text" class="form-control" id="last_six" name="last_six" placeholder="e.g., 1 2 3 4 5 6">
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="kgs" class="form-label">KGS</label>
-                            <input type="number" class="form-control" id="kgs" name="kgs">
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="s20" class="form-label">S20</label>
-                            <input type="number" class="form-control" id="s20" name="s20">
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label for="eid" class="form-label">EİD</label>
-                            <input type="text" class="form-control" id="eid" name="eid" placeholder="e.g., 1.34.68">
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="gny" class="form-label">GNY</label>
-                            <input type="number" step="0.01" class="form-control" id="gny" name="gny">
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="agf" class="form-label">AGF (%)</label>
-                            <input type="number" step="0.01" class="form-control" id="agf" name="agf">
-                        </div>
-                    </div>
-                    
-                    <button type="submit" class="btn btn-primary">Add Horse</button>
-                    <button type="button" id="clearRace" class="btn btn-danger">Clear Race</button>
-                </form>
+                </div>
 
-                <div class="current-horses">
-                    <h3>Current Horses</h3>
-                    <div id="currentHorses"></div>
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-horse"></i> Mevcut Atlar
+                    </div>
+                    <div class="card-body">
+                        <div id="currentHorses"></div>
+                    </div>
                 </div>
             </div>
             
             <div class="col-md-6">
+                <div class="loading-spinner">
+                    <i class="fas fa-spinner fa-spin fa-3x"></i>
+                    <p>Tahminler Hesaplanıyor...</p>
+                </div>
+
                 <div class="prediction-section">
-                    <h3>ML Predictions</h3>
+                    <h3 class="section-title"><i class="fas fa-robot"></i> Makine Öğrenimi Tahminleri</h3>
                     <ul id="mlPredictions" class="prediction-list"></ul>
                 </div>
                 
                 <div class="prediction-section">
-                    <h3>Bayesian Predictions</h3>
+                    <h3 class="section-title"><i class="fas fa-chart-line"></i> Bayes Tahminleri</h3>
                     <ul id="bayesianPredictions" class="prediction-list"></ul>
                 </div>
                 
                 <div class="prediction-section">
-                    <h3>Combined Analysis</h3>
+                    <h3 class="section-title"><i class="fas fa-calculator"></i> Birleşik Analiz</h3>
                     <ul id="combinedPredictions" class="prediction-list"></ul>
                 </div>
             </div>
@@ -137,43 +301,46 @@
     </div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         function updatePredictions() {
+            $('.loading-spinner').show();
             $.ajax({
                 url: '/get_predictions',
                 method: 'GET',
                 success: function(response) {
+                    $('.loading-spinner').hide();
                     if (response.success) {
-                        // Update ML predictions
+                        // Makine Öğrenimi tahminlerini güncelle
                         $('#mlPredictions').empty();
                         response.ml_predictions.forEach(function(pred) {
                             $('#mlPredictions').append(
                                 `<li class="prediction-item">
-                                    <strong>${pred.name}</strong><br>
-                                    Total Score: ${pred.total_score}<br>
-                                    Base Score: ${pred.base_score}
+                                    <strong><i class="fas fa-medal"></i> ${pred.name}</strong><br>
+                                    <span class="stats-badge"><i class="fas fa-star"></i> Toplam: ${pred.total_score}</span>
+                                    <span class="stats-badge"><i class="fas fa-chart-bar"></i> Temel: ${pred.base_score}</span>
                                 </li>`
                             );
                         });
                         
-                        // Update Bayesian predictions
+                        // Bayes tahminlerini güncelle
                         $('#bayesianPredictions').empty();
                         response.bayesian_predictions.forEach(function(pred) {
                             $('#bayesianPredictions').append(
                                 `<li class="prediction-item">
-                                    <strong>${pred.name}</strong><br>
-                                    Probability: ${pred.probability}%
+                                    <strong><i class="fas fa-horse"></i> ${pred.name}</strong><br>
+                                    <span class="stats-badge"><i class="fas fa-percentage"></i> Olasılık: ${pred.probability}%</span>
                                 </li>`
                             );
                         });
                         
-                        // Update combined predictions
+                        // Birleşik tahminleri güncelle
                         $('#combinedPredictions').empty();
                         response.combined_predictions.forEach(function(pred) {
                             $('#combinedPredictions').append(
                                 `<li class="prediction-item">
-                                    <strong>${pred.name}</strong><br>
-                                    Combined Score: ${pred.score}
+                                    <strong><i class="fas fa-trophy"></i> ${pred.name}</strong><br>
+                                    <span class="stats-badge"><i class="fas fa-balance-scale"></i> Birleşik: ${pred.score}</span>
                                 </li>`
                             );
                         });
@@ -184,27 +351,34 @@
 
         function updateCurrentHorses() {
             $.ajax({
-                url: '/get_predictions',
+                url: '/get_race_data',
                 method: 'GET',
-                success: function(response) {
-                    if (response.success) {
-                        // Get current race data
-                        $.getJSON('/get_race_data', function(raceData) {
-                            $('#currentHorses').empty();
-                            if (raceData && raceData.entries) {
-                                raceData.entries.forEach(function(horse) {
-                                    $('#currentHorses').append(
-                                        `<div class="horse-item">
-                                            <strong>${horse.name}</strong><br>
-                                            Age: ${horse.age}, Weight: ${horse.weight}kg<br>
-                                            Jockey: ${horse.jockey}, Position: ${horse.start_position}<br>
-                                            HP: ${horse.hp || 'N/A'}, Last 6: ${horse.last_six || 'N/A'}<br>
-                                            KGS: ${horse.kgs || 'N/A'}, S20: ${horse.s20 || 'N/A'}<br>
-                                            EİD: ${horse.eid || 'N/A'}, GNY: ${horse.gny || 'N/A'}, AGF: ${horse.agf || 'N/A'}%
-                                        </div>`
-                                    );
-                                });
-                            }
+                success: function(raceData) {
+                    $('#currentHorses').empty();
+                    if (raceData && raceData.entries) {
+                        raceData.entries.forEach(function(horse) {
+                            $('#currentHorses').append(
+                                `<div class="horse-item">
+                                    <strong><i class="fas fa-horse"></i> ${horse.name}</strong><br>
+                                    <div class="mt-2">
+                                        <span class="stats-badge"><i class="fas fa-birthday-cake"></i> ${horse.age}</span>
+                                        <span class="stats-badge"><i class="fas fa-weight"></i> ${horse.weight}kg</span>
+                                        <span class="stats-badge"><i class="fas fa-user"></i> ${horse.jockey}</span>
+                                        <span class="stats-badge"><i class="fas fa-flag"></i> ${horse.start_position}</span>
+                                    </div>
+                                    <div class="mt-2">
+                                        <span class="stats-badge">HP: ${horse.hp || 'Yok'}</span>
+                                        <span class="stats-badge">Son 6: ${horse.last_six || 'Yok'}</span>
+                                        <span class="stats-badge">KGS: ${horse.kgs || 'Yok'}</span>
+                                        <span class="stats-badge">S20: ${horse.s20 || 'Yok'}</span>
+                                    </div>
+                                    <div class="mt-2">
+                                        <span class="stats-badge">EİD: ${horse.eid || 'Yok'}</span>
+                                        <span class="stats-badge">GNY: ${horse.gny || 'Yok'}</span>
+                                        <span class="stats-badge">AGF: ${horse.agf || 'Yok'}%</span>
+                                    </div>
+                                </div>`
+                            );
                         });
                     }
                 }
@@ -212,54 +386,62 @@
         }
 
         $(document).ready(function() {
-            // Initial update
+            // Tooltips'i etkinleştir
+            $('[data-bs-toggle="tooltip"]').tooltip();
+
+            // İlk güncelleme
             updateCurrentHorses();
             updatePredictions();
 
             $('#horseForm').on('submit', function(e) {
                 e.preventDefault();
                 
+                $('.loading-spinner').show();
                 $.ajax({
                     url: '/add_horse',
                     method: 'POST',
                     data: $(this).serialize(),
                     success: function(response) {
+                        $('.loading-spinner').hide();
                         if (response.success) {
-                            // Update displays
+                            // Görünümü güncelle
                             updateCurrentHorses();
                             updatePredictions();
                             
-                            // Clear form
+                            // Formu temizle
                             $('#horseForm')[0].reset();
                         } else {
-                            alert('Error: ' + response.error);
+                            alert('Hata: ' + response.error);
                         }
                     },
                     error: function() {
-                        alert('Error submitting form');
+                        $('.loading-spinner').hide();
+                        alert('Form gönderiminde hata oluştu');
                     }
                 });
             });
             
             $('#clearRace').on('click', function() {
-                $.ajax({
-                    url: '/clear_race',
-                    method: 'POST',
-                    success: function(response) {
-                        if (response.success) {
-                            // Clear all displays
-                            $('#currentHorses').empty();
-                            $('#mlPredictions').empty();
-                            $('#bayesianPredictions').empty();
-                            $('#combinedPredictions').empty();
-                        } else {
-                            alert('Error: ' + response.error);
+                if (confirm('Yarış verilerini temizlemek istediğinizden emin misiniz?')) {
+                    $.ajax({
+                        url: '/clear_race',
+                        method: 'POST',
+                        success: function(response) {
+                            if (response.success) {
+                                // Tüm görünümü temizle
+                                $('#currentHorses').empty();
+                                $('#mlPredictions').empty();
+                                $('#bayesianPredictions').empty();
+                                $('#combinedPredictions').empty();
+                            } else {
+                                alert('Hata: ' + response.error);
+                            }
+                        },
+                        error: function() {
+                            alert('Yarış temizlenirken hata oluştu');
                         }
-                    },
-                    error: function() {
-                        alert('Error clearing race');
-                    }
-                });
+                    });
+                }
             });
         });
     </script>

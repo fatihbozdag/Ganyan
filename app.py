@@ -20,7 +20,7 @@ def save_race_data(data):
 
 @app.route('/')
 def index():
-    # Load current race data to display on page load
+    # Sayfa yüklendiğinde mevcut yarış verilerini göster
     race_data = load_race_data()
     return render_template('index.html', current_data=race_data)
 
@@ -36,11 +36,11 @@ def get_predictions():
                 'combined_predictions': []
             })
             
-        # Run predictions
+        # Tahminleri çalıştır
         ml_predictions = analyzer.analyze_race(race_data['race_info'], race_data['entries'])
         bayesian_probs = predictor.predict_race(race_data['entries'])
         
-        # Combine predictions
+        # Tahminleri birleştir
         combined_scores = {}
         for horse in race_data['entries']:
             name = horse['name']
@@ -52,7 +52,7 @@ def get_predictions():
             
             combined_scores[name] = (normalized_ml * 0.6) + (normalized_bayes * 0.4)
         
-        # Sort predictions
+        # Tahminleri sırala
         sorted_ml = sorted(ml_predictions, key=lambda x: x['total_score'], reverse=True)[:5]
         sorted_bayes = sorted(bayesian_probs.items(), key=lambda x: x[1], reverse=True)[:5]
         sorted_combined = sorted(combined_scores.items(), key=lambda x: x[1], reverse=True)[:5]
@@ -74,12 +74,12 @@ def get_predictions():
             } for name, score in sorted_combined]
         })
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+        return jsonify({'success': False, 'error': f'Tahmin hesaplanırken hata oluştu: {str(e)}'})
 
 @app.route('/add_horse', methods=['POST'])
 def add_horse():
     try:
-        # Get form data
+        # Form verilerini al
         horse_data = {
             'name': request.form['name'],
             'age': int(request.form['age']),
@@ -95,19 +95,19 @@ def add_horse():
             'agf': float(request.form['agf']) if request.form['agf'] else None
         }
 
-        # Load current race data
+        # Mevcut yarış verilerini yükle
         race_data = load_race_data()
         
-        # Add new horse
+        # Yeni atı ekle
         race_data['entries'].append(horse_data)
         
-        # Save updated data
+        # Güncellenmiş verileri kaydet
         save_race_data(race_data)
         
         return jsonify({'success': True})
         
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+        return jsonify({'success': False, 'error': f'At eklenirken hata oluştu: {str(e)}'})
 
 @app.route('/clear_race', methods=['POST'])
 def clear_race():
@@ -128,7 +128,7 @@ def clear_race():
         save_race_data(empty_race)
         return jsonify({'success': True})
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+        return jsonify({'success': False, 'error': f'Yarış temizlenirken hata oluştu: {str(e)}'})
 
 @app.route('/get_race_data')
 def get_race_data():
@@ -136,7 +136,7 @@ def get_race_data():
         race_data = load_race_data()
         return jsonify(race_data)
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': f'Yarış verileri yüklenirken hata oluştu: {str(e)}'}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5001) 
+    app.run(debug=True, port=5002) 

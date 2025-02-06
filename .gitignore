@@ -19,16 +19,22 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 
 # Virtual Environment
 venv/
 ENV/
+env/
+.env
 
 # IDE
 .idea/
 .vscode/
 *.swp
 *.swo
+.vs/
+*.sublime-workspace
+*.sublime-project
 
 # OS
 .DS_Store
@@ -40,7 +46,14 @@ ehthumbs.db
 Thumbs.db
 
 # Project specific
-backups/
 *.db
 data/raw/
-*.log 
+*.log
+backups/
+current_race.json
+horse_racing.egg-info/
+.coverage
+htmlcov/
+.pytest_cache/
+.env
+local_settings.py 

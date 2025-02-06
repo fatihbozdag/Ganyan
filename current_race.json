@@ -9,34 +9,5 @@
     "race_weight": "",
     "eid_record": ""
   },
-  "entries": [
-    {
-      "name": "LIGHT FOREVER",
-      "age": 3,
-      "weight": 53.5,
-      "jockey": "LEONEL REYES",
-      "start_position": 1,
-      "hp": 62,
-      "last_six": "6 2 5 4 - 2",
-      "kgs": 24,
-      "s20": 0,
-      "eid": "",
-      "gny": 4.64,
-      "agf": 13.24
-    },
-    {
-      "name": "BOLT TO RUN",
-      "age": 3,
-      "weight": 53.5,
-      "jockey": "JORGE RUIZ",
-      "start_position": 2,
-      "hp": 68,
-      "last_six": "6 5 - 9 6",
-      "kgs": 11,
-      "s20": 0,
-      "eid": "",
-      "gny": 27.1,
-      "agf": 1.89
-    }
-  ]
+  "entries": []
 }
