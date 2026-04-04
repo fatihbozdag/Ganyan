@@ -4,89 +4,82 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Ganyan is a Turkish horse racing (at yarışı) prediction system that scrapes race data from TJK (Türkiye Jokey Kulübü), stores it in SQLite, and generates predictions via a dual ML + Bayesian engine served through a Flask web app.
+Ganyan is a Turkish horse racing prediction system. It scrapes race data from TJK (Türkiye Jokey Kulübü), stores it in PostgreSQL, and generates Bayesian predictions served via CLI and Flask web app.
 
 ## Commands
 
 ```bash
-# Install dependencies (use uv per global preference)
-uv pip install -r requirements.txt
+# Start PostgreSQL
+docker compose up -d
 
-# Run the Flask web app (serves on port 5003)
-python app.py
+# Install dependencies
+uv sync --all-extras
 
-# Run prediction simulation
-python test_prediction.py
+# Run database migrations
+uv run ganyan db init
 
-# Build database from processed CSVs
-python scripts/create_db_from_processed.py
+# Scrape today's race cards
+uv run ganyan scrape --today
 
-# Run the TJK scraper
-python scripts/run_scraper.py
+# Scrape today's results
+uv run ganyan scrape --results
+
+# Backfill historical data
+uv run ganyan scrape --backfill --from 2024-01-01
+
+# Predict a specific race
+uv run ganyan predict <race_id>
+
+# Predict all today's races
+uv run ganyan predict --today
+uv run ganyan predict --today --json
+
+# List races
+uv run ganyan races --today
+uv run ganyan races --date 2024-03-15
+
+# Start web app (port 5003)
+uv run python -c "from ganyan.web.app import run; run()"
 
 # Run tests
-pytest
+uv run pytest tests/ -v
+
+# Run a single test
+uv run pytest tests/test_predictor/test_bayesian.py::test_probabilities_sum_to_100 -v
 ```
 
 ## Architecture
 
-### Dual Prediction Pipeline
+Three-layer service-oriented monorepo sharing PostgreSQL:
 
-The system runs two independent prediction models and combines their outputs:
+1. **Scraper** (`src/ganyan/scraper/`) — TJK website client using AJAX endpoints at `/TR/YarisSever/Info/Sehir/GunlukYarisProgrami`. `tjk_api.py` fetches race cards and results per city via `SehirId` parameters. `parser.py` normalizes raw HTML data into dataclasses. `backfill.py` handles idempotent storage and incremental historical loading.
 
-1. **ML Predictor** (`race_analyzer.py` → `RaceAnalyzer`): Weighted scoring across speed (30%), form (25%), weight (20%), track fit (15%), class (10%). Applies multiplicative adjustments for EİD, recent form, weight, KGS, and S20.
+2. **Predictor** (`src/ganyan/predictor/`) — Empirical Bayesian model. `features.py` extracts speed figure, form cycle (exponential decay), weight delta, rest fitness (Gaussian curve), and class indicator. `bayesian.py` computes prior (1/N) x feature likelihoods → normalized probabilities with confidence scores and contributing factors.
 
-2. **Bayesian Predictor** (`bayesian_predictor.py` → `BayesianPredictor`): Prior-based probability estimation with speed (35%), form (30%), weight (20%), class (15%) priors. Uses exponential decay for form cycles, normalizes to sum=100%.
-
-3. **Combined**: 60% ML + 40% Bayesian → final ranking.
+3. **Web + CLI** (`src/ganyan/web/`, `src/ganyan/cli/`) — Flask app with HTMX (Bootstrap 5, Turkish UI). Typer CLI for terminal use. Both consume predictor and scraper directly.
 
 ### Data Flow
 
 ```
-TJK website → scrapers/ (Selenium/Safari) → data/processed/*.csv
-    → scripts/create_db_from_processed.py → data/races_new.db (SQLite)
-    → RaceAnalyzer + BayesianPredictor → Flask API → Web UI
+TJK website (AJAX per city) → scraper/tjk_api.py → scraper/parser.py → scraper/backfill.py → PostgreSQL
+                                                                                                    ↓
+CLI (ganyan predict) ← predictor/bayesian.py ← predictor/features.py ← race_entries table
+Flask (/races/<id>/predict) ←────────────────┘
 ```
-
-### Flask App (`app.py`)
-
-- `GET /` — Main UI (Bootstrap 5, Turkish language)
-- `GET /get_predictions` — Returns ML, Bayesian, and combined predictions as JSON
-- `POST /add_horse` — Add horse entry to `current_race.json`
-- `POST /clear_race` — Reset current race
-- `POST /update_race_info` — Update race metadata
-- `GET /get_race_data` — Current race JSON
 
 ### Key Turkish Racing Metrics
 
 - **HP** — Handikap Puanı (handicap points)
-- **KGS** — Koşmama Gün Sayısı (days since last race; 21 days optimal)
+- **KGS** — Koşmama Gün Sayısı (days since last race; 14-28 optimal)
 - **S20** — Son 20 yarış performansı (last 20 races performance)
-- **EİD** — En İyi Derece (best time/performance)
+- **EİD** — En İyi Derece (best time, stored as string "1.30.45", converted to seconds for computation)
 - **GNY** — Günlük Nispi Yarış puanı (daily relative race score)
 - **AGF** — Ağırlıklı Galibiyet Faktörü (weighted win factor)
-- **Last Six** — Recent race finishing positions (e.g., "2 4 4 5 2 7")
 
-### Database Schema (SQLite)
+### Database
 
-Three tables: `races` (date, venue, race_no, distance_track), `horses` (name, age, origin), `race_results` (FK to both, with jockey, weight, performance_score, last_6_races, score_1-6). Utility class: `src/utils/db_utils.py` → `DatabaseManager`.
+PostgreSQL 16 via Docker Compose. SQLAlchemy 2.0 ORM + Alembic migrations. Tables: `tracks`, `races` (unique on track+date+race_number), `horses` (unique on name), `race_entries` (pre-race + post-race fields in one row), `scrape_log`.
 
-### Scrapers
+### Config
 
-Two implementations targeting `medya-cdn.tjk.org` CSV endpoints:
-- **Selenium-based** (`scrapers/tjk_scraper.py`): Safari WebDriver, handles dynamic pages
-- **Scrapy spider** (`tjk_scraper/`): Polite crawling (3s delay, single concurrent request)
-
-CSV URL pattern: `https://medya-cdn.tjk.org/raporftp/TJKPDF{YYYY-MM-DD}/{DD.MM.YYYY}-{TRACK}-GunlukYarisSonuclari-TR.csv`
-
-### Scripts Directory
-
-25 utility scripts in `scripts/` for database creation, scraping, analysis, prediction, and a GUI (`enhanced_race_gui.py`). Entry points: `run_scraper.py`, `predict_race.py`, `analyze_races.py`, `create_db_from_processed.py`.
-
-## Conventions
-
-- Variable names mix Turkish and English (metric names are Turkish abbreviations)
-- Data files use Turkish date format: `DD.MM.YYYY-{TrackName}.csv`
-- Track names include Turkish characters (İstanbul, İzmir, Şanlıurfa, etc.)
-- Processed data lives in `data/processed/`, database in `data/races_new.db`
-- Race state persisted in `current_race.json` at project root
+`pydantic-settings` reads from `.env` file or environment variables. See `.env.example`. Key: `DATABASE_URL`, `TJK_BASE_URL`, `SCRAPE_DELAY`, `FLASK_PORT`.
