@@ -1,1 +1,0 @@
-# TJK Scraper Scrapy Project 
