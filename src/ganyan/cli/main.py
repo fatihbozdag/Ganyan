@@ -3,7 +3,6 @@
 import asyncio
 import logging
 import subprocess
-import sys
 from datetime import date, datetime
 
 import typer
