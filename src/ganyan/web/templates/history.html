@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}Ganyan - Gecmis Sonuclar{% endblock %}
+
+{% block content %}
+<h2>Gecmis Sonuclar</h2>
+
+{% if races %}
+<div class="list-group">
+    {% for race in races %}
+    <a href="/races/{{ race.id }}/predict"
+       class="list-group-item list-group-item-action">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <strong>{{ race.track.name if race.track else '?' }}</strong>
+                <span class="text-muted ms-2">#{{ race.race_number }}</span>
+                <small class="text-muted ms-2">
+                    {{ race.distance_meters or '?' }}m / {{ race.surface or '?' }}
+                </small>
+            </div>
+            <div>
+                <span class="badge bg-success">{{ race.status.value }}</span>
+                <small class="text-muted ms-2">{{ race.date }}</small>
+            </div>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-secondary">
+    Henuz sonuclanan yarış bulunamadi.
+</div>
+{% endif %}
+{% endblock %}

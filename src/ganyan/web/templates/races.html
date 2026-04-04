@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Ganyan - Yarislar ({{ race_date }}){% endblock %}
+
+{% block content %}
+<h2>Yarislar &mdash; {{ race_date }}</h2>
+
+{% if races %}
+<div class="table-responsive">
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>#</th>
+                <th>Hipodrom</th>
+                <th>Mesafe</th>
+                <th>Zemin</th>
+                <th>Katilimci</th>
+                <th>Durum</th>
+                <th>Tahmin</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for race in races %}
+            <tr>
+                <td>{{ race.race_number }}</td>
+                <td>{{ race.track.name if race.track else '?' }}</td>
+                <td>{{ race.distance_meters or '?' }} m</td>
+                <td>{{ race.surface or '?' }}</td>
+                <td>{{ race.entries|length }}</td>
+                <td>
+                    <span class="badge bg-{% if race.status.value == 'scheduled' %}primary{% elif race.status.value == 'resulted' %}success{% else %}warning{% endif %}">
+                        {{ race.status.value }}
+                    </span>
+                </td>
+                <td>
+                    <a href="/races/{{ race.id }}/predict" class="btn btn-sm btn-outline-primary">
+                        Tahmin Et
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="alert alert-secondary">
+    Bu tarih icin yarış bulunamadi.
+</div>
+{% endif %}
+{% endblock %}

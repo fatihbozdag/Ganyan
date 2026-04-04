@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Ganyan - Tahmin (Kosu {{ race.race_number }}){% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h2>
+        {{ race.track.name if race.track else '?' }} &mdash;
+        {{ race.race_number }}. Kosu
+    </h2>
+    <p class="text-muted">
+        {{ race.date }} |
+        {{ race.distance_meters or '?' }} m |
+        {{ race.surface or '?' }} |
+        {{ race.entries|length }} at
+    </p>
+</div>
+
+{% if predictions %}
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>#</th>
+                <th>At</th>
+                <th>Olasilik</th>
+                <th>Guven</th>
+                <th>Etkenler</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in predictions %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td><strong>{{ p.horse_name }}</strong></td>
+                <td style="min-width: 200px;">
+                    <div class="d-flex align-items-center">
+                        <div class="progress flex-grow-1 me-2" style="height: 20px;">
+                            <div class="progress-bar
+                                {% if p.probability > 25 %}bg-success
+                                {% elif p.probability > 15 %}bg-warning
+                                {% else %}bg-secondary{% endif %}"
+                                 role="progressbar"
+                                 style="width: {{ p.probability }}%"
+                                 aria-valuenow="{{ p.probability }}"
+                                 aria-valuemin="0"
+                                 aria-valuemax="100">
+                            </div>
+                        </div>
+                        <span class="fw-bold">%{{ "%.1f"|format(p.probability) }}</span>
+                    </div>
+                </td>
+                <td>
+                    <span class="badge
+                        {% if p.confidence > 0.7 %}bg-success
+                        {% elif p.confidence > 0.4 %}bg-warning text-dark
+                        {% else %}bg-secondary{% endif %}">
+                        {{ "%.2f"|format(p.confidence) }}
+                    </span>
+                </td>
+                <td>
+                    {% for factor, impact in p.contributing_factors.items() %}
+                    <span class="badge rounded-pill
+                        {% if impact > 0 %}bg-success
+                        {% elif impact < 0 %}bg-danger
+                        {% else %}bg-secondary{% endif %}
+                        me-1" title="{{ factor }}: {{ '%.3f'|format(impact) }}">
+                        {{ factor }}
+                    </span>
+                    {% endfor %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="alert alert-warning">
+    Bu kosu icin tahmin uretilemiyor. Yeterli veri yok.
+</div>
+{% endif %}
+
+<a href="/" class="btn btn-outline-secondary mt-3">Ana Sayfaya Don</a>
+{% endblock %}

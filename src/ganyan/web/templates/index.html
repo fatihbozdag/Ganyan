@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Ganyan - Ana Sayfa{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2>Bugunun Yarislari</h2>
+            <button class="btn btn-primary"
+                    hx-post="/scrape/today"
+                    hx-target="#race-list"
+                    hx-indicator="#scrape-spinner">
+                TJK'dan Veri Cek
+                <span id="scrape-spinner" class="spinner-border spinner-border-sm htmx-indicator" role="status"></span>
+            </button>
+        </div>
+
+        {% if message is defined and message %}
+        <div class="alert alert-info">{{ message }}</div>
+        {% endif %}
+
+        <div id="race-list">
+            {% if today_races %}
+            <div class="list-group">
+                {% for race in today_races %}
+                <a href="/races/{{ race.id }}/predict"
+                   class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>{{ race.race_number }}. Kosu</strong>
+                        <span class="text-muted ms-2">
+                            {{ race.track.name if race.track else '?' }}
+                        </span>
+                        <small class="text-muted ms-2">
+                            {{ race.distance_meters or '?' }}m / {{ race.surface or '?' }}
+                        </small>
+                    </div>
+                    <div>
+                        <span class="badge bg-secondary">{{ race.entries|length }} at</span>
+                        <span class="badge bg-{% if race.status.value == 'scheduled' %}primary{% elif race.status.value == 'resulted' %}success{% else %}warning{% endif %}">
+                            {{ race.status.value }}
+                        </span>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert alert-secondary">
+                Bugun icin yarış bulunamadi. TJK'dan veri cekmek icin butona tiklayin.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <h4>Son Sonuclar</h4>
+        {% if recent_races %}
+        <div class="list-group">
+            {% for race in recent_races %}
+            <a href="/races/{{ race.id }}/predict"
+               class="list-group-item list-group-item-action">
+                <div class="d-flex justify-content-between">
+                    <span>{{ race.track.name if race.track else '?' }} #{{ race.race_number }}</span>
+                    <small class="text-muted">{{ race.date }}</small>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted">Henuz sonuc yok.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
