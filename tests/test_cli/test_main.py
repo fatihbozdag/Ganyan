@@ -27,6 +27,13 @@ def test_races_help():
     assert result.exit_code == 0
 
 
+def test_evaluate_help():
+    result = runner.invoke(app, ["evaluate", "--help"])
+    assert result.exit_code == 0
+    assert "--detail" in result.output
+    assert "--json" in result.output
+
+
 def test_db_help():
     result = runner.invoke(app, ["db", "--help"])
     assert result.exit_code == 0

@@ -35,6 +35,22 @@ class BayesianPredictor:
     def __init__(self, session: Session) -> None:
         self.session = session
 
+    def predict_and_save(self, race_id: int) -> list[Prediction]:
+        """Predict and write predicted_probability to race_entries."""
+        predictions = self.predict(race_id)
+        for p in predictions:
+            entry = (
+                self.session.query(RaceEntry)
+                .filter(
+                    RaceEntry.race_id == race_id,
+                    RaceEntry.horse_id == p.horse_id,
+                )
+                .first()
+            )
+            if entry:
+                entry.predicted_probability = p.probability
+        return predictions
+
     def predict(self, race_id: int) -> list[Prediction]:
         """Predict win probabilities for all entries in a race.
 

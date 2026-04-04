@@ -5,7 +5,85 @@
 {% block content %}
 <h2>Gecmis Sonuclar</h2>
 
+{% if summary and summary.total_races > 0 %}
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <strong>Tahmin Degerlendirme Ozeti</strong>
+        <span class="badge bg-light text-primary ms-2">{{ summary.total_races }} yaris</span>
+    </div>
+    <div class="card-body">
+        <div class="row text-center">
+            <div class="col-md-2 col-4 mb-3">
+                <div class="fs-3 fw-bold text-success">{{ "%.1f"|format(summary.top1_accuracy) }}%</div>
+                <small class="text-muted">Top-1 Isabeti</small>
+            </div>
+            <div class="col-md-2 col-4 mb-3">
+                <div class="fs-3 fw-bold text-info">{{ "%.1f"|format(summary.top3_accuracy) }}%</div>
+                <small class="text-muted">Top-3 Isabeti</small>
+            </div>
+            <div class="col-md-2 col-4 mb-3">
+                <div class="fs-3 fw-bold">{{ "%.2f"|format(summary.avg_winner_rank) }}</div>
+                <small class="text-muted">Ort. Kazanan Sira</small>
+            </div>
+            <div class="col-md-2 col-4 mb-3">
+                <div class="fs-3 fw-bold">{{ "%.1f"|format(summary.avg_winner_probability) }}%</div>
+                <small class="text-muted">Ort. Kazanan Olasil.</small>
+            </div>
+            <div class="col-md-2 col-4 mb-3">
+                <div class="fs-3 fw-bold">{{ "%.4f"|format(summary.log_loss) }}</div>
+                <small class="text-muted">Log Loss</small>
+            </div>
+            <div class="col-md-2 col-4 mb-3">
+                <div class="fs-3 fw-bold {% if summary.roi_simulation >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    {{ "%+.1f"|format(summary.roi_simulation * 100) }}%
+                </div>
+                <small class="text-muted">ROI (Sim.)</small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if evaluations %}
+<h4>Yaris Bazinda Sonuclar</h4>
+<div class="table-responsive mb-4">
+    <table class="table table-striped table-sm">
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Hipodrom</th>
+                <th>Tarih</th>
+                <th>#</th>
+                <th>At Say.</th>
+                <th>Kazanan</th>
+                <th>Tahmini %</th>
+                <th>Sira</th>
+                <th>Top-1</th>
+                <th>Top-3</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ev in evaluations %}
+            <tr>
+                <td><a href="/races/{{ ev.race_id }}/predict">{{ ev.race_id }}</a></td>
+                <td>{{ ev.track }}</td>
+                <td>{{ ev.date }}</td>
+                <td>{{ ev.race_number }}</td>
+                <td>{{ ev.num_horses }}</td>
+                <td>{{ ev.winner_name }}</td>
+                <td>{{ "%.1f"|format(ev.winner_predicted_prob) if ev.winner_predicted_prob is not none else "N/A" }}</td>
+                <td>{{ ev.winner_predicted_rank if ev.winner_predicted_rank is not none else "N/A" }}</td>
+                <td>{% if ev.top1_correct %}<span class="badge bg-success">Evet</span>{% endif %}</td>
+                <td>{% if ev.top3_correct %}<span class="badge bg-info">Evet</span>{% endif %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
 {% if races %}
+<h4>Tum Sonuclanan Yarislar</h4>
 <div class="list-group">
     {% for race in races %}
     <a href="/races/{{ race.id }}/predict"

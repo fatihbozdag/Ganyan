@@ -12,11 +12,13 @@ from ganyan.config import get_settings
 app = typer.Typer(name="ganyan", help="Turkish horse racing prediction system")
 scrape_app = typer.Typer(help="Scrape race data from TJK")
 predict_app = typer.Typer(help="Generate race predictions")
+evaluate_app = typer.Typer(help="Evaluate prediction accuracy")
 races_app = typer.Typer(help="View race information")
 db_app = typer.Typer(help="Database management")
 
 app.add_typer(scrape_app, name="scrape")
 app.add_typer(predict_app, name="predict")
+app.add_typer(evaluate_app, name="evaluate")
 app.add_typer(races_app, name="races")
 app.add_typer(db_app, name="db")
 
@@ -162,17 +164,18 @@ def predict(
 
 
 def _predict_race(race_id: int, json_output: bool) -> None:
-    """Predict a single race."""
+    """Predict a single race and save predictions to DB."""
     from ganyan.db import get_session
     from ganyan.predictor import BayesianPredictor
 
     session = get_session()
     try:
         predictor = BayesianPredictor(session)
-        predictions = predictor.predict(race_id)
+        predictions = predictor.predict_and_save(race_id)
         if not predictions:
             typer.echo(f"No predictions for race {race_id}.")
             return
+        session.commit()
         _display_predictions(predictions, race_id, json_output)
     finally:
         session.close()
@@ -197,9 +200,10 @@ def _predict_today(json_output: bool) -> None:
 
         predictor = BayesianPredictor(session)
         for race in races:
-            predictions = predictor.predict(race.id)
+            predictions = predictor.predict_and_save(race.id)
             _display_predictions(predictions, race.id, json_output)
             typer.echo("")  # blank line separator
+        session.commit()
     finally:
         session.close()
 
@@ -227,6 +231,103 @@ def _display_predictions(predictions, race_id: int, json_output: bool) -> None:
         for i, p in enumerate(predictions, 1):
             typer.echo(
                 f"{i:<4} {p.horse_name:<25} {p.probability:>6.1f}%    {p.confidence:.2f}"
+            )
+
+
+# ---------------------------------------------------------------------------
+# evaluate
+# ---------------------------------------------------------------------------
+
+
+@evaluate_app.callback(invoke_without_command=True)
+def evaluate(
+    detail: bool = typer.Option(False, "--detail", help="Show per-race breakdown"),
+    json_output: bool = typer.Option(False, "--json", help="Output JSON format"),
+) -> None:
+    """Evaluate prediction accuracy on resulted races."""
+    settings = get_settings()
+    logging.basicConfig(level=settings.log_level)
+
+    from ganyan.db import get_session
+    from ganyan.predictor.evaluate import evaluate_all
+
+    session = get_session()
+    try:
+        summary, evaluations = evaluate_all(session)
+        _display_evaluation(summary, evaluations, detail, json_output)
+    finally:
+        session.close()
+
+
+def _display_evaluation(summary, evaluations, detail: bool, json_output: bool) -> None:
+    """Display evaluation results."""
+    if json_output:
+        import json
+
+        data = {
+            "summary": {
+                "total_races": summary.total_races,
+                "top1_accuracy": round(summary.top1_accuracy, 2),
+                "top3_accuracy": round(summary.top3_accuracy, 2),
+                "avg_winner_rank": round(summary.avg_winner_rank, 2),
+                "avg_winner_probability": round(summary.avg_winner_probability, 2),
+                "log_loss": round(summary.log_loss, 4),
+                "roi_simulation": round(summary.roi_simulation, 4),
+            },
+        }
+        if detail:
+            data["races"] = [
+                {
+                    "race_id": ev.race_id,
+                    "track": ev.track,
+                    "date": ev.date.isoformat(),
+                    "race_number": ev.race_number,
+                    "num_horses": ev.num_horses,
+                    "winner_name": ev.winner_name,
+                    "winner_predicted_prob": (
+                        round(ev.winner_predicted_prob, 2)
+                        if ev.winner_predicted_prob is not None
+                        else None
+                    ),
+                    "winner_predicted_rank": ev.winner_predicted_rank,
+                    "top1_correct": ev.top1_correct,
+                    "top3_correct": ev.top3_correct,
+                }
+                for ev in evaluations
+            ]
+        typer.echo(json.dumps(data, indent=2))
+        return
+
+    if summary.total_races == 0:
+        typer.echo("No resulted races with predictions found.")
+        return
+
+    typer.echo("=== Prediction Evaluation Summary ===")
+    typer.echo(f"Total races evaluated: {summary.total_races}")
+    typer.echo(f"Top-1 accuracy:        {summary.top1_accuracy:.1f}%")
+    typer.echo(f"Top-3 accuracy:        {summary.top3_accuracy:.1f}%")
+    typer.echo(f"Avg winner rank:       {summary.avg_winner_rank:.2f}")
+    typer.echo(f"Avg winner prob:       {summary.avg_winner_probability:.1f}%")
+    typer.echo(f"Log loss:              {summary.log_loss:.4f}")
+    typer.echo(f"ROI (flat bet top 1):  {summary.roi_simulation:+.1%}")
+
+    if detail:
+        typer.echo("")
+        typer.echo(
+            f"{'Race':<6} {'Track':<15} {'Date':<12} {'#':<4} "
+            f"{'Horses':<7} {'Winner':<20} {'Prob%':<8} {'Rank':<6} "
+            f"{'Top1':<6} {'Top3':<6}"
+        )
+        typer.echo("-" * 95)
+        for ev in evaluations:
+            prob_str = f"{ev.winner_predicted_prob:.1f}" if ev.winner_predicted_prob is not None else "N/A"
+            rank_str = str(ev.winner_predicted_rank) if ev.winner_predicted_rank is not None else "N/A"
+            t1 = "Y" if ev.top1_correct else ""
+            t3 = "Y" if ev.top3_correct else ""
+            typer.echo(
+                f"{ev.race_id:<6} {ev.track:<15} {ev.date.isoformat():<12} "
+                f"{ev.race_number:<4} {ev.num_horses:<7} {ev.winner_name:<20} "
+                f"{prob_str:<8} {rank_str:<6} {t1:<6} {t3:<6}"
             )
 
 

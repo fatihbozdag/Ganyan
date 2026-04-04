@@ -163,8 +163,13 @@ def predict_race(race_id: int):
 
 @bp.route("/history")
 def history():
+    from ganyan.predictor.evaluate import evaluate_all
+
     session = _get_session()
     try:
+        summary, evaluations = evaluate_all(session)
+
+        # Also fetch the full race list for any races without predictions.
         resulted_races = (
             session.query(Race)
             .filter(Race.status == RaceStatus.resulted)
@@ -175,19 +180,56 @@ def history():
 
         if _wants_json():
             return jsonify(
-                [
-                    {
-                        "id": r.id,
-                        "track": r.track.name if r.track else None,
-                        "date": r.date.isoformat(),
-                        "race_number": r.race_number,
-                        "status": r.status.value,
-                    }
-                    for r in resulted_races
-                ]
+                {
+                    "summary": {
+                        "total_races": summary.total_races,
+                        "top1_accuracy": round(summary.top1_accuracy, 2),
+                        "top3_accuracy": round(summary.top3_accuracy, 2),
+                        "avg_winner_rank": round(summary.avg_winner_rank, 2),
+                        "avg_winner_probability": round(
+                            summary.avg_winner_probability, 2
+                        ),
+                        "log_loss": round(summary.log_loss, 4),
+                        "roi_simulation": round(summary.roi_simulation, 4),
+                    },
+                    "evaluations": [
+                        {
+                            "race_id": ev.race_id,
+                            "track": ev.track,
+                            "date": ev.date.isoformat(),
+                            "race_number": ev.race_number,
+                            "num_horses": ev.num_horses,
+                            "winner_name": ev.winner_name,
+                            "winner_predicted_prob": (
+                                round(ev.winner_predicted_prob, 2)
+                                if ev.winner_predicted_prob is not None
+                                else None
+                            ),
+                            "winner_predicted_rank": ev.winner_predicted_rank,
+                            "top1_correct": ev.top1_correct,
+                            "top3_correct": ev.top3_correct,
+                        }
+                        for ev in evaluations
+                    ],
+                    "races": [
+                        {
+                            "id": r.id,
+                            "track": r.track.name if r.track else None,
+                            "date": r.date.isoformat(),
+                            "race_number": r.race_number,
+                            "status": r.status.value,
+                        }
+                        for r in resulted_races
+                    ],
+                }
             )
 
-        return render_template("history.html", races=resulted_races)
+        return render_template(
+            "history.html",
+            races=resulted_races,
+            summary=summary,
+            evaluations=evaluations,
+        )
     finally:
         session.close()
 
