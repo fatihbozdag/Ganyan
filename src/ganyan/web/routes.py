@@ -26,9 +26,9 @@ def _get_session() -> Session:
 
 
 def _wants_json() -> bool:
-    """Return True when the client prefers JSON over HTML."""
+    """Return True when the client explicitly prefers JSON over HTML."""
     best = request.accept_mimetypes.best_match(
-        ["application/json", "text/html"]
+        ["text/html", "application/json"]
     )
     return best == "application/json"
 

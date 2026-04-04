@@ -25,6 +25,11 @@ def create_app(session_factory: sessionmaker | None = None) -> Flask:
         session_factory = get_session_factory()
     app.config["SESSION_FACTORY"] = session_factory
 
+    @app.context_processor
+    def inject_today():
+        from datetime import date
+        return {"today": date.today().isoformat()}
+
     from ganyan.web.routes import bp
 
     app.register_blueprint(bp)
