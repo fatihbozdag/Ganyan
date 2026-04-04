@@ -1,5 +1,6 @@
 """Bayesian prediction engine for horse racing."""
 
+import math
 from dataclasses import dataclass, field
 
 from sqlalchemy.orm import Session
@@ -168,7 +169,6 @@ class BayesianPredictor:
             factors["class"] = 0.0
 
         # Convert to positive likelihood using softmax-style exp.
-        import math
         likelihood = math.exp(weighted_sum)
 
         return likelihood, factors
