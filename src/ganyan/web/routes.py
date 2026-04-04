@@ -292,7 +292,7 @@ def scrape_today():
             message=msg,
         )
 
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         session.rollback()
         msg = f"Hata: {exc}"
         if _wants_json():
@@ -302,6 +302,147 @@ def scrape_today():
             today_races=[],
             recent_races=[],
             message=msg,
+        ), 500
+    finally:
+        session.close()
+
+
+# ---------------------------------------------------------------------------
+# POST /predict/today — Predict all today's races and save
+# ---------------------------------------------------------------------------
+
+
+@bp.route("/predict/today", methods=["POST"])
+def predict_today():
+    from ganyan.predictor import BayesianPredictor
+
+    session = _get_session()
+    try:
+        today_races = (
+            session.query(Race)
+            .filter(Race.date == date.today())
+            .order_by(Race.race_number)
+            .all()
+        )
+
+        if not today_races:
+            msg = "Bugün için yarış bulunamadı."
+            if _wants_json():
+                return jsonify({"message": msg, "count": 0})
+            return render_template(
+                "index.html", today_races=[], recent_races=[], message=msg,
+            )
+
+        predictor = BayesianPredictor(session)
+        count = 0
+        for race in today_races:
+            predictor.predict_and_save(race.id)
+            count += 1
+        session.commit()
+
+        msg = f"{count} yarış için tahmin kaydedildi."
+        if _wants_json():
+            return jsonify({"message": msg, "count": count})
+
+        # Reload for template
+        today_races = (
+            session.query(Race)
+            .filter(Race.date == date.today())
+            .order_by(Race.race_number)
+            .all()
+        )
+        return render_template(
+            "index.html",
+            today_races=today_races,
+            recent_races=[],
+            message=msg,
+        )
+
+    except Exception as exc:  # noqa: BLE001
+        session.rollback()
+        msg = f"Hata: {exc}"
+        if _wants_json():
+            return jsonify({"error": msg}), 500
+        return render_template(
+            "index.html", today_races=[], recent_races=[], message=msg,
+        ), 500
+    finally:
+        session.close()
+
+
+# ---------------------------------------------------------------------------
+# POST /scrape/results — Fetch today's results from TJK
+# ---------------------------------------------------------------------------
+
+
+@bp.route("/scrape/results", methods=["POST"])
+def scrape_results():
+    import asyncio
+
+    from ganyan.config import get_settings
+    from ganyan.scraper import TJKClient, parse_race_card
+    from ganyan.scraper.backfill import update_race_results
+
+    settings = get_settings()
+    session = _get_session()
+
+    try:
+
+        async def _do_scrape():
+            async with TJKClient(
+                base_url=settings.tjk_base_url, delay=settings.scrape_delay
+            ) as client:
+                return await client.get_race_results(date.today())
+
+        raw_results = asyncio.run(_do_scrape())
+
+        if not raw_results:
+            msg = "Bugün için sonuç bulunamadı."
+            if _wants_json():
+                return jsonify({"message": msg, "count": 0})
+            return render_template(
+                "index.html", today_races=[], recent_races=[], message=msg,
+            )
+
+        updated = 0
+        for raw in raw_results:
+            parsed = parse_race_card(raw)
+            result = update_race_results(session, parsed)
+            if result:
+                updated += 1
+        session.commit()
+
+        msg = f"{updated} yarış sonucu güncellendi."
+        if _wants_json():
+            return jsonify({"message": msg, "count": updated})
+
+        today_races = (
+            session.query(Race)
+            .filter(Race.date == date.today())
+            .order_by(Race.race_number)
+            .all()
+        )
+        recent_races = (
+            session.query(Race)
+            .filter(Race.status == RaceStatus.resulted)
+            .order_by(Race.date.desc(), Race.race_number.desc())
+            .limit(10)
+            .all()
+        )
+        return render_template(
+            "index.html",
+            today_races=today_races,
+            recent_races=recent_races,
+            message=msg,
+        )
+
+    except Exception as exc:  # noqa: BLE001
+        session.rollback()
+        msg = f"Hata: {exc}"
+        if _wants_json():
+            return jsonify({"error": msg}), 500
+        return render_template(
+            "index.html", today_races=[], recent_races=[], message=msg,
         ), 500
     finally:
         session.close()
