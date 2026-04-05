@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import date, timedelta
 
@@ -131,6 +132,92 @@ def store_race_card(session: Session, parsed: ParsedRaceCard) -> Race:
             gny=h.gny,
             agf=h.agf,
             last_six=h.last_six,
+        )
+        session.add(entry)
+
+    session.flush()
+    return race
+
+
+def store_historical_race(session: Session, parsed: ParsedRaceCard) -> Race:
+    """Persist a historical race result to the database.
+
+    Similar to ``store_race_card`` but immediately marks the race as
+    ``resulted`` since historical query data represents completed races.
+    """
+    track = get_or_create_track(session, parsed.track_name)
+
+    # Check for an existing race (idempotency)
+    race = (
+        session.query(Race)
+        .filter(
+            Race.track_id == track.id,
+            Race.date == parsed.date,
+            Race.race_number == parsed.race_number,
+        )
+        .first()
+    )
+    if race is None:
+        race = Race(
+            track_id=track.id,
+            date=parsed.date,
+            race_number=parsed.race_number,
+            distance_meters=parsed.distance_meters,
+            surface=parsed.surface,
+            race_type=parsed.race_type,
+            horse_type=parsed.horse_type,
+            weight_rule=parsed.weight_rule,
+            status=RaceStatus.resulted,
+        )
+        session.add(race)
+        session.flush()
+    else:
+        # Upgrade status if the race already existed as scheduled
+        if race.status != RaceStatus.resulted:
+            race.status = RaceStatus.resulted
+
+    for h in parsed.horses:
+        horse = get_or_create_horse(
+            session,
+            h.name,
+            age=h.age,
+            origin=h.origin,
+            owner=h.owner,
+            trainer=h.trainer,
+        )
+
+        # Check for existing entry (idempotency)
+        existing_entry = (
+            session.query(RaceEntry)
+            .filter(
+                RaceEntry.race_id == race.id,
+                RaceEntry.horse_id == horse.id,
+            )
+            .first()
+        )
+        if existing_entry is not None:
+            # Update finish data if available
+            if h.finish_position is not None:
+                existing_entry.finish_position = h.finish_position
+            if h.finish_time is not None:
+                existing_entry.finish_time = h.finish_time
+            continue
+
+        entry = RaceEntry(
+            race_id=race.id,
+            horse_id=horse.id,
+            gate_number=h.gate_number,
+            jockey=h.jockey,
+            weight_kg=h.weight_kg,
+            hp=h.hp,
+            kgs=h.kgs,
+            s20=h.s20,
+            eid=h.eid,
+            gny=h.gny,
+            agf=h.agf,
+            last_six=h.last_six,
+            finish_position=h.finish_position,
+            finish_time=h.finish_time,
         )
         session.add(entry)
 
@@ -282,3 +369,76 @@ class BackfillManager:
             )
 
         self.session.commit()
+
+    async def backfill_historical(
+        self,
+        from_date: date,
+        to_date: date,
+        chunk_days: int = 30,
+    ) -> int:
+        """Backfill using the KosuSorgulama bulk query endpoint.
+
+        Fetches results in date-range chunks to avoid timeouts and large
+        responses.  Returns the total number of races stored.
+
+        Parameters
+        ----------
+        from_date:
+            Earliest date (inclusive).
+        to_date:
+            Latest date (inclusive).
+        chunk_days:
+            Maximum number of days per query chunk.
+        """
+        from ganyan.scraper.parser import parse_race_card
+
+        total_stored = 0
+        chunk_start = from_date
+
+        while chunk_start <= to_date:
+            chunk_end = min(chunk_start + timedelta(days=chunk_days - 1), to_date)
+
+            logger.info(
+                "Historical backfill chunk: %s -> %s", chunk_start, chunk_end,
+            )
+            try:
+                raw_cards = await self.tjk_client.fetch_historical_results(
+                    chunk_start, chunk_end,
+                )
+            except Exception:
+                logger.exception(
+                    "Failed to fetch historical chunk %s -> %s",
+                    chunk_start,
+                    chunk_end,
+                )
+                log_scrape(
+                    self.session, chunk_start, "ALL", ScrapeStatus.failed,
+                )
+                chunk_start = chunk_end + timedelta(days=1)
+                continue
+
+            if not raw_cards:
+                log_scrape(
+                    self.session, chunk_start, "ALL", ScrapeStatus.skipped,
+                )
+                chunk_start = chunk_end + timedelta(days=1)
+                continue
+
+            for raw in raw_cards:
+                parsed = parse_race_card(raw)
+                store_historical_race(self.session, parsed)
+                total_stored += 1
+
+            log_scrape(
+                self.session, chunk_start, "ALL", ScrapeStatus.success,
+            )
+            self.session.commit()
+
+            chunk_start = chunk_end + timedelta(days=1)
+
+            # Rate-limit between chunks
+            if self.tjk_client.delay > 0:
+                await asyncio.sleep(self.tjk_client.delay)
+
+        logger.info("Historical backfill complete: %d races stored", total_stored)
+        return total_stored

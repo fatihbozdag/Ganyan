@@ -88,6 +88,28 @@
             </div>
         </div>
 
+        <h4>Gecmis Veri Yukle</h4>
+        <div class="card mb-3">
+            <div class="card-body">
+                <form hx-post="/scrape/history" hx-target="#main-content" hx-indicator="#spinner-history">
+                    <div class="mb-2">
+                        <label for="from_date" class="form-label small">Baslangic</label>
+                        <input type="date" class="form-control form-control-sm"
+                               id="from_date" name="from_date" required>
+                    </div>
+                    <div class="mb-2">
+                        <label for="to_date" class="form-label small">Bitis</label>
+                        <input type="date" class="form-control form-control-sm"
+                               id="to_date" name="to_date" required>
+                    </div>
+                    <button type="submit" class="btn btn-outline-primary btn-sm w-100">
+                        Gecmis Veri Yukle
+                        <span id="spinner-history" class="spinner-border spinner-border-sm htmx-indicator ms-1"></span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
         <h4>Son Sonuclar</h4>
         {% if recent_races %}
         <div class="list-group">

@@ -35,8 +35,14 @@ def scrape(
     today: bool = typer.Option(False, "--today", help="Fetch today's race cards"),
     results: bool = typer.Option(False, "--results", help="Fetch today's results"),
     backfill: bool = typer.Option(False, "--backfill", help="Run backfill from a date"),
+    history: bool = typer.Option(
+        False, "--history", help="Bulk-load historical results via KosuSorgulama"
+    ),
     from_date: str = typer.Option(
-        None, "--from", help="Start date for backfill (YYYY-MM-DD)"
+        None, "--from", help="Start date (YYYY-MM-DD)"
+    ),
+    to_date: str = typer.Option(
+        None, "--to", help="End date for --history (YYYY-MM-DD, default: today)"
     ),
 ) -> None:
     """Scrape race data from TJK."""
@@ -53,8 +59,19 @@ def scrape(
             raise typer.Exit(code=1)
         start = datetime.strptime(from_date, "%Y-%m-%d").date()
         asyncio.run(_run_backfill(settings, start))
+    elif history:
+        if from_date is None:
+            typer.echo("Error: --from is required with --history", err=True)
+            raise typer.Exit(code=1)
+        start = datetime.strptime(from_date, "%Y-%m-%d").date()
+        end = (
+            datetime.strptime(to_date, "%Y-%m-%d").date()
+            if to_date
+            else date.today()
+        )
+        asyncio.run(_run_historical_backfill(settings, start, end))
     else:
-        typer.echo("Use --today, --results, or --backfill. See --help.")
+        typer.echo("Use --today, --results, --backfill, or --history. See --help.")
 
 
 async def _scrape_today(settings) -> None:
@@ -132,6 +149,35 @@ async def _run_backfill(settings, from_date: date) -> None:
             manager = BackfillManager(session, client)
             await manager.backfill(from_date=from_date)
             typer.echo("Backfill complete.")
+    except Exception as exc:
+        session.rollback()
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=1)
+    finally:
+        session.close()
+
+
+async def _run_historical_backfill(
+    settings, from_date: date, to_date: date
+) -> None:
+    """Run historical backfill via the KosuSorgulama bulk query endpoint."""
+    from ganyan.db import get_session
+    from ganyan.scraper import TJKClient
+    from ganyan.scraper.backfill import BackfillManager
+
+    session = get_session()
+    try:
+        async with TJKClient(
+            base_url=settings.tjk_base_url, delay=settings.scrape_delay
+        ) as client:
+            manager = BackfillManager(session, client)
+            count = await manager.backfill_historical(
+                from_date=from_date, to_date=to_date,
+            )
+            typer.echo(
+                f"Historical backfill complete: {count} race(s) stored "
+                f"({from_date} -> {to_date})."
+            )
     except Exception as exc:
         session.rollback()
         typer.echo(f"Error: {exc}", err=True)

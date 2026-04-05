@@ -9,7 +9,8 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
-from datetime import date
+from collections import defaultdict
+from datetime import date, datetime
 
 import httpx
 from bs4 import BeautifulSoup, Tag
@@ -74,6 +75,29 @@ _PROGRAM_PAGE = "/TR/YarisSever/Info/Page/GunlukYarisProgrami"
 _PROGRAM_CITY = "/TR/YarisSever/Info/Sehir/GunlukYarisProgrami"
 _RESULTS_PAGE = "/TR/YarisSever/Info/Page/GunlukYarisSonuclari"
 _RESULTS_CITY = "/TR/YarisSever/Info/Sehir/GunlukYarisSonuclari"
+
+# Historical query endpoints (KosuSorgulama bulk query)
+_QUERY_DATA = "/TR/YarisSever/Query/Data/KosuSorgulama"
+_QUERY_DATA_ROWS = "/TR/YarisSever/Query/DataRows/KosuSorgulama"
+
+# --- Query result column classes ---
+_Q = "sorgu-KosuSorgulama"
+_Q_DATE = f"td.{_Q}-Tarih"
+_Q_CITY = f"td.{_Q}-Sehir"
+_Q_RACE_NUM = f"td.{_Q}-KosuSirasi"
+_Q_GROUP = f"td.{_Q}-KosuGrubuAdi"
+_Q_RACE_TYPE = f"td.{_Q}-KosuCinsiAdi"
+_Q_DISTANCE = f"td.{_Q}-Mesafe"
+_Q_SURFACE = f"td.{_Q}-PistAdi"
+_Q_WEIGHT = f"td.{_Q}-Kilo"
+_Q_ORIGIN = f"td.{_Q}-BabaAnne"
+_Q_PRIZE = f"td.{_Q}-IKRAMIYE"
+_Q_WINNER = f"td.{_Q}-BirinciAtAdi"
+_Q_AGE = f"td.{_Q}-BirinciAtAdiYas"
+_Q_TIME = f"td.{_Q}-BirinciAtDerece"
+_Q_HP = f"td.{_Q}-HandikapPuani"
+
+_QUERY_RESULTS_PER_PAGE = 50
 
 # Known Turkish domestic track SehirIds (from TJK website navigation)
 _DOMESTIC_SEHIR_IDS = {
@@ -338,8 +362,184 @@ class TJKClient:
             is_results=True,
         )
 
+    async def fetch_historical_results(
+        self,
+        from_date: date,
+        to_date: date,
+    ) -> list[RawRaceCard]:
+        """Fetch historical race results via the KosuSorgulama query endpoint.
+
+        Returns results grouped into RawRaceCard objects (one per race).
+        Handles pagination (50 results per page).  Each result row contains
+        only the winning horse of that race.
+
+        Parameters
+        ----------
+        from_date:
+            Earliest date (inclusive), DD/MM/YYYY sent to TJK.
+        to_date:
+            Latest date (inclusive).
+        """
+        date_fmt = "%d/%m/%Y"
+        from_str = from_date.strftime(date_fmt)
+        to_str = to_date.strftime(date_fmt)
+
+        all_rows: list[dict] = []
+
+        # --- Page 1 (uses /Query/Data/ endpoint) ---
+        try:
+            resp = await self._client.post(
+                _QUERY_DATA,
+                data={
+                    "QueryParameter_Tarih": from_str,
+                    "QueryParameter_Tarih_Start": from_str,
+                    "QueryParameter_Tarih_End": to_str,
+                    "PageNumber": "1",
+                },
+            )
+            resp.raise_for_status()
+        except httpx.HTTPError as exc:
+            logger.error("Historical query page 1 failed: %s", exc)
+            return []
+
+        rows, has_more = self._parse_query_page(resp.text)
+        all_rows.extend(rows)
+        page = 2
+
+        # --- Subsequent pages (uses /Query/DataRows/ endpoint) ---
+        while has_more:
+            if self.delay > 0:
+                await asyncio.sleep(self.delay)
+            try:
+                resp = await self._client.post(
+                    _QUERY_DATA_ROWS,
+                    data={
+                        "QueryParameter_Tarih_Start": from_str,
+                        "QueryParameter_Tarih_End": to_str,
+                        "PageNumber": str(page),
+                        "Sort": "Tarih desc, Sehir asc, KosuSirasi asc",
+                    },
+                )
+                resp.raise_for_status()
+            except httpx.HTTPError as exc:
+                logger.error("Historical query page %d failed: %s", page, exc)
+                break
+
+            rows, has_more = self._parse_query_page(resp.text)
+            if not rows:
+                break
+            all_rows.extend(rows)
+            page += 1
+
+        logger.info(
+            "Fetched %d historical results for %s -> %s (%d pages)",
+            len(all_rows),
+            from_date,
+            to_date,
+            page - 1,
+        )
+
+        return self._group_query_rows(all_rows)
+
     # ------------------------------------------------------------------
-    # Internal
+    # Internal — historical query helpers
+    # ------------------------------------------------------------------
+
+    def _parse_query_page(self, html: str) -> tuple[list[dict], bool]:
+        """Parse one page of KosuSorgulama results.
+
+        Returns (list_of_row_dicts, has_more_pages).
+        """
+        soup = BeautifulSoup(html, "html.parser")
+        data_rows = [
+            row
+            for row in soup.select("tr")
+            if row.select_one(_Q_DATE) and "hidable" not in row.get("class", [])
+        ]
+
+        results: list[dict] = []
+        for row in data_rows:
+            date_text = _extract_text(row.select_one(_Q_DATE))
+            try:
+                race_date = datetime.strptime(date_text, "%d.%m.%Y").date()
+            except (ValueError, TypeError):
+                continue
+
+            race_num = _safe_int(_extract_text(row.select_one(_Q_RACE_NUM)))
+            if race_num is None:
+                continue
+
+            age_text = _extract_text(row.select_one(_Q_AGE))
+
+            results.append({
+                "date": race_date,
+                "city": _extract_text(row.select_one(_Q_CITY)),
+                "race_number": race_num,
+                "group": _extract_text(row.select_one(_Q_GROUP)) or None,
+                "race_type": _extract_text(row.select_one(_Q_RACE_TYPE)) or None,
+                "distance": _safe_int(_extract_text(row.select_one(_Q_DISTANCE))),
+                "surface": _extract_text(row.select_one(_Q_SURFACE)) or None,
+                "weight": _extract_text(row.select_one(_Q_WEIGHT)) or None,
+                "origin": _extract_text(row.select_one(_Q_ORIGIN)) or None,
+                "prize": _extract_text(row.select_one(_Q_PRIZE)) or None,
+                "winner_name": _extract_text(row.select_one(_Q_WINNER)) or None,
+                "winner_age": _parse_age(age_text),
+                "finish_time": _extract_text(row.select_one(_Q_TIME)) or None,
+                "hp": _safe_float(_extract_text(row.select_one(_Q_HP))),
+            })
+
+        # Determine if there are more pages by looking for the pager form
+        has_more = soup.select_one("form.pagerForm") is not None
+        return results, has_more
+
+    @staticmethod
+    def _group_query_rows(rows: list[dict]) -> list[RawRaceCard]:
+        """Group flat query result rows into RawRaceCard objects.
+
+        Each row represents one race with its winner.  Rows are grouped
+        by (date, city, race_number).
+        """
+        grouped: dict[tuple, list[dict]] = defaultdict(list)
+        for row in rows:
+            key = (row["date"], row["city"], row["race_number"])
+            grouped[key].append(row)
+
+        cards: list[RawRaceCard] = []
+        for (race_date, city, race_number), group in sorted(grouped.items()):
+            # Use the first row for race-level metadata
+            first = group[0]
+            horses: list[RawHorseEntry] = []
+            for r in group:
+                if r["winner_name"]:
+                    horses.append(
+                        RawHorseEntry(
+                            name=r["winner_name"],
+                            age=r["winner_age"],
+                            origin=r["origin"],
+                            hp=r["hp"],
+                            finish_position=1,
+                            finish_time=r["finish_time"],
+                        )
+                    )
+
+            cards.append(
+                RawRaceCard(
+                    track_name=city,
+                    date=race_date,
+                    race_number=race_number,
+                    distance_meters=first["distance"],
+                    surface=first["surface"],
+                    race_type=first["race_type"],
+                    horse_type=first["group"],
+                    weight_rule=f"{first['weight']} kg" if first["weight"] else None,
+                    horses=horses,
+                )
+            )
+
+        return cards
+
+    # ------------------------------------------------------------------
+    # Internal — daily race card helpers
     # ------------------------------------------------------------------
 
     async def _fetch_races(

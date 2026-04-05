@@ -371,6 +371,91 @@ def predict_today():
 
 
 # ---------------------------------------------------------------------------
+# POST /scrape/history — Load historical data via KosuSorgulama
+# ---------------------------------------------------------------------------
+
+
+@bp.route("/scrape/history", methods=["POST"])
+def scrape_history():
+    import asyncio
+
+    from ganyan.config import get_settings
+    from ganyan.scraper import TJKClient
+    from ganyan.scraper.backfill import BackfillManager
+
+    settings = get_settings()
+    session = _get_session()
+
+    from_str = request.form.get("from_date", "")
+    to_str = request.form.get("to_date", "")
+
+    if not from_str or not to_str:
+        msg = "Baslangic ve bitis tarihi gerekli."
+        if _wants_json():
+            return jsonify({"error": msg}), 400
+        return render_template(
+            "index.html", today_races=[], recent_races=[], message=msg,
+        ), 400
+
+    try:
+        from_date = datetime.strptime(from_str, "%Y-%m-%d").date()
+        to_date = datetime.strptime(to_str, "%Y-%m-%d").date()
+    except ValueError:
+        msg = "Tarih formati hatali. YYYY-MM-DD olmali."
+        if _wants_json():
+            return jsonify({"error": msg}), 400
+        return render_template(
+            "index.html", today_races=[], recent_races=[], message=msg,
+        ), 400
+
+    try:
+
+        async def _do_history():
+            async with TJKClient(
+                base_url=settings.tjk_base_url, delay=settings.scrape_delay
+            ) as client:
+                manager = BackfillManager(session, client)
+                return await manager.backfill_historical(from_date, to_date)
+
+        count = asyncio.run(_do_history())
+
+        msg = f"{count} gecmis yaris kaydi yuklendi ({from_date} -> {to_date})."
+        if _wants_json():
+            return jsonify({"message": msg, "count": count})
+
+        today_races = (
+            session.query(Race)
+            .filter(Race.date == date.today())
+            .order_by(Race.race_number)
+            .all()
+        )
+        recent_races = (
+            session.query(Race)
+            .filter(Race.status == RaceStatus.resulted)
+            .order_by(Race.date.desc(), Race.race_number.desc())
+            .limit(10)
+            .all()
+        )
+        return render_template(
+            "index.html",
+            today_races=today_races,
+            recent_races=recent_races,
+            message=msg,
+        )
+
+    except Exception as exc:  # noqa: BLE001
+        session.rollback()
+        msg = f"Hata: {exc}"
+        if _wants_json():
+            return jsonify({"error": msg}), 500
+        return render_template(
+            "index.html", today_races=[], recent_races=[], message=msg,
+        ), 500
+    finally:
+        session.close()
+
+
+# ---------------------------------------------------------------------------
 # POST /scrape/results — Fetch today's results from TJK
 # ---------------------------------------------------------------------------
 
