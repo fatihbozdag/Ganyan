@@ -229,13 +229,15 @@ def _extract_horse_name_program(td: Tag | None) -> str:
 
     The cell contains the name in an <a> link, followed by <sup> tooltip
     elements for equipment codes (KG, DB, SK, etc.) that should be excluded.
+    Some TJK renderings append the gate number as ``(N)`` to the link text
+    (e.g. ``"ÇELİK ANSELMO(1)"``); we strip it so names match the results
+    page — otherwise joins between program and results tables silently fail.
     """
     if td is None:
         return ""
     link = td.select_one("a")
-    if link:
-        return link.get_text(strip=True)
-    return td.get_text(strip=True)
+    raw = link.get_text(strip=True) if link else td.get_text(strip=True)
+    return re.sub(r"\(\d+\)\s*$", "", raw).strip()
 
 
 def _extract_horse_name_results(td: Tag | None) -> str:
