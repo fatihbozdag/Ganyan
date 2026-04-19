@@ -91,6 +91,9 @@ _SEL_RACE_PANES = "div.races-panes > div"
 _SEL_RACE_NO = "h3.race-no"
 _SEL_RACE_CONFIG = "h3.race-config"
 
+# Pace info (results pages only): "Son 800 :0.58.40-0.58.42"
+_SEL_SON_800 = "div.bsinfo-Son800"
+
 # Horse table (both program and results use tablesorter)
 _SEL_HORSE_TABLE = "table.tablesorter"
 
@@ -302,6 +305,29 @@ def _parse_race_number(text: str) -> int | None:
     if not m:
         m = re.search(r"(\d+)\.", text)
     return int(m.group(1)) if m else None
+
+
+def _parse_son_800(text: str) -> tuple[str | None, str | None]:
+    """Parse a "Son 800 :0.58.40-0.58.42" string.
+
+    Returns ``(leader_time, runner_up_time)`` as raw ``M.SS.HH`` strings
+    ready for :func:`parse_eid_to_seconds`.  When only one value is
+    published (e.g. wire-to-wire wins), the second element is ``None``.
+    """
+    if not text:
+        return None, None
+    # Strip the "Son 800 :" prefix and any whitespace.
+    m = re.search(r"Son\s*800\s*:\s*([\d.,\- ]+)", text)
+    if not m:
+        return None, None
+    payload = m.group(1).strip()
+    # Splits of the form "0.58.40-0.58.42" (leader-runnerup) or "1.03.87" (single).
+    parts = re.findall(r"[\d]+(?:\.[\d]+){0,2}", payload)
+    if not parts:
+        return None, None
+    first = parts[0] if parts else None
+    second = parts[1] if len(parts) > 1 else None
+    return first, second
 
 
 def _parse_post_time(text: str) -> str | None:
@@ -823,6 +849,13 @@ class TJKClient:
         """Parse the city-level HTML fragment into RawRaceCard list."""
         race_details = soup.select("div.race-details")
         tables = soup.select(_SEL_HORSE_TABLE)
+        # Son 800 lives in a sibling ``div.bsinfo-Son800`` inside each
+        # race pane.  Selecting globally and indexing by race position
+        # matches how tables are already selected; verified on live
+        # results HTML where there is exactly one Son 800 per race pane.
+        son_800_divs = (
+            soup.select(_SEL_SON_800) if is_results else []
+        )
 
         if len(race_details) != len(tables):
             logger.warning(
@@ -848,6 +881,13 @@ class TJKClient:
             race_config_h3 = detail_div.select_one(_SEL_RACE_CONFIG)
             config = _parse_race_config(race_config_h3)
 
+            # --- Pace (Son 800) — results pages only ---
+            pace_leader = pace_runner_up = None
+            if idx < len(son_800_divs):
+                pace_leader, pace_runner_up = _parse_son_800(
+                    _extract_text(son_800_divs[idx])
+                )
+
             # --- Horse rows ---
             table = tables[idx]
             rows = table.select("tbody tr")
@@ -868,6 +908,8 @@ class TJKClient:
                 race_type=config["race_type"],
                 horse_type=config["horse_type"],
                 weight_rule=config["weight_rule"],
+                pace_l800_leader=pace_leader,
+                pace_l800_runner_up=pace_runner_up,
                 horses=horses,
             )
             cards.append(card)

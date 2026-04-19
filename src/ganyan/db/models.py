@@ -54,6 +54,15 @@ class Race(Base):
     horse_type: Mapped[str | None] = mapped_column(String(100))
     weight_rule: Mapped[str | None] = mapped_column(String(100))
     status: Mapped[RaceStatus] = mapped_column(Enum(RaceStatus), default=RaceStatus.scheduled)
+    # Last-800m sectional times (seconds) from the TJK results page.
+    # Leader is the race winner; runner_up is the 2nd finisher.  Either
+    # may be NULL when TJK publishes only one (wire-to-wire wins).
+    pace_l800_leader_s: Mapped[float | None] = mapped_column(
+        Numeric(6, 2), nullable=True,
+    )
+    pace_l800_runner_up_s: Mapped[float | None] = mapped_column(
+        Numeric(6, 2), nullable=True,
+    )
 
     track: Mapped["Track"] = relationship(back_populates="races")
     entries: Mapped[list["RaceEntry"]] = relationship(back_populates="race")

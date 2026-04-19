@@ -39,6 +39,12 @@ class RawRaceCard:
     race_type: str | None = None
     horse_type: str | None = None
     weight_rule: str | None = None
+    # Raw "Son 800" strings from the results page:
+    # first horse's last-800m time, second horse's last-800m time.
+    # Format "M.SS.HH" (e.g. "0.58.40" = 58.40s).  Only present on
+    # the results endpoint, never on the pre-race program.
+    pace_l800_leader: str | None = None
+    pace_l800_runner_up: str | None = None
     horses: list[RawHorseEntry] = field(default_factory=list)
 
 
@@ -79,6 +85,10 @@ class ParsedRaceCard:
     race_type: str | None = None
     horse_type: str | None = None
     weight_rule: str | None = None
+    # Last-800m times in seconds (parsed to float).  Either may be
+    # None when TJK only publishes one value (e.g. wire-to-wire wins).
+    pace_l800_leader_s: float | None = None
+    pace_l800_runner_up_s: float | None = None
     horses: list[ParsedHorseEntry] = field(default_factory=list)
 
 
@@ -189,5 +199,7 @@ def parse_race_card(raw: RawRaceCard) -> ParsedRaceCard:
         race_type=raw.race_type,
         horse_type=raw.horse_type,
         weight_rule=raw.weight_rule,
+        pace_l800_leader_s=parse_eid_to_seconds(raw.pace_l800_leader),
+        pace_l800_runner_up_s=parse_eid_to_seconds(raw.pace_l800_runner_up),
         horses=horses,
     )

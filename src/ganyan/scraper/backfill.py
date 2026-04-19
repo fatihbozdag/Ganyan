@@ -126,6 +126,8 @@ def store_race_card(session: Session, parsed: ParsedRaceCard) -> Race:
             race_type=parsed.race_type,
             horse_type=parsed.horse_type,
             weight_rule=parsed.weight_rule,
+            pace_l800_leader_s=parsed.pace_l800_leader_s,
+            pace_l800_runner_up_s=parsed.pace_l800_runner_up_s,
             status=RaceStatus.scheduled,
         )
         session.add(race)
@@ -220,6 +222,8 @@ def store_historical_race(session: Session, parsed: ParsedRaceCard) -> Race:
             race_type=parsed.race_type,
             horse_type=parsed.horse_type,
             weight_rule=parsed.weight_rule,
+            pace_l800_leader_s=parsed.pace_l800_leader_s,
+            pace_l800_runner_up_s=parsed.pace_l800_runner_up_s,
             status=RaceStatus.resulted,
         )
         session.add(race)
@@ -228,6 +232,13 @@ def store_historical_race(session: Session, parsed: ParsedRaceCard) -> Race:
         # Upgrade status if the race already existed as scheduled
         if race.status != RaceStatus.resulted:
             race.status = RaceStatus.resulted
+        # Backfill race-level fields a prior scrape missed.
+        if parsed.post_time is not None and not race.post_time:
+            race.post_time = parsed.post_time
+        if parsed.pace_l800_leader_s is not None and race.pace_l800_leader_s is None:
+            race.pace_l800_leader_s = parsed.pace_l800_leader_s
+        if parsed.pace_l800_runner_up_s is not None and race.pace_l800_runner_up_s is None:
+            race.pace_l800_runner_up_s = parsed.pace_l800_runner_up_s
 
     existing_entries = {
         (e.race_id, e.horse_id): e
@@ -302,6 +313,13 @@ def update_race_results(session: Session, parsed: ParsedRaceCard) -> Race | None
     )
     if race is None:
         return None
+
+    # Capture race-level results-page fields the program scrape couldn't
+    # possibly have had (Son 800 only appears on the results endpoint).
+    if parsed.pace_l800_leader_s is not None:
+        race.pace_l800_leader_s = parsed.pace_l800_leader_s
+    if parsed.pace_l800_runner_up_s is not None:
+        race.pace_l800_runner_up_s = parsed.pace_l800_runner_up_s
 
     horse_cache = _fetch_horses_by_names(
         session, [h.name for h in parsed.horses if h.name],
