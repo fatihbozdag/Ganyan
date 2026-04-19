@@ -45,6 +45,8 @@ FEATURE_COLUMNS: list[str] = [
     "gate_bias",
     "surface_affinity",
     "agf_edge",
+    "sire_win_rate",
+    "sire_surface_rate",
     # Raw values — give the tree room to learn non-linear effects.
     "agf_raw",
     "hp_raw",
@@ -147,6 +149,7 @@ def build_training_frame(
 
         for entry in entries:
             trainer_name = entry.horse.trainer if entry.horse else None
+            sire_name = entry.horse.sire if entry.horse else None
             features = extract_features(
                 eid_seconds=parse_eid_to_seconds(entry.eid),
                 distance_meters=race.distance_meters,
@@ -165,6 +168,7 @@ def build_training_frame(
                 race_date=race.date,
                 agf=float(entry.agf) if entry.agf is not None else None,
                 field_size=field_size,
+                sire=sire_name,
             )
             rows.append({
                 GROUP_COLUMN: race.id,
@@ -182,6 +186,8 @@ def build_training_frame(
                 "gate_bias": features.gate_bias,
                 "surface_affinity": features.surface_affinity,
                 "agf_edge": features.agf_edge,
+                "sire_win_rate": features.sire_win_rate,
+                "sire_surface_rate": features.sire_surface_rate,
                 # Raw
                 "agf_raw": float(entry.agf) if entry.agf is not None else np.nan,
                 "hp_raw": float(entry.hp) if entry.hp is not None else np.nan,
@@ -241,6 +247,7 @@ def build_race_frame(session: Session, race_id: int) -> pd.DataFrame:
     rows: list[dict] = []
     for entry in entries:
         trainer_name = entry.horse.trainer if entry.horse else None
+        sire_name = entry.horse.sire if entry.horse else None
         features = extract_features(
             eid_seconds=parse_eid_to_seconds(entry.eid),
             distance_meters=race.distance_meters,
@@ -259,6 +266,7 @@ def build_race_frame(session: Session, race_id: int) -> pd.DataFrame:
             race_date=race.date,
             agf=float(entry.agf) if entry.agf is not None else None,
             field_size=field_size,
+            sire=sire_name,
         )
         rows.append({
             "horse_id": entry.horse_id,
@@ -272,6 +280,8 @@ def build_race_frame(session: Session, race_id: int) -> pd.DataFrame:
             "gate_bias": features.gate_bias,
             "surface_affinity": features.surface_affinity,
             "agf_edge": features.agf_edge,
+            "sire_win_rate": features.sire_win_rate,
+            "sire_surface_rate": features.sire_surface_rate,
             "agf_raw": float(entry.agf) if entry.agf is not None else np.nan,
             "hp_raw": float(entry.hp) if entry.hp is not None else np.nan,
             "weight_kg_raw": (

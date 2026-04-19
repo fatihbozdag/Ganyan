@@ -28,6 +28,8 @@ class HorseFeatures:
     gate_bias: float | None = None
     surface_affinity: float | None = None
     agf_edge: float | None = None  # market (AGF) deviation from uniform
+    sire_win_rate: float | None = None  # sire's offspring overall win rate
+    sire_surface_rate: float | None = None  # sire's offspring rate on this surface
     track_affinity: float | None = None  # retained for compatibility
 
 
@@ -134,6 +136,85 @@ def compute_jockey_win_rate(
     return _smoothed_person_win_rate(
         session, RaceEntry.jockey, jockey, before_date,
     )
+
+
+def compute_sire_win_rate(
+    session: Session,
+    sire: str | None,
+    before_date: date_type | None = None,
+) -> float | None:
+    """Smoothed win rate for all offspring of ``sire`` over historical runs.
+
+    Uses the same Bayesian smoothing (10% prior, weight 20) as the other
+    agent-rate features, so sires with only a handful of runners get
+    pulled toward the population mean instead of swinging wildly.
+    """
+    if not sire:
+        return None
+    from ganyan.db.models import Horse
+
+    base = (
+        session.query(RaceEntry)
+        .join(Horse, Horse.id == RaceEntry.horse_id)
+        .join(Race, Race.id == RaceEntry.race_id)
+        .filter(
+            Horse.sire == sire,
+            Race.status == RaceStatus.resulted,
+            RaceEntry.finish_position.isnot(None),
+        )
+    )
+    if before_date is not None:
+        base = base.filter(Race.date < before_date)
+
+    runs = base.with_entities(func.count(RaceEntry.id)).scalar() or 0
+    if runs == 0:
+        return None
+    wins = (
+        base.filter(RaceEntry.finish_position == 1)
+        .with_entities(func.count(RaceEntry.id))
+        .scalar()
+    ) or 0
+    return _bayesian_smoothed_rate(wins, runs)
+
+
+def compute_sire_surface_rate(
+    session: Session,
+    sire: str | None,
+    surface: str | None,
+    before_date: date_type | None = None,
+) -> float | None:
+    """Win rate for ``sire``'s offspring on the given ``surface`` (kum / çim).
+
+    Lets the model notice breeding-specific track preferences — a sire
+    whose offspring win 18% on turf but 7% on sand is a common pattern.
+    """
+    if not sire or not surface:
+        return None
+    from ganyan.db.models import Horse
+
+    base = (
+        session.query(RaceEntry)
+        .join(Horse, Horse.id == RaceEntry.horse_id)
+        .join(Race, Race.id == RaceEntry.race_id)
+        .filter(
+            Horse.sire == sire,
+            Race.surface == surface,
+            Race.status == RaceStatus.resulted,
+            RaceEntry.finish_position.isnot(None),
+        )
+    )
+    if before_date is not None:
+        base = base.filter(Race.date < before_date)
+
+    runs = base.with_entities(func.count(RaceEntry.id)).scalar() or 0
+    if runs == 0:
+        return None
+    wins = (
+        base.filter(RaceEntry.finish_position == 1)
+        .with_entities(func.count(RaceEntry.id))
+        .scalar()
+    ) or 0
+    return _bayesian_smoothed_rate(wins, runs)
 
 
 def compute_trainer_win_rate(
@@ -324,6 +405,7 @@ def extract_features(
     race_date: date_type | None = None,
     agf: float | None = None,
     field_size: int | None = None,
+    sire: str | None = None,
 ) -> HorseFeatures:
     features = HorseFeatures(
         speed_figure=compute_speed_figure(eid_seconds, distance_meters),
@@ -340,6 +422,12 @@ def extract_features(
         )
         features.trainer_win_rate = compute_trainer_win_rate(
             session, trainer, before_date=race_date,
+        )
+        features.sire_win_rate = compute_sire_win_rate(
+            session, sire, before_date=race_date,
+        )
+        features.sire_surface_rate = compute_sire_surface_rate(
+            session, sire, surface, before_date=race_date,
         )
         if horse_id is not None:
             features.surface_affinity = compute_surface_affinity(
