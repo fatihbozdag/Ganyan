@@ -227,6 +227,30 @@ def _extract_link_text(td: Tag | None) -> str:
     return td.get_text(strip=True)
 
 
+def _extract_at_id(td: Tag | None) -> int | None:
+    """Pull the TJK AtId from the horse-name cell's <a href>.
+
+    Horse-name links look like::
+
+        ../../Query/ConnectedPage/AtKosuBilgileri?1=1&QueryParameter_AtId=109699&Era=today
+
+    Returns ``None`` when the cell has no link or the id can't be parsed.
+    """
+    if td is None:
+        return None
+    link = td.select_one("a[href]")
+    if link is None:
+        return None
+    href = link.get("href", "") or ""
+    m = re.search(r"QueryParameter_AtId=(\d+)", href)
+    if not m:
+        return None
+    try:
+        return int(m.group(1))
+    except ValueError:
+        return None
+
+
 def _extract_horse_name_program(td: Tag | None) -> str:
     """Extract just the horse name from a program name cell.
 
@@ -924,7 +948,8 @@ class TJKClient:
 
     def _parse_program_row(self, row: Tag) -> RawHorseEntry | None:
         """Parse a horse row from the race program table."""
-        name = _extract_horse_name_program(row.select_one(_P_NAME))
+        name_cell = row.select_one(_P_NAME)
+        name = _extract_horse_name_program(name_cell)
         if not name:
             return None
 
@@ -947,11 +972,13 @@ class TJKClient:
             gny=_safe_float(_extract_text(row.select_one(_P_GNY))),
             agf=_extract_agf(row.select_one(_P_AGF)),
             last_six=_extract_text(row.select_one(_P_LAST6)) or None,
+            tjk_at_id=_extract_at_id(name_cell),
         )
 
     def _parse_result_row(self, row: Tag) -> RawHorseEntry | None:
         """Parse a horse row from the race results table."""
-        name = _extract_horse_name_results(row.select_one(_R_NAME))
+        name_cell = row.select_one(_R_NAME)
+        name = _extract_horse_name_results(name_cell)
         if not name:
             return None
 
@@ -971,4 +998,5 @@ class TJKClient:
             agf=_extract_agf(row.select_one(_R_AGF)),
             finish_position=_safe_int(_extract_text(row.select_one(_R_FINISH))),
             finish_time=_extract_text(row.select_one(_R_TIME)) or None,
+            tjk_at_id=_extract_at_id(name_cell),
         )

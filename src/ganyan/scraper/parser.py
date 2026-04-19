@@ -26,6 +26,11 @@ class RawHorseEntry:
     last_six: str | None = None
     finish_position: int | None = None
     finish_time: str | None = None
+    # TJK's stable internal id for this horse.  Extracted from the
+    # horse-name <a href> on the results/program pages so we can hit
+    # /Query/ConnectedPage/AtKosuBilgileri?QueryParameter_AtId=X for
+    # pedigree details.
+    tjk_at_id: int | None = None
 
 
 @dataclass
@@ -72,6 +77,7 @@ class ParsedHorseEntry:
     last_six_parsed: list[int | None] = field(default_factory=list)
     finish_position: int | None = None
     finish_time: str | None = None
+    tjk_at_id: int | None = None
 
 
 @dataclass
@@ -187,6 +193,7 @@ def parse_race_card(raw: RawRaceCard) -> ParsedRaceCard:
             last_six_parsed=parse_last_six(h.last_six),
             finish_position=h.finish_position,
             finish_time=h.finish_time,
+            tjk_at_id=h.tjk_at_id,
         ))
 
     return ParsedRaceCard(

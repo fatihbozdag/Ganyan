@@ -70,13 +70,24 @@ class Race(Base):
 
 class Horse(Base):
     __tablename__ = "horses"
+    __table_args__ = (
+        Index("ix_horses_tjk_at_id", "tjk_at_id"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(200), unique=True)
+    tjk_at_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     age: Mapped[int | None] = mapped_column(SmallInteger)
     origin: Mapped[str | None] = mapped_column(String(100))
     owner: Mapped[str | None] = mapped_column(String(200))
     trainer: Mapped[str | None] = mapped_column(String(200))
+    # Pedigree (populated by the horse-detail crawler, not the race scrape).
+    sire: Mapped[str | None] = mapped_column(String(200))
+    dam: Mapped[str | None] = mapped_column(String(200))
+    birth_date: Mapped[date_type | None] = mapped_column(Date, nullable=True)
+    profile_crawled_at: Mapped[datetime | None] = mapped_column(
+        DateTime, nullable=True,
+    )
 
     entries: Mapped[list["RaceEntry"]] = relationship(back_populates="horse")
 

@@ -43,14 +43,19 @@ def get_or_create_horse(session: Session, name: str, **kwargs) -> Horse:
 
     Mutable fields (age, owner, trainer, origin) are updated when provided
     on an existing record so the database always reflects the latest data.
+    ``tjk_at_id`` is captured from the first scrape that exposes it and
+    never overwritten thereafter.
     """
     horse = session.query(Horse).filter(Horse.name == name).first()
     if horse is not None:
-        # Update mutable fields if a new value was provided
         for field in ("age", "origin", "owner", "trainer"):
             value = kwargs.get(field)
             if value is not None:
                 setattr(horse, field, value)
+        # Seed tjk_at_id once, never overwrite (TJK's id is stable).
+        at_id = kwargs.get("tjk_at_id")
+        if at_id is not None and horse.tjk_at_id is None:
+            horse.tjk_at_id = at_id
         return horse
     horse = Horse(name=name, **kwargs)
     session.add(horse)
@@ -157,14 +162,16 @@ def store_race_card(session: Session, parsed: ParsedRaceCard) -> Race:
                 origin=h.origin,
                 owner=h.owner,
                 trainer=h.trainer,
+                tjk_at_id=h.tjk_at_id,
             )
             horse_cache[h.name] = horse
         else:
-            # Update mutable horse-level fields inline (same rule as get_or_create_horse)
             for field in ("age", "origin", "owner", "trainer"):
                 value = getattr(h, field, None)
                 if value is not None:
                     setattr(horse, field, value)
+            if h.tjk_at_id is not None and horse.tjk_at_id is None:
+                horse.tjk_at_id = h.tjk_at_id
 
         existing = existing_entries.get((race.id, horse.id))
         if existing is not None:
@@ -258,6 +265,7 @@ def store_historical_race(session: Session, parsed: ParsedRaceCard) -> Race:
                 origin=h.origin,
                 owner=h.owner,
                 trainer=h.trainer,
+                tjk_at_id=h.tjk_at_id,
             )
             horse_cache[h.name] = horse
         else:
@@ -265,6 +273,8 @@ def store_historical_race(session: Session, parsed: ParsedRaceCard) -> Race:
                 value = getattr(h, field, None)
                 if value is not None:
                     setattr(horse, field, value)
+            if h.tjk_at_id is not None and horse.tjk_at_id is None:
+                horse.tjk_at_id = h.tjk_at_id
 
         existing = existing_entries.get((race.id, horse.id))
         if existing is not None:

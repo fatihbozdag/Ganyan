@@ -16,6 +16,7 @@ evaluate_app = typer.Typer(help="Evaluate prediction accuracy")
 races_app = typer.Typer(help="View race information")
 db_app = typer.Typer(help="Database management")
 train_app = typer.Typer(help="Train the ML ranker model")
+crawl_app = typer.Typer(help="Crawl per-horse detail pages (pedigree, etc.)")
 
 app.add_typer(scrape_app, name="scrape")
 app.add_typer(predict_app, name="predict")
@@ -23,6 +24,7 @@ app.add_typer(evaluate_app, name="evaluate")
 app.add_typer(races_app, name="races")
 app.add_typer(db_app, name="db")
 app.add_typer(train_app, name="train")
+app.add_typer(crawl_app, name="crawl")
 
 logger = logging.getLogger(__name__)
 
@@ -657,3 +659,44 @@ def train(
         if i >= 10:
             break
         typer.echo(f"  {feat:<22} {gain:>10.1f}")
+
+
+# ---------------------------------------------------------------------------
+# crawl (horse detail pages)
+# ---------------------------------------------------------------------------
+
+
+@crawl_app.command("horses")
+def crawl_horses(
+    limit: int = typer.Option(
+        None, "--limit", help="Maximum horses to crawl in this run."
+    ),
+    concurrency: int = typer.Option(
+        5, "--concurrency", help="Parallel HTTP fetches."
+    ),
+    delay: float = typer.Option(
+        0.5, "--delay", help="Seconds between requests per worker."
+    ),
+) -> None:
+    """Fetch pedigree for horses that have a tjk_at_id but no profile yet."""
+    settings = get_settings()
+    logging.basicConfig(level=settings.log_level)
+
+    async def _run() -> int:
+        from ganyan.db import get_session
+        from ganyan.scraper.horse_crawler import HorseCrawler
+
+        session = get_session()
+        try:
+            async with HorseCrawler(
+                session,
+                base_url=settings.tjk_base_url,
+                delay=delay,
+                concurrency=concurrency,
+            ) as crawler:
+                return await crawler.crawl_missing_profiles(limit=limit)
+        finally:
+            session.close()
+
+    stored = asyncio.run(_run())
+    typer.echo(f"Crawled {stored} horse profile(s).")
