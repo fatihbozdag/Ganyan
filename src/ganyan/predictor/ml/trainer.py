@@ -28,8 +28,12 @@ DEFAULT_MODEL_BASENAME = "lightgbm_ranker"
 
 _DEFAULT_LGBM_PARAMS: dict = {
     "objective": "lambdarank",
+    # Evaluate on a richer range of cut-offs than just top-1.  NDCG@1
+    # saturates after a single good tree when one feature (AGF) already
+    # sorts the leader correctly most of the time; @5/@10 expose
+    # residual ranking improvements the other features can still add.
     "metric": "ndcg",
-    "ndcg_eval_at": [1, 3],
+    "ndcg_eval_at": [1, 3, 5, 10],
     "learning_rate": 0.05,
     "num_leaves": 31,
     "min_data_in_leaf": 20,
@@ -39,6 +43,10 @@ _DEFAULT_LGBM_PARAMS: dict = {
     "verbose": -1,
     "lambdarank_truncation_level": 10,
 }
+
+# Default patience: generous so lambdarank has room to keep refining
+# when the top-ranker metric plateaus.
+_DEFAULT_EARLY_STOPPING_ROUNDS = 100
 
 
 @dataclass
@@ -151,7 +159,7 @@ def train_ranker(
     to_date: date_type | None = None,
     holdout_fraction: float = 0.2,
     num_boost_round: int = 500,
-    early_stopping_rounds: int = 30,
+    early_stopping_rounds: int = _DEFAULT_EARLY_STOPPING_ROUNDS,
     model_dir: Path | None = None,
     model_name: str | None = None,
     params: dict | None = None,

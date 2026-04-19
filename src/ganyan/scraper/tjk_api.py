@@ -395,6 +395,7 @@ class TJKClient:
         delay: float = 2.0,
         max_retries: int | None = None,
         backoff_base: float | None = None,
+        city_concurrency: int = 5,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.delay = delay
@@ -405,6 +406,10 @@ class TJKClient:
         self.backoff_base = (
             backoff_base if backoff_base is not None else _DEFAULT_BACKOFF_BASE
         )
+        # Number of city (SehirId) fetches that may be in flight at once.
+        # 5 is a compromise: ~5× speedup with no observed TJK rate-limit
+        # responses at this level.  Drop to 1 if throttled.
+        self.city_concurrency = max(1, city_concurrency)
         self._client = httpx.AsyncClient(
             base_url=self.base_url,
             headers={
@@ -738,19 +743,38 @@ class TJKClient:
                 continue
             domestic_tracks.append((track_name, sehir_id, href))
 
+        # Fetch cities concurrently with a semaphore to keep load modest.
+        # Same total request count as sequential but compressed in time
+        # — TJK sees N parallel requests to distinct paths instead of
+        # one-at-a-time with 2s gaps.  Speedup is roughly
+        # ``self.city_concurrency`` × for a full 10-city date.
+        semaphore = asyncio.Semaphore(self.city_concurrency)
+
+        async def _fetch_one(
+            track_name: str, sehir_id: str,
+        ) -> tuple[str, list[RawRaceCard]]:
+            async with semaphore:
+                cards = await self._fetch_city_races(
+                    city_url=city_url,
+                    sehir_id=sehir_id,
+                    track_name=track_name,
+                    race_date=race_date,
+                    is_results=is_results,
+                )
+                if self.delay > 0:
+                    # Small post-request stagger so we don't burst the
+                    # next wave of concurrent requests immediately.
+                    await asyncio.sleep(self.delay)
+                return track_name, cards
+
+        results = await asyncio.gather(
+            *(_fetch_one(name, sid) for name, sid, _ in domestic_tracks),
+            return_exceptions=False,
+        )
+
         all_cards: list[RawRaceCard] = []
         failed_tracks: list[str] = []
-        for track_name, sehir_id, _href in domestic_tracks:
-            if self.delay > 0:
-                await asyncio.sleep(self.delay)
-
-            cards = await self._fetch_city_races(
-                city_url=city_url,
-                sehir_id=sehir_id,
-                track_name=track_name,
-                race_date=race_date,
-                is_results=is_results,
-            )
+        for track_name, cards in results:
             if not cards:
                 failed_tracks.append(track_name)
             all_cards.extend(cards)
