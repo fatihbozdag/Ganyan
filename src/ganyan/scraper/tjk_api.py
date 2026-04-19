@@ -482,6 +482,17 @@ class TJKClient:
         )
         return cards
 
+    async def get_race_results_with_failures(
+        self, race_date: date,
+    ) -> tuple[list[RawRaceCard], list[str]]:
+        """Fetch results plus the list of track names that failed for the day."""
+        return await self._fetch_races(
+            page_url=_RESULTS_PAGE,
+            city_url=_RESULTS_CITY,
+            race_date=race_date,
+            is_results=True,
+        )
+
     async def fetch_historical_results(
         self,
         from_date: date,

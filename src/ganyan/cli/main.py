@@ -36,13 +36,21 @@ def scrape(
     results: bool = typer.Option(False, "--results", help="Fetch today's results"),
     backfill: bool = typer.Option(False, "--backfill", help="Run backfill from a date"),
     history: bool = typer.Option(
-        False, "--history", help="Bulk-load historical results via KosuSorgulama"
+        False, "--history", help="Bulk-load historical winners via KosuSorgulama"
+    ),
+    results_range: bool = typer.Option(
+        False, "--results-range",
+        help="Full-field historical results via GunlukYarisSonuclari (preferred for training data).",
     ),
     from_date: str = typer.Option(
         None, "--from", help="Start date (YYYY-MM-DD)"
     ),
     to_date: str = typer.Option(
-        None, "--to", help="End date for --history (YYYY-MM-DD, default: today)"
+        None, "--to", help="End date (YYYY-MM-DD, default: today)"
+    ),
+    rescrape: bool = typer.Option(
+        False, "--rescrape",
+        help="Re-scrape even dates already marked complete in scrape_log.",
     ),
 ) -> None:
     """Scrape race data from TJK."""
@@ -70,8 +78,20 @@ def scrape(
             else date.today()
         )
         asyncio.run(_run_historical_backfill(settings, start, end))
+    elif results_range:
+        if from_date is None:
+            typer.echo("Error: --from is required with --results-range", err=True)
+            raise typer.Exit(code=1)
+        start = datetime.strptime(from_date, "%Y-%m-%d").date()
+        end = (
+            datetime.strptime(to_date, "%Y-%m-%d").date()
+            if to_date else date.today()
+        )
+        asyncio.run(_run_full_results_backfill(settings, start, end, rescrape))
     else:
-        typer.echo("Use --today, --results, --backfill, or --history. See --help.")
+        typer.echo(
+            "Use --today, --results, --backfill, --history, or --results-range. See --help.",
+        )
 
 
 async def _scrape_today(settings) -> None:
@@ -176,6 +196,33 @@ async def _run_historical_backfill(
             )
             typer.echo(
                 f"Historical backfill complete: {count} race(s) stored "
+                f"({from_date} -> {to_date})."
+            )
+    except Exception as exc:
+        session.rollback()
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=1)
+
+
+async def _run_full_results_backfill(
+    settings, from_date: date, to_date: date, rescrape: bool,
+) -> None:
+    """Full-field historical results via GunlukYarisSonuclari per-date."""
+    from ganyan.db import get_session
+    from ganyan.scraper import TJKClient
+    from ganyan.scraper.backfill import BackfillManager
+
+    session = get_session()
+    try:
+        async with TJKClient(
+            base_url=settings.tjk_base_url, delay=settings.scrape_delay,
+        ) as client:
+            manager = BackfillManager(session, client)
+            count = await manager.backfill_full_results(
+                from_date=from_date, to_date=to_date, rescrape=rescrape,
+            )
+            typer.echo(
+                f"Full-field results backfill complete: {count} race(s) stored "
                 f"({from_date} -> {to_date})."
             )
     except Exception as exc:

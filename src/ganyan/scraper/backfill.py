@@ -500,6 +500,114 @@ class BackfillManager:
 
         self.session.commit()
 
+    async def backfill_full_results(
+        self,
+        from_date: date,
+        to_date: date,
+        *,
+        rescrape: bool = False,
+    ) -> int:
+        """Backfill full historical race fields via the daily results page.
+
+        Unlike :meth:`backfill_historical` (which uses the KosuSorgulama
+        bulk query and captures only the winner of each race), this walks
+        each date in range and calls the per-city GunlukYarisSonuclari
+        endpoint, yielding every runner with AGF, gate, jockey, HP, and
+        finish position.  That's the shape the predictor's features
+        actually need.
+
+        Parameters
+        ----------
+        from_date, to_date:
+            Inclusive range, walked newest first.
+        rescrape:
+            If ``True``, re-scrape even dates already marked complete in
+            :class:`ScrapeLog`.  If ``False`` (default), skips any date
+            with an ``ALL`` success marker.
+
+        Returns
+        -------
+        int
+            Number of race records stored or refreshed.
+        """
+        if from_date > to_date:
+            return 0
+
+        from ganyan.scraper.parser import parse_race_card
+
+        already_done = set() if rescrape else get_scraped_dates(self.session)
+        total_stored = 0
+
+        current = to_date
+        while current >= from_date:
+            if current in already_done:
+                logger.debug("Skipping already-complete date %s", current)
+                current -= timedelta(days=1)
+                continue
+
+            logger.info("Full-field results backfill: %s", current)
+            getter = getattr(
+                self.tjk_client, "get_race_results_with_failures", None,
+            )
+            try:
+                if getter is not None:
+                    raw_cards, failed_tracks = await getter(current)
+                else:
+                    raw_cards = await self.tjk_client.get_race_results(current)
+                    failed_tracks = []
+            except Exception as exc:
+                logger.exception("Full-field results failed for %s", current)
+                log_scrape(
+                    self.session, current, _ALL_TRACKS_SENTINEL,
+                    ScrapeStatus.failed, error_message=str(exc),
+                )
+                self.session.commit()
+                current -= timedelta(days=1)
+                continue
+
+            if not raw_cards and not failed_tracks:
+                log_scrape(
+                    self.session, current, _ALL_TRACKS_SENTINEL,
+                    ScrapeStatus.skipped,
+                )
+                self.session.commit()
+                current -= timedelta(days=1)
+                continue
+
+            for raw in raw_cards:
+                parsed = parse_race_card(raw)
+                store_historical_race(self.session, parsed)
+                log_scrape(
+                    self.session, current, parsed.track_name,
+                    ScrapeStatus.success,
+                )
+                total_stored += 1
+
+            for track_name in failed_tracks:
+                log_scrape(
+                    self.session, current, track_name,
+                    ScrapeStatus.failed,
+                    error_message="empty response or HTTP error",
+                )
+
+            if not failed_tracks:
+                log_scrape(
+                    self.session, current, _ALL_TRACKS_SENTINEL,
+                    ScrapeStatus.success,
+                )
+            self.session.commit()
+
+            # Rate-limit between date fetches.
+            if self.tjk_client.delay > 0:
+                await asyncio.sleep(self.tjk_client.delay)
+
+            current -= timedelta(days=1)
+
+        logger.info(
+            "Full-field results backfill complete: %d races stored", total_stored,
+        )
+        return total_stored
+
     async def backfill_historical(
         self,
         from_date: date,

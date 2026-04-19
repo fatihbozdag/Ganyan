@@ -12,20 +12,26 @@ from ganyan.scraper.parser import parse_eid_to_seconds, parse_last_six
 
 # Bump this when the feature set, weights, or formula change so the
 # predictions audit table can distinguish results across model variants.
-MODEL_VERSION = "bayesian-v2"
+MODEL_VERSION = "bayesian-v3-agf"
 
 
 # Feature weights for likelihood computation.
+#
+# AGF carries the most weight because it aggregates public information
+# (odds board, recent form, stable whispers) that individual features
+# can't recover from thin historical data.  The other features refine
+# the market signal rather than competing with it.
 FEATURE_WEIGHTS: dict[str, float] = {
-    "speed": 0.22,
-    "form": 0.20,
-    "weight": 0.10,
-    "rest": 0.10,
-    "class": 0.13,
-    "jockey": 0.12,
-    "trainer": 0.05,
-    "gate": 0.03,
-    "surface_affinity": 0.05,
+    "agf": 0.40,
+    "speed": 0.14,
+    "form": 0.12,
+    "class": 0.09,
+    "jockey": 0.08,
+    "weight": 0.05,
+    "rest": 0.05,
+    "surface_affinity": 0.04,
+    "trainer": 0.02,
+    "gate": 0.01,
 }
 
 
@@ -95,6 +101,7 @@ class BayesianPredictor:
 
         # Extract features for each entry.  All history-based lookups use
         # ``before_date=race.date`` so training/evaluation stays leak-free.
+        field_size = len(entries)
         entry_features: list[tuple[RaceEntry, HorseFeatures]] = []
         for entry in entries:
             eid_seconds = parse_eid_to_seconds(entry.eid)
@@ -116,6 +123,8 @@ class BayesianPredictor:
                 gate_number=entry.gate_number,
                 surface=race.surface,
                 race_date=race.date,
+                agf=float(entry.agf) if entry.agf is not None else None,
+                field_size=field_size,
             )
             entry_features.append((entry, features))
 
@@ -245,6 +254,15 @@ class BayesianPredictor:
         else:
             factors["surface_affinity"] = 0.0
 
+        # AGF edge: market win-factor deviation from uniform.  Already
+        # scaled into a dimensionless "how many times uniform" signal by
+        # compute_agf_edge so no extra amplification is needed here.
+        if features.agf_edge is not None:
+            factors["agf"] = features.agf_edge
+            weighted_sum += FEATURE_WEIGHTS["agf"] * features.agf_edge
+        else:
+            factors["agf"] = 0.0
+
         # Convert to positive likelihood using softmax-style exp.
         likelihood = math.exp(weighted_sum)
 
@@ -277,6 +295,7 @@ class BayesianPredictor:
                 features.trainer_win_rate,
                 features.gate_bias,
                 features.surface_affinity,
+                features.agf_edge,
             ]
             available = sum(1 for v in feature_values if v is not None)
             completeness = available / len(feature_values)

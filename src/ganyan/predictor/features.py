@@ -27,7 +27,33 @@ class HorseFeatures:
     trainer_win_rate: float | None = None
     gate_bias: float | None = None
     surface_affinity: float | None = None
+    agf_edge: float | None = None  # market (AGF) deviation from uniform
     track_affinity: float | None = None  # retained for compatibility
+
+
+def compute_agf_edge(
+    agf: float | None, field_size: int | None,
+) -> float | None:
+    """Turn raw AGF% into a relative edge vs uniform.
+
+    ``agf`` is the horse's AGF percentage (0-100).  ``field_size`` is the
+    number of runners.  Returns ``(agf - uniform) / uniform`` so a horse
+    at the uniform share (no market preference) maps to 0, a favourite
+    maps to > 0, and an outsider maps to < 0.  Clamped to +/- 6 to keep
+    likelihoods from blowing up on lopsided markets.
+    """
+    if agf is None or field_size is None or field_size <= 0:
+        return None
+    uniform = 100.0 / field_size
+    if uniform <= 0:
+        return None
+    edge = (agf - uniform) / uniform
+    # Soft clamp — empirically AGF rarely exceeds ~6x uniform.
+    if edge > 6.0:
+        return 6.0
+    if edge < -1.0:
+        return -1.0
+    return edge
 
 
 def compute_speed_figure(
@@ -296,6 +322,8 @@ def extract_features(
     gate_number: int | None = None,
     surface: str | None = None,
     race_date: date_type | None = None,
+    agf: float | None = None,
+    field_size: int | None = None,
 ) -> HorseFeatures:
     features = HorseFeatures(
         speed_figure=compute_speed_figure(eid_seconds, distance_meters),
@@ -304,6 +332,7 @@ def extract_features(
         rest_fitness=compute_rest_fitness(kgs),
         class_indicator=compute_class_indicator(hp, field_avg_hp),
         gate_bias=compute_gate_bias(gate_number, distance_meters, surface),
+        agf_edge=compute_agf_edge(agf, field_size),
     )
     if session is not None:
         features.jockey_win_rate = compute_jockey_win_rate(
