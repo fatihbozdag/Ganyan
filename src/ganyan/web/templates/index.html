@@ -46,6 +46,10 @@
                 <a href="/races/{{ race.id }}/predict"
                    class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
                     <div>
+                        {% if race.post_time %}
+                        <strong class="text-primary">{{ race.post_time }}</strong>
+                        <span class="mx-1">·</span>
+                        {% endif %}
                         <strong>{{ race.race_number }}. Kosu</strong>
                         <span class="text-muted ms-2">
                             {{ race.track.name if race.track else '?' }}

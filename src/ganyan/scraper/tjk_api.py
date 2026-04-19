@@ -302,6 +302,26 @@ def _parse_race_number(text: str) -> int | None:
     return int(m.group(1)) if m else None
 
 
+def _parse_post_time(text: str) -> str | None:
+    """Extract HH:MM post time from the race-no header.
+
+    TJK stores it after the race-number ("1. Koşu:14.00") using either
+    '.' or ':' as the time separator.  We normalise to "HH:MM".
+    """
+    if not text:
+        return None
+    m = re.search(r"Koşu\s*[:.]\s*(\d{1,2})[:.](\d{2})", text)
+    if not m:
+        # Fallback: any HH.MM or HH:MM pattern after the word Koşu.
+        m = re.search(r"(\d{1,2})[:.](\d{2})", text)
+    if not m:
+        return None
+    hh, mm = int(m.group(1)), int(m.group(2))
+    if not (0 <= hh <= 23 and 0 <= mm <= 59):
+        return None
+    return f"{hh:02d}:{mm:02d}"
+
+
 def _parse_race_config(h3: Tag | None) -> dict:
     """Parse the h3.race-config element into structured fields.
 
@@ -786,6 +806,7 @@ class TJKClient:
             race_number = _parse_race_number(race_no_text)
             if race_number is None:
                 continue
+            post_time = _parse_post_time(race_no_text)
 
             race_config_h3 = detail_div.select_one(_SEL_RACE_CONFIG)
             config = _parse_race_config(race_config_h3)
@@ -804,6 +825,7 @@ class TJKClient:
                 track_name=track_name,
                 date=race_date,
                 race_number=race_number,
+                post_time=post_time,
                 distance_meters=config["distance_meters"],
                 surface=config["surface"],
                 race_type=config["race_type"],

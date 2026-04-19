@@ -33,6 +33,7 @@ class RawRaceCard:
     track_name: str
     date: date
     race_number: int
+    post_time: str | None = None  # HH:MM; parsed from race-no header
     distance_meters: int | None = None
     surface: str | None = None
     race_type: str | None = None
@@ -72,6 +73,7 @@ class ParsedRaceCard:
     track_name: str
     date: date
     race_number: int
+    post_time: str | None = None
     distance_meters: int | None = None
     surface: str | None = None
     race_type: str | None = None
@@ -181,6 +183,7 @@ def parse_race_card(raw: RawRaceCard) -> ParsedRaceCard:
         track_name=normalize_track_name(raw.track_name),
         date=raw.date,
         race_number=raw.race_number,
+        post_time=raw.post_time,
         distance_meters=raw.distance_meters,
         surface=raw.surface.lower() if raw.surface else None,
         race_type=raw.race_type,

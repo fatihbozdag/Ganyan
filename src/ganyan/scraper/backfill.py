@@ -120,6 +120,7 @@ def store_race_card(session: Session, parsed: ParsedRaceCard) -> Race:
             track_id=track.id,
             date=parsed.date,
             race_number=parsed.race_number,
+            post_time=parsed.post_time,
             distance_meters=parsed.distance_meters,
             surface=parsed.surface,
             race_type=parsed.race_type,
@@ -129,6 +130,11 @@ def store_race_card(session: Session, parsed: ParsedRaceCard) -> Race:
         )
         session.add(race)
         session.flush()
+    else:
+        # Backfill race-level fields that weren't available on a prior scrape
+        # (e.g. older scrape that didn't capture post_time).
+        if parsed.post_time is not None and not race.post_time:
+            race.post_time = parsed.post_time
 
     # Batch-load all existing entries for this race to avoid per-horse queries.
     existing_entries = {
@@ -208,6 +214,7 @@ def store_historical_race(session: Session, parsed: ParsedRaceCard) -> Race:
             track_id=track.id,
             date=parsed.date,
             race_number=parsed.race_number,
+            post_time=parsed.post_time,
             distance_meters=parsed.distance_meters,
             surface=parsed.surface,
             race_type=parsed.race_type,

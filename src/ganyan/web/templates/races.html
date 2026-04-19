@@ -11,6 +11,7 @@
         <thead class="table-dark">
             <tr>
                 <th>#</th>
+                <th>Saat</th>
                 <th>Hipodrom</th>
                 <th>Mesafe</th>
                 <th>Zemin</th>
@@ -23,6 +24,7 @@
             {% for race in races %}
             <tr>
                 <td>{{ race.race_number }}</td>
+                <td>{{ race.post_time or '—' }}</td>
                 <td>{{ race.track.name if race.track else '?' }}</td>
                 <td>{{ race.distance_meters or '?' }} m</td>
                 <td>{{ race.surface or '?' }}</td>

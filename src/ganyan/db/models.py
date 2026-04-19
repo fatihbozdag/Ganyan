@@ -47,6 +47,7 @@ class Race(Base):
     track_id: Mapped[int] = mapped_column(ForeignKey("tracks.id"))
     date: Mapped[date_type] = mapped_column(Date)
     race_number: Mapped[int] = mapped_column(SmallInteger)
+    post_time: Mapped[str | None] = mapped_column(String(5), nullable=True)  # HH:MM
     distance_meters: Mapped[int | None] = mapped_column(Integer)
     surface: Mapped[str | None] = mapped_column(String(50))
     race_type: Mapped[str | None] = mapped_column(String(100))

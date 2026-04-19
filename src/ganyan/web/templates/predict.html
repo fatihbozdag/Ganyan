@@ -9,7 +9,7 @@
         {{ race.race_number }}. Kosu
     </h2>
     <p class="text-muted">
-        {{ race.date }} |
+        {{ race.date }}{% if race.post_time %} <strong>{{ race.post_time }}</strong>{% endif %} |
         {{ race.distance_meters or '?' }} m |
         {{ race.surface or '?' }} |
         {{ race.entries|length }} at
