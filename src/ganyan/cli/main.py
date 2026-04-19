@@ -15,12 +15,14 @@ predict_app = typer.Typer(help="Generate race predictions")
 evaluate_app = typer.Typer(help="Evaluate prediction accuracy")
 races_app = typer.Typer(help="View race information")
 db_app = typer.Typer(help="Database management")
+train_app = typer.Typer(help="Train the ML ranker model")
 
 app.add_typer(scrape_app, name="scrape")
 app.add_typer(predict_app, name="predict")
 app.add_typer(evaluate_app, name="evaluate")
 app.add_typer(races_app, name="races")
 app.add_typer(db_app, name="db")
+app.add_typer(train_app, name="train")
 
 logger = logging.getLogger(__name__)
 
@@ -243,27 +245,41 @@ def predict(
     race_id: int = typer.Argument(None, help="Race ID to predict"),
     today: bool = typer.Option(False, "--today", help="Predict all today's races"),
     json_output: bool = typer.Option(False, "--json", help="Output JSON format"),
+    model: str = typer.Option(
+        "bayesian", "--model",
+        help="Predictor to use: 'bayesian' (hand-tuned) or 'ml' (LightGBM ranker).",
+    ),
 ) -> None:
     """Generate race predictions."""
     settings = get_settings()
     logging.basicConfig(level=settings.log_level)
 
     if race_id is not None:
-        _predict_race(race_id, json_output)
+        _predict_race(race_id, json_output, model)
     elif today:
-        _predict_today(json_output)
+        _predict_today(json_output, model)
     else:
         typer.echo("Provide a race_id or use --today. See --help.")
 
 
-def _predict_race(race_id: int, json_output: bool) -> None:
+def _build_predictor(session, model: str):
+    """Resolve ``--model`` flag to the right predictor instance."""
+    if model == "bayesian":
+        from ganyan.predictor import BayesianPredictor
+        return BayesianPredictor(session)
+    if model == "ml":
+        from ganyan.predictor.ml import MLPredictor
+        return MLPredictor(session)
+    raise typer.BadParameter(f"Unknown model: {model!r}. Use 'bayesian' or 'ml'.")
+
+
+def _predict_race(race_id: int, json_output: bool, model: str) -> None:
     """Predict a single race and save predictions to DB."""
     from ganyan.db import get_session
-    from ganyan.predictor import BayesianPredictor
 
     session = get_session()
     try:
-        predictor = BayesianPredictor(session)
+        predictor = _build_predictor(session, model)
         predictions = predictor.predict_and_save(race_id)
         if not predictions:
             typer.echo(f"No predictions for race {race_id}.")
@@ -274,14 +290,12 @@ def _predict_race(race_id: int, json_output: bool) -> None:
         session.close()
 
 
-def _predict_today(json_output: bool) -> None:
+def _predict_today(json_output: bool, model: str) -> None:
     """Predict all races scheduled for today."""
     from ganyan.db import get_session, Race, RaceStatus
 
     session = get_session()
     try:
-        from ganyan.predictor import BayesianPredictor
-
         races = (
             session.query(Race)
             .filter(Race.date == date.today(), Race.status == RaceStatus.scheduled)
@@ -291,7 +305,7 @@ def _predict_today(json_output: bool) -> None:
             typer.echo("No races found for today.")
             return
 
-        predictor = BayesianPredictor(session)
+        predictor = _build_predictor(session, model)
         for race in races:
             predictions = predictor.predict_and_save(race.id)
             _display_predictions(predictions, race.id, json_output)
@@ -581,3 +595,65 @@ def db_reset() -> None:
         raise typer.Exit(code=1)
 
     typer.echo("Database reset successfully.")
+
+
+# ---------------------------------------------------------------------------
+# train (ML ranker)
+# ---------------------------------------------------------------------------
+
+
+@train_app.callback(invoke_without_command=True)
+def train(
+    from_date: str = typer.Option(
+        None, "--from", help="Earliest race date to include (YYYY-MM-DD)."
+    ),
+    to_date: str = typer.Option(
+        None, "--to", help="Latest race date to include (YYYY-MM-DD)."
+    ),
+    holdout: float = typer.Option(
+        0.2, "--holdout", help="Fraction of latest dates held out for eval."
+    ),
+    rounds: int = typer.Option(
+        500, "--rounds", help="Maximum LightGBM boosting rounds."
+    ),
+) -> None:
+    """Fit a LightGBM LambdaRank model on resulted races and save to disk."""
+    settings = get_settings()
+    logging.basicConfig(level=settings.log_level)
+
+    from ganyan.db import get_session
+    from ganyan.predictor.ml import train_ranker
+
+    start = datetime.strptime(from_date, "%Y-%m-%d").date() if from_date else None
+    end = datetime.strptime(to_date, "%Y-%m-%d").date() if to_date else None
+
+    session = get_session()
+    try:
+        result = train_ranker(
+            session,
+            from_date=start,
+            to_date=end,
+            holdout_fraction=holdout,
+            num_boost_round=rounds,
+        )
+    finally:
+        session.close()
+
+    typer.echo("=== Training complete ===")
+    typer.echo(f"Model saved to:   {result.model_path}")
+    typer.echo(f"Metadata:         {result.metadata_path}")
+    typer.echo(f"Train races:      {result.train_races}")
+    typer.echo(f"Holdout races:    {result.test_races}")
+    typer.echo("")
+    typer.echo("Holdout metrics:")
+    for k, v in result.metrics.items():
+        if isinstance(v, float):
+            typer.echo(f"  {k:<22} {v:.3f}")
+        else:
+            typer.echo(f"  {k:<22} {v}")
+    typer.echo("")
+    typer.echo("Top feature importances (gain):")
+    for i, (feat, gain) in enumerate(result.feature_importance.items()):
+        if i >= 10:
+            break
+        typer.echo(f"  {feat:<22} {gain:>10.1f}")
