@@ -2,7 +2,7 @@ import enum
 from datetime import date as date_type, datetime
 
 from sqlalchemy import (
-    String, SmallInteger, Integer, Numeric, Date, DateTime, Enum, JSON,
+    String, SmallInteger, Integer, Numeric, Date, DateTime, Enum, JSON, Text,
     ForeignKey, UniqueConstraint, Index, func,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -74,8 +74,10 @@ class Horse(Base):
 class RaceEntry(Base):
     __tablename__ = "race_entries"
     __table_args__ = (
+        UniqueConstraint("race_id", "horse_id", name="uq_race_entries_race_horse"),
         Index("ix_race_entries_race_id", "race_id"),
         Index("ix_race_entries_horse_id", "horse_id"),
+        Index("ix_race_entries_jockey", "jockey"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -102,9 +104,40 @@ class RaceEntry(Base):
 
 class ScrapeLog(Base):
     __tablename__ = "scrape_log"
+    __table_args__ = (
+        Index("ix_scrape_log_date_track", "date", "track"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     date: Mapped[date_type] = mapped_column(Date)
     track: Mapped[str] = mapped_column(String(100))
     status: Mapped[ScrapeStatus] = mapped_column(Enum(ScrapeStatus))
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     scraped_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class Prediction(Base):
+    """Audit history of predictions.
+
+    Unlike ``RaceEntry.predicted_probability`` (a single slot that is
+    overwritten on every re-run), this table keeps every prediction the
+    system has made, tagged with a model version and timestamp.  Lets us
+    compare model variants on held-out races and trace accuracy over time.
+    """
+
+    __tablename__ = "predictions"
+    __table_args__ = (
+        Index("ix_predictions_race_entry_id", "race_entry_id"),
+        Index("ix_predictions_model_version", "model_version"),
+        Index("ix_predictions_predicted_at", "predicted_at"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    race_entry_id: Mapped[int] = mapped_column(ForeignKey("race_entries.id"))
+    model_version: Mapped[str] = mapped_column(String(50))
+    predicted_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False,
+    )
+    probability: Mapped[float] = mapped_column(Numeric(6, 3), nullable=False)
+    confidence: Mapped[float | None] = mapped_column(Numeric(4, 3), nullable=True)
+    factors: Mapped[dict | None] = mapped_column(JSON, nullable=True)

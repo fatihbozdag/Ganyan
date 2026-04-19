@@ -63,12 +63,45 @@ def get_or_create_horse(session: Session, name: str, **kwargs) -> Horse:
 # ---------------------------------------------------------------------------
 
 
+_ENTRY_REFRESH_FIELDS = (
+    "gate_number", "jockey", "weight_kg", "hp", "kgs",
+    "s20", "eid", "gny", "agf", "last_six",
+)
+
+
+def _refresh_entry_fields(existing: RaceEntry, h) -> None:
+    """Copy non-None pre-race fields from parsed horse onto an existing entry.
+
+    Also updates finish_position/finish_time when the parsed horse carries
+    result data so callers that pass result-enriched cards through this path
+    (rather than ``update_race_results``) don't silently lose the results.
+    """
+    for field in _ENTRY_REFRESH_FIELDS:
+        value = getattr(h, field, None)
+        if value is not None:
+            setattr(existing, field, value)
+    if getattr(h, "finish_position", None) is not None:
+        existing.finish_position = h.finish_position
+    if getattr(h, "finish_time", None) is not None:
+        existing.finish_time = h.finish_time
+
+
+def _fetch_horses_by_names(session: Session, names: list[str]) -> dict[str, Horse]:
+    """Batch-load horses by name in a single query (avoids N+1)."""
+    if not names:
+        return {}
+    rows = session.query(Horse).filter(Horse.name.in_(names)).all()
+    return {h.name: h for h in rows}
+
+
 def store_race_card(session: Session, parsed: ParsedRaceCard) -> Race:
     """Persist a ParsedRaceCard to the database.
 
     Creates or reuses Track and Horse records.  Creates Race and RaceEntry
     records.  The operation is idempotent -- calling it twice with the same
-    data is safe and will not duplicate records.
+    data is safe.  On conflict, pre-race fields (jockey, weight, HP, etc.)
+    and any finish data present on the parsed card are refreshed so the
+    database always reflects the latest scrape.
     """
     track = get_or_create_track(session, parsed.track_name)
 
@@ -97,26 +130,37 @@ def store_race_card(session: Session, parsed: ParsedRaceCard) -> Race:
         session.add(race)
         session.flush()
 
-    for h in parsed.horses:
-        horse = get_or_create_horse(
-            session,
-            h.name,
-            age=h.age,
-            origin=h.origin,
-            owner=h.owner,
-            trainer=h.trainer,
-        )
+    # Batch-load all existing entries for this race to avoid per-horse queries.
+    existing_entries = {
+        (e.race_id, e.horse_id): e
+        for e in session.query(RaceEntry).filter(RaceEntry.race_id == race.id).all()
+    }
+    horse_cache = _fetch_horses_by_names(
+        session, [h.name for h in parsed.horses if h.name],
+    )
 
-        # Check for existing entry (idempotency)
-        existing_entry = (
-            session.query(RaceEntry)
-            .filter(
-                RaceEntry.race_id == race.id,
-                RaceEntry.horse_id == horse.id,
+    for h in parsed.horses:
+        horse = horse_cache.get(h.name)
+        if horse is None:
+            horse = get_or_create_horse(
+                session,
+                h.name,
+                age=h.age,
+                origin=h.origin,
+                owner=h.owner,
+                trainer=h.trainer,
             )
-            .first()
-        )
-        if existing_entry is not None:
+            horse_cache[h.name] = horse
+        else:
+            # Update mutable horse-level fields inline (same rule as get_or_create_horse)
+            for field in ("age", "origin", "owner", "trainer"):
+                value = getattr(h, field, None)
+                if value is not None:
+                    setattr(horse, field, value)
+
+        existing = existing_entries.get((race.id, horse.id))
+        if existing is not None:
+            _refresh_entry_fields(existing, h)
             continue
 
         entry = RaceEntry(
@@ -132,6 +176,8 @@ def store_race_card(session: Session, parsed: ParsedRaceCard) -> Race:
             gny=h.gny,
             agf=h.agf,
             last_six=h.last_six,
+            finish_position=h.finish_position,
+            finish_time=h.finish_time,
         )
         session.add(entry)
 
@@ -176,31 +222,35 @@ def store_historical_race(session: Session, parsed: ParsedRaceCard) -> Race:
         if race.status != RaceStatus.resulted:
             race.status = RaceStatus.resulted
 
-    for h in parsed.horses:
-        horse = get_or_create_horse(
-            session,
-            h.name,
-            age=h.age,
-            origin=h.origin,
-            owner=h.owner,
-            trainer=h.trainer,
-        )
+    existing_entries = {
+        (e.race_id, e.horse_id): e
+        for e in session.query(RaceEntry).filter(RaceEntry.race_id == race.id).all()
+    }
+    horse_cache = _fetch_horses_by_names(
+        session, [h.name for h in parsed.horses if h.name],
+    )
 
-        # Check for existing entry (idempotency)
-        existing_entry = (
-            session.query(RaceEntry)
-            .filter(
-                RaceEntry.race_id == race.id,
-                RaceEntry.horse_id == horse.id,
+    for h in parsed.horses:
+        horse = horse_cache.get(h.name)
+        if horse is None:
+            horse = get_or_create_horse(
+                session,
+                h.name,
+                age=h.age,
+                origin=h.origin,
+                owner=h.owner,
+                trainer=h.trainer,
             )
-            .first()
-        )
-        if existing_entry is not None:
-            # Update finish data if available
-            if h.finish_position is not None:
-                existing_entry.finish_position = h.finish_position
-            if h.finish_time is not None:
-                existing_entry.finish_time = h.finish_time
+            horse_cache[h.name] = horse
+        else:
+            for field in ("age", "origin", "owner", "trainer"):
+                value = getattr(h, field, None)
+                if value is not None:
+                    setattr(horse, field, value)
+
+        existing = existing_entries.get((race.id, horse.id))
+        if existing is not None:
+            _refresh_entry_fields(existing, h)
             continue
 
         entry = RaceEntry(
@@ -246,24 +296,25 @@ def update_race_results(session: Session, parsed: ParsedRaceCard) -> Race | None
     if race is None:
         return None
 
+    horse_cache = _fetch_horses_by_names(
+        session, [h.name for h in parsed.horses if h.name],
+    )
+    entries_by_horse = {
+        e.horse_id: e
+        for e in session.query(RaceEntry).filter(RaceEntry.race_id == race.id).all()
+    }
+
     for h in parsed.horses:
-        horse = session.query(Horse).filter(Horse.name == h.name).first()
+        horse = horse_cache.get(h.name)
         if horse is None:
             continue
-
-        entry = (
-            session.query(RaceEntry)
-            .filter(
-                RaceEntry.race_id == race.id,
-                RaceEntry.horse_id == horse.id,
-            )
-            .first()
-        )
+        entry = entries_by_horse.get(horse.id)
         if entry is None:
             continue
-
-        entry.finish_position = h.finish_position
-        entry.finish_time = h.finish_time
+        if h.finish_position is not None:
+            entry.finish_position = h.finish_position
+        if h.finish_time is not None:
+            entry.finish_time = h.finish_time
 
     race.status = RaceStatus.resulted
     session.flush()
@@ -275,15 +326,41 @@ def update_race_results(session: Session, parsed: ParsedRaceCard) -> Race | None
 # ---------------------------------------------------------------------------
 
 
+_ALL_TRACKS_SENTINEL = "ALL"
+
+
 def get_scraped_dates(session: Session) -> set[date]:
-    """Return the set of dates that have been successfully scraped."""
+    """Return the set of dates that have been *fully* scraped.
+
+    A date counts as fully scraped only when a completion marker was
+    written (track=ALL with status=success).  Partial-success days where
+    some tracks failed are deliberately NOT in this set so the backfill
+    manager retries them.
+    """
     rows = (
         session.query(ScrapeLog.date)
-        .filter(ScrapeLog.status == ScrapeStatus.success)
+        .filter(
+            ScrapeLog.status == ScrapeStatus.success,
+            ScrapeLog.track == _ALL_TRACKS_SENTINEL,
+        )
         .distinct()
         .all()
     )
     return {row[0] for row in rows}
+
+
+def get_successful_tracks_on(session: Session, scrape_date: date) -> set[str]:
+    """Return set of track names that succeeded on a given date."""
+    rows = (
+        session.query(ScrapeLog.track)
+        .filter(
+            ScrapeLog.date == scrape_date,
+            ScrapeLog.status == ScrapeStatus.success,
+        )
+        .distinct()
+        .all()
+    )
+    return {row[0] for row in rows if row[0] != _ALL_TRACKS_SENTINEL}
 
 
 def log_scrape(
@@ -291,9 +368,19 @@ def log_scrape(
     scrape_date: date,
     track: str,
     status: ScrapeStatus,
+    error_message: str | None = None,
 ) -> None:
-    """Record a scrape attempt in the scrape_log table."""
-    entry = ScrapeLog(date=scrape_date, track=track, status=status)
+    """Record a scrape attempt in the scrape_log table.
+
+    ``error_message`` is stored when status is ``failed``; truncated to
+    keep audit rows small.
+    """
+    msg = None
+    if error_message is not None:
+        msg = error_message[:2000]  # avoid unbounded blobs
+    entry = ScrapeLog(
+        date=scrape_date, track=track, status=status, error_message=msg,
+    )
     session.add(entry)
     session.flush()
 
@@ -343,17 +430,41 @@ class BackfillManager:
             current -= timedelta(days=1)
 
     async def _scrape_date(self, scrape_date: date) -> None:
-        """Fetch and store all race cards for a single date."""
+        """Fetch and store all race cards for a single date.
+
+        Writes per-track success rows and, only if every discovered track
+        succeeded, a single ``track=ALL`` completion marker so that
+        :func:`get_scraped_dates` can distinguish fully- from partially-
+        scraped days and retry the partials.
+        """
         logger.info("Scraping %s", scrape_date)
+
+        # Use the failure-aware variant when available so we can log the
+        # specific tracks that did not return cards.
+        getter = getattr(
+            self.tjk_client, "get_race_card_with_failures", None,
+        )
         try:
-            raw_cards = await self.tjk_client.get_race_card(scrape_date)
-        except Exception:
+            if getter is not None:
+                raw_cards, failed_tracks = await getter(scrape_date)
+            else:
+                raw_cards = await self.tjk_client.get_race_card(scrape_date)
+                failed_tracks = []
+        except Exception as exc:
             logger.exception("Failed to fetch race card for %s", scrape_date)
-            log_scrape(self.session, scrape_date, "ALL", ScrapeStatus.failed)
+            log_scrape(
+                self.session, scrape_date, _ALL_TRACKS_SENTINEL,
+                ScrapeStatus.failed, error_message=str(exc),
+            )
+            self.session.commit()
             return
 
-        if not raw_cards:
-            log_scrape(self.session, scrape_date, "ALL", ScrapeStatus.skipped)
+        if not raw_cards and not failed_tracks:
+            log_scrape(
+                self.session, scrape_date, _ALL_TRACKS_SENTINEL,
+                ScrapeStatus.skipped,
+            )
+            self.session.commit()
             return
 
         from ganyan.scraper.parser import parse_race_card
@@ -362,9 +473,21 @@ class BackfillManager:
             parsed = parse_race_card(raw)
             store_race_card(self.session, parsed)
             log_scrape(
-                self.session,
-                scrape_date,
-                parsed.track_name,
+                self.session, scrape_date, parsed.track_name,
+                ScrapeStatus.success,
+            )
+
+        for track_name in failed_tracks:
+            log_scrape(
+                self.session, scrape_date, track_name,
+                ScrapeStatus.failed,
+                error_message="empty response or HTTP error",
+            )
+
+        # Only mark the whole date done when no tracks failed.
+        if not failed_tracks:
+            log_scrape(
+                self.session, scrape_date, _ALL_TRACKS_SENTINEL,
                 ScrapeStatus.success,
             )
 
@@ -405,21 +528,23 @@ class BackfillManager:
                 raw_cards = await self.tjk_client.fetch_historical_results(
                     chunk_start, chunk_end,
                 )
-            except Exception:
+            except Exception as exc:
                 logger.exception(
                     "Failed to fetch historical chunk %s -> %s",
                     chunk_start,
                     chunk_end,
                 )
                 log_scrape(
-                    self.session, chunk_start, "ALL", ScrapeStatus.failed,
+                    self.session, chunk_start, _ALL_TRACKS_SENTINEL,
+                    ScrapeStatus.failed, error_message=str(exc),
                 )
                 chunk_start = chunk_end + timedelta(days=1)
                 continue
 
             if not raw_cards:
                 log_scrape(
-                    self.session, chunk_start, "ALL", ScrapeStatus.skipped,
+                    self.session, chunk_start, _ALL_TRACKS_SENTINEL,
+                    ScrapeStatus.skipped,
                 )
                 chunk_start = chunk_end + timedelta(days=1)
                 continue
@@ -430,7 +555,8 @@ class BackfillManager:
                 total_stored += 1
 
             log_scrape(
-                self.session, chunk_start, "ALL", ScrapeStatus.success,
+                self.session, chunk_start, _ALL_TRACKS_SENTINEL,
+                ScrapeStatus.success,
             )
             self.session.commit()
 

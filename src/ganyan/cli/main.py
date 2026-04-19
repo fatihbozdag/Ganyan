@@ -289,6 +289,13 @@ def _display_predictions(predictions, race_id: int, json_output: bool) -> None:
 def evaluate(
     detail: bool = typer.Option(False, "--detail", help="Show per-race breakdown"),
     json_output: bool = typer.Option(False, "--json", help="Output JSON format"),
+    cutoff: str | None = typer.Option(
+        None, "--cutoff",
+        help="Only evaluate races on/after this date (YYYY-MM-DD); acts as temporal holdout.",
+    ),
+    calibration_bins: int = typer.Option(
+        10, "--bins", help="Number of calibration buckets for the reliability diagram.",
+    ),
 ) -> None:
     """Evaluate prediction accuracy on resulted races."""
     settings = get_settings()
@@ -297,9 +304,13 @@ def evaluate(
     from ganyan.db import get_session
     from ganyan.predictor.evaluate import evaluate_all
 
+    cutoff_date = date.fromisoformat(cutoff) if cutoff else None
+
     session = get_session()
     try:
-        summary, evaluations = evaluate_all(session)
+        summary, evaluations = evaluate_all(
+            session, cutoff_date=cutoff_date, num_calibration_bins=calibration_bins,
+        )
         _display_evaluation(summary, evaluations, detail, json_output)
     finally:
         session.close()
@@ -318,7 +329,26 @@ def _display_evaluation(summary, evaluations, detail: bool, json_output: bool) -
                 "avg_winner_rank": round(summary.avg_winner_rank, 2),
                 "avg_winner_probability": round(summary.avg_winner_probability, 2),
                 "log_loss": round(summary.log_loss, 4),
+                "brier_score": round(summary.brier_score, 4),
+                "random_baseline_top1": round(summary.random_baseline_top1, 2),
+                "agf_baseline_top1": (
+                    round(summary.agf_baseline_top1, 2)
+                    if summary.agf_baseline_top1 is not None else None
+                ),
                 "roi_simulation": round(summary.roi_simulation, 4),
+                "cutoff_date": (
+                    summary.cutoff_date.isoformat() if summary.cutoff_date else None
+                ),
+                "calibration": [
+                    {
+                        "lower": round(b.lower, 2),
+                        "upper": round(b.upper, 2),
+                        "count": b.count,
+                        "mean_predicted": round(b.mean_predicted, 2),
+                        "actual_win_rate": round(b.actual_win_rate, 2),
+                    }
+                    for b in summary.calibration
+                ],
             },
         }
         if detail:
@@ -349,13 +379,29 @@ def _display_evaluation(summary, evaluations, detail: bool, json_output: bool) -
         return
 
     typer.echo("=== Prediction Evaluation Summary ===")
+    if summary.cutoff_date is not None:
+        typer.echo(f"Cutoff (holdout):      {summary.cutoff_date.isoformat()}")
     typer.echo(f"Total races evaluated: {summary.total_races}")
     typer.echo(f"Top-1 accuracy:        {summary.top1_accuracy:.1f}%")
+    typer.echo(f"  Random baseline:     {summary.random_baseline_top1:.1f}%")
+    if summary.agf_baseline_top1 is not None:
+        typer.echo(f"  AGF (market) base.:  {summary.agf_baseline_top1:.1f}%")
     typer.echo(f"Top-3 accuracy:        {summary.top3_accuracy:.1f}%")
     typer.echo(f"Avg winner rank:       {summary.avg_winner_rank:.2f}")
     typer.echo(f"Avg winner prob:       {summary.avg_winner_probability:.1f}%")
     typer.echo(f"Log loss:              {summary.log_loss:.4f}")
-    typer.echo(f"ROI (flat bet top 1):  {summary.roi_simulation:+.1%}")
+    typer.echo(f"Brier score:           {summary.brier_score:.4f}")
+    typer.echo(f"ROI (AGF-implied):     {summary.roi_simulation:+.1%}")
+
+    if summary.calibration:
+        typer.echo("")
+        typer.echo("Calibration (reliability diagram):")
+        typer.echo(f"  {'Bucket':<14} {'N':>5} {'Pred%':>7} {'Actual%':>8}")
+        for b in summary.calibration:
+            typer.echo(
+                f"  {b.lower:>5.1f}-{b.upper:<6.1f} {b.count:>5} "
+                f"{b.mean_predicted:>7.2f} {b.actual_win_rate:>8.2f}"
+            )
 
     if detail:
         typer.echo("")

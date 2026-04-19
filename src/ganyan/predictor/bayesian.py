@@ -5,18 +5,27 @@ from dataclasses import dataclass, field
 
 from sqlalchemy.orm import Session
 
-from ganyan.db.models import Race, RaceEntry
+from ganyan.db.models import Prediction as PredictionRow, Race, RaceEntry
 from ganyan.predictor.features import extract_features, HorseFeatures
 from ganyan.scraper.parser import parse_eid_to_seconds, parse_last_six
 
 
+# Bump this when the feature set, weights, or formula change so the
+# predictions audit table can distinguish results across model variants.
+MODEL_VERSION = "bayesian-v2"
+
+
 # Feature weights for likelihood computation.
 FEATURE_WEIGHTS: dict[str, float] = {
-    "speed": 0.30,
-    "form": 0.25,
-    "weight": 0.15,
-    "rest": 0.15,
-    "class": 0.15,
+    "speed": 0.22,
+    "form": 0.20,
+    "weight": 0.10,
+    "rest": 0.10,
+    "class": 0.13,
+    "jockey": 0.12,
+    "trainer": 0.05,
+    "gate": 0.03,
+    "surface_affinity": 0.05,
 }
 
 
@@ -36,19 +45,31 @@ class BayesianPredictor:
         self.session = session
 
     def predict_and_save(self, race_id: int) -> list[Prediction]:
-        """Predict and write predicted_probability to race_entries."""
+        """Predict and persist to both the ``race_entries`` slot (for quick
+        lookup) and the ``predictions`` audit table (keeps every run).
+        """
         predictions = self.predict(race_id)
+        entries = {
+            (e.race_id, e.horse_id): e
+            for e in self.session.query(RaceEntry)
+            .filter(RaceEntry.race_id == race_id)
+            .all()
+        }
         for p in predictions:
-            entry = (
-                self.session.query(RaceEntry)
-                .filter(
-                    RaceEntry.race_id == race_id,
-                    RaceEntry.horse_id == p.horse_id,
+            entry = entries.get((race_id, p.horse_id))
+            if entry is None:
+                continue
+            entry.predicted_probability = p.probability
+            # Append audit row (never overwrites prior predictions).
+            self.session.add(
+                PredictionRow(
+                    race_entry_id=entry.id,
+                    model_version=MODEL_VERSION,
+                    probability=p.probability,
+                    confidence=p.confidence,
+                    factors=p.contributing_factors,
                 )
-                .first()
             )
-            if entry:
-                entry.predicted_probability = p.probability
         return predictions
 
     def predict(self, race_id: int) -> list[Prediction]:
@@ -72,11 +93,13 @@ class BayesianPredictor:
 
         distance = race.distance_meters
 
-        # Extract features for each entry.
+        # Extract features for each entry.  All history-based lookups use
+        # ``before_date=race.date`` so training/evaluation stays leak-free.
         entry_features: list[tuple[RaceEntry, HorseFeatures]] = []
         for entry in entries:
             eid_seconds = parse_eid_to_seconds(entry.eid)
             last_six_parsed = parse_last_six(entry.last_six)
+            trainer_name = entry.horse.trainer if entry.horse else None
             features = extract_features(
                 eid_seconds=eid_seconds,
                 distance_meters=distance,
@@ -86,6 +109,13 @@ class BayesianPredictor:
                 kgs=int(entry.kgs) if entry.kgs is not None else None,
                 hp=float(entry.hp) if entry.hp is not None else None,
                 field_avg_hp=field_avg_hp,
+                session=self.session,
+                jockey=entry.jockey,
+                trainer=trainer_name,
+                horse_id=entry.horse_id,
+                gate_number=entry.gate_number,
+                surface=race.surface,
+                race_date=race.date,
             )
             entry_features.append((entry, features))
 
@@ -184,6 +214,37 @@ class BayesianPredictor:
         else:
             factors["class"] = 0.0
 
+        # Jockey win rate: deviation from 10% baseline.
+        if features.jockey_win_rate is not None:
+            impact = (features.jockey_win_rate - 0.10) * 5.0
+            factors["jockey"] = impact
+            weighted_sum += FEATURE_WEIGHTS["jockey"] * impact
+        else:
+            factors["jockey"] = 0.0
+
+        # Trainer win rate: same structure as jockey.
+        if features.trainer_win_rate is not None:
+            impact = (features.trainer_win_rate - 0.10) * 5.0
+            factors["trainer"] = impact
+            weighted_sum += FEATURE_WEIGHTS["trainer"] * impact
+        else:
+            factors["trainer"] = 0.0
+
+        # Gate bias: already centered and scaled.
+        if features.gate_bias is not None:
+            factors["gate"] = features.gate_bias
+            weighted_sum += FEATURE_WEIGHTS["gate"] * features.gate_bias
+        else:
+            factors["gate"] = 0.0
+
+        # Surface affinity: deviation from 10% baseline, like win rates.
+        if features.surface_affinity is not None:
+            impact = (features.surface_affinity - 0.10) * 5.0
+            factors["surface_affinity"] = impact
+            weighted_sum += FEATURE_WEIGHTS["surface_affinity"] * impact
+        else:
+            factors["surface_affinity"] = 0.0
+
         # Convert to positive likelihood using softmax-style exp.
         likelihood = math.exp(weighted_sum)
 
@@ -212,6 +273,10 @@ class BayesianPredictor:
                 features.weight_delta,
                 features.rest_fitness,
                 features.class_indicator,
+                features.jockey_win_rate,
+                features.trainer_win_rate,
+                features.gate_bias,
+                features.surface_affinity,
             ]
             available = sum(1 for v in feature_values if v is not None)
             completeness = available / len(feature_values)

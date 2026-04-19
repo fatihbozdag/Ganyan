@@ -175,22 +175,48 @@ def test_update_race_results_returns_none_for_missing_race(db_session):
 # --- get_scraped_dates ---
 
 def test_get_scraped_dates(db_session):
-    log = ScrapeLog(date=date(2026, 4, 5), track="İstanbul", status=ScrapeStatus.success)
-    db_session.add(log)
+    # Fully scraped day: ALL sentinel with success.
+    db_session.add(ScrapeLog(date=date(2026, 4, 5), track="ALL", status=ScrapeStatus.success))
     db_session.commit()
 
     scraped = get_scraped_dates(db_session)
     assert date(2026, 4, 5) in scraped
 
 
-def test_get_scraped_dates_excludes_failed(db_session):
-    db_session.add(ScrapeLog(date=date(2026, 4, 5), track="İstanbul", status=ScrapeStatus.failed))
-    db_session.add(ScrapeLog(date=date(2026, 4, 6), track="İstanbul", status=ScrapeStatus.success))
+def test_get_scraped_dates_excludes_partial_success(db_session):
+    """A date with per-track success rows but no ALL completion marker
+    is considered only partially scraped and should be retried."""
+    db_session.add(ScrapeLog(date=date(2026, 4, 5), track="İstanbul", status=ScrapeStatus.success))
+    # Missing ALL marker → date is NOT fully scraped.
+    db_session.add(ScrapeLog(date=date(2026, 4, 6), track="ALL", status=ScrapeStatus.success))
     db_session.commit()
 
     scraped = get_scraped_dates(db_session)
     assert date(2026, 4, 5) not in scraped
     assert date(2026, 4, 6) in scraped
+
+
+def test_get_scraped_dates_excludes_failed(db_session):
+    db_session.add(ScrapeLog(date=date(2026, 4, 5), track="ALL", status=ScrapeStatus.failed))
+    db_session.add(ScrapeLog(date=date(2026, 4, 6), track="ALL", status=ScrapeStatus.success))
+    db_session.commit()
+
+    scraped = get_scraped_dates(db_session)
+    assert date(2026, 4, 5) not in scraped
+    assert date(2026, 4, 6) in scraped
+
+
+def test_log_scrape_captures_error_message(db_session):
+    log_scrape(
+        db_session,
+        date(2026, 4, 5),
+        "İstanbul",
+        ScrapeStatus.failed,
+        error_message="HTTP 503 Service Unavailable",
+    )
+    db_session.commit()
+    row = db_session.query(ScrapeLog).first()
+    assert row.error_message == "HTTP 503 Service Unavailable"
 
 
 # --- log_scrape ---
@@ -209,9 +235,9 @@ def test_log_scrape(db_session):
 
 @pytest.mark.asyncio
 async def test_backfill_skips_scraped_dates(db_session):
-    """BackfillManager should skip dates that already appear in scrape_log."""
-    # Mark 2026-04-05 as already scraped
-    db_session.add(ScrapeLog(date=date(2026, 4, 5), track="İstanbul", status=ScrapeStatus.success))
+    """BackfillManager should skip dates that already have an ALL-success marker."""
+    # Mark 2026-04-05 as fully scraped via the ALL completion marker.
+    db_session.add(ScrapeLog(date=date(2026, 4, 5), track="ALL", status=ScrapeStatus.success))
     db_session.commit()
 
     scraped_dates_called = []

@@ -366,3 +366,72 @@ class TestEvaluateAll:
         summary, evaluations = evaluate_all(db_session)
         assert summary.total_races == 1
         assert len(evaluations) == 1
+
+
+# -----------------------------------------------------------------------
+# Temporal holdout + calibration + baselines
+# -----------------------------------------------------------------------
+
+
+class TestNewMetrics:
+    def test_cutoff_filters_older_races(self, db_session):
+        track = _create_track(db_session)
+        old = Race(
+            track_id=track.id, date=date(2026, 1, 1), race_number=1,
+            distance_meters=1400, surface="Çim", status=RaceStatus.resulted,
+        )
+        new = Race(
+            track_id=track.id, date=date(2026, 4, 1), race_number=2,
+            distance_meters=1400, surface="Çim", status=RaceStatus.resulted,
+        )
+        db_session.add_all([old, new])
+        db_session.flush()
+        _add_entry(db_session, old, "OldWinner", finish_position=1, predicted_probability=60.0)
+        _add_entry(db_session, old, "OldLoser", finish_position=2, predicted_probability=40.0)
+        _add_entry(db_session, new, "NewWinner", finish_position=1, predicted_probability=55.0)
+        _add_entry(db_session, new, "NewLoser", finish_position=2, predicted_probability=45.0)
+        db_session.commit()
+
+        summary, evaluations = evaluate_all(db_session, cutoff_date=date(2026, 3, 1))
+        assert summary.total_races == 1
+        assert summary.cutoff_date == date(2026, 3, 1)
+        assert len(evaluations) == 1
+        assert evaluations[0].date == date(2026, 4, 1)
+
+    def test_random_baseline_top1(self, db_session):
+        track = _create_track(db_session)
+        race = _create_race(db_session, track, race_number=1)
+        _add_entry(db_session, race, "A", finish_position=1, predicted_probability=25.0)
+        _add_entry(db_session, race, "B", finish_position=2, predicted_probability=25.0)
+        _add_entry(db_session, race, "C", finish_position=3, predicted_probability=25.0)
+        _add_entry(db_session, race, "D", finish_position=4, predicted_probability=25.0)
+        db_session.commit()
+
+        summary, _ = evaluate_all(db_session)
+        # 1 / 4 horses = 25% expected random top-1.
+        assert abs(summary.random_baseline_top1 - 25.0) < 0.01
+
+    def test_brier_score_perfect_confident_win(self, db_session):
+        track = _create_track(db_session)
+        race = _create_race(db_session, track, race_number=1)
+        _add_entry(db_session, race, "A", finish_position=1, predicted_probability=100.0)
+        _add_entry(db_session, race, "B", finish_position=2, predicted_probability=0.0)
+        db_session.commit()
+
+        summary, _ = evaluate_all(db_session)
+        # Perfect confident prediction → brier score ≈ 0.
+        assert summary.brier_score == pytest.approx(0.0, abs=1e-6)
+
+    def test_calibration_buckets_present(self, db_session):
+        track = _create_track(db_session)
+        race = _create_race(db_session, track, race_number=1)
+        _add_entry(db_session, race, "A", finish_position=1, predicted_probability=70.0)
+        _add_entry(db_session, race, "B", finish_position=2, predicted_probability=20.0)
+        _add_entry(db_session, race, "C", finish_position=3, predicted_probability=10.0)
+        db_session.commit()
+
+        summary, _ = evaluate_all(db_session, num_calibration_bins=10)
+        assert len(summary.calibration) >= 1
+        # Counts should sum to the number of predicted entries.
+        total = sum(b.count for b in summary.calibration)
+        assert total == 3
