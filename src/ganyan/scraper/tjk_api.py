@@ -331,6 +331,65 @@ def _parse_race_number(text: str) -> int | None:
     return int(m.group(1)) if m else None
 
 
+_POOL_LABEL_PATTERNS: dict[str, str] = {
+    # Matches "GANYAN 1 3,35 ₺" / "İKİLİ 1/2 51,20 ₺" etc.  Labels use
+    # a simple keyword alternation because TJK's markup splits each
+    # label into its own element — we strip tags and normalise spaces
+    # in the caller.
+    "ganyan": r"GANYAN\s+\S+\s+([\d.,]+)",
+    "ikili": r"İKİLİ\s+\S+\s+([\d.,]+)",
+    "sirali_ikili": r"SIRALI\s+İKİLİ\s+\S+\s+([\d.,]+)",
+    "uclu": r"ÜÇLÜ\s+\S+\s+([\d.,]+)",
+    "dortlu": r"DÖRTLÜ\s+\S+\s+([\d.,]+)",
+}
+
+
+def _parse_payout_amount(text: str) -> float | None:
+    """Parse Turkish-formatted amounts like ``"51,20"`` or ``"3.450,75"``."""
+    if not text:
+        return None
+    cleaned = text.strip().replace(".", "").replace(",", ".")
+    try:
+        return float(cleaned)
+    except ValueError:
+        return None
+
+
+def _parse_exotic_payouts(block_text: str) -> dict[str, float | None]:
+    """Extract all exotic-pool payouts from a race's ``bahisSonucAltCard`` text.
+
+    Returns a dict with keys ``ganyan``, ``ikili``, ``sirali_ikili``,
+    ``uclu``, ``dortlu`` — each value either a float (TL per 1 TL bet)
+    or ``None`` when TJK didn't publish that pool for this race.
+
+    The block is a run-on string that concatenates all payout labels
+    with each other plus the AGF line and Son 800 — we match each pool
+    keyword greedily and rely on the "\\S+\\s+[\\d.,]+" structure to
+    isolate the numeric payout.
+    """
+    out: dict[str, float | None] = {k: None for k in _POOL_LABEL_PATTERNS}
+    if not block_text:
+        return out
+
+    # SIRALI İKİLİ contains İKİLİ as a substring; match it first and
+    # remove it from the working copy so the İKİLİ pattern can't re-hit
+    # the same text.
+    working = block_text
+    m = re.search(_POOL_LABEL_PATTERNS["sirali_ikili"], working)
+    if m:
+        out["sirali_ikili"] = _parse_payout_amount(m.group(1))
+        working = working[: m.start()] + working[m.end():]
+
+    for label, pattern in _POOL_LABEL_PATTERNS.items():
+        if label == "sirali_ikili":
+            continue  # already handled
+        m = re.search(pattern, working)
+        if m:
+            out[label] = _parse_payout_amount(m.group(1))
+
+    return out
+
+
 def _parse_son_800(text: str) -> tuple[str | None, str | None]:
     """Parse a "Son 800 :0.58.40-0.58.42" string.
 
@@ -880,6 +939,22 @@ class TJKClient:
         son_800_divs = (
             soup.select(_SEL_SON_800) if is_results else []
         )
+        # Exotic payouts are split across multiple ``div.bahisSonucCard``
+        # elements per race pane (one per pool type: GANYAN, İKİLİ,
+        # SIRALI İKİLİ, …).  We group them by race pane and concatenate
+        # their text so a single regex sweep per pane can extract every
+        # payout at once.
+        if is_results:
+            panes = soup.select("div.races-panes > div")
+            payout_blocks = [
+                " ".join(
+                    c.get_text(" ", strip=True)
+                    for c in pane.select("div.bahisSonucCard")
+                )
+                for pane in panes
+            ]
+        else:
+            payout_blocks = []
 
         if len(race_details) != len(tables):
             logger.warning(
@@ -912,6 +987,14 @@ class TJKClient:
                     _extract_text(son_800_divs[idx])
                 )
 
+            # --- Exotic payouts — results pages only ---
+            payouts: dict[str, float | None] = {
+                "ganyan": None, "ikili": None, "sirali_ikili": None,
+                "uclu": None, "dortlu": None,
+            }
+            if idx < len(payout_blocks):
+                payouts = _parse_exotic_payouts(payout_blocks[idx])
+
             # --- Horse rows ---
             table = tables[idx]
             rows = table.select("tbody tr")
@@ -934,6 +1017,11 @@ class TJKClient:
                 weight_rule=config["weight_rule"],
                 pace_l800_leader=pace_leader,
                 pace_l800_runner_up=pace_runner_up,
+                ganyan_payout_tl=payouts.get("ganyan"),
+                ikili_payout_tl=payouts.get("ikili"),
+                sirali_ikili_payout_tl=payouts.get("sirali_ikili"),
+                uclu_payout_tl=payouts.get("uclu"),
+                dortlu_payout_tl=payouts.get("dortlu"),
                 horses=horses,
             )
             cards.append(card)

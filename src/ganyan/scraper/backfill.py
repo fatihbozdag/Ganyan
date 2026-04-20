@@ -133,6 +133,11 @@ def store_race_card(session: Session, parsed: ParsedRaceCard) -> Race:
             weight_rule=parsed.weight_rule,
             pace_l800_leader_s=parsed.pace_l800_leader_s,
             pace_l800_runner_up_s=parsed.pace_l800_runner_up_s,
+            ganyan_payout_tl=parsed.ganyan_payout_tl,
+            ikili_payout_tl=parsed.ikili_payout_tl,
+            sirali_ikili_payout_tl=parsed.sirali_ikili_payout_tl,
+            uclu_payout_tl=parsed.uclu_payout_tl,
+            dortlu_payout_tl=parsed.dortlu_payout_tl,
             status=RaceStatus.scheduled,
         )
         session.add(race)
@@ -231,6 +236,11 @@ def store_historical_race(session: Session, parsed: ParsedRaceCard) -> Race:
             weight_rule=parsed.weight_rule,
             pace_l800_leader_s=parsed.pace_l800_leader_s,
             pace_l800_runner_up_s=parsed.pace_l800_runner_up_s,
+            ganyan_payout_tl=parsed.ganyan_payout_tl,
+            ikili_payout_tl=parsed.ikili_payout_tl,
+            sirali_ikili_payout_tl=parsed.sirali_ikili_payout_tl,
+            uclu_payout_tl=parsed.uclu_payout_tl,
+            dortlu_payout_tl=parsed.dortlu_payout_tl,
             status=RaceStatus.resulted,
         )
         session.add(race)
@@ -246,6 +256,13 @@ def store_historical_race(session: Session, parsed: ParsedRaceCard) -> Race:
             race.pace_l800_leader_s = parsed.pace_l800_leader_s
         if parsed.pace_l800_runner_up_s is not None and race.pace_l800_runner_up_s is None:
             race.pace_l800_runner_up_s = parsed.pace_l800_runner_up_s
+        for field in (
+            "ganyan_payout_tl", "ikili_payout_tl", "sirali_ikili_payout_tl",
+            "uclu_payout_tl", "dortlu_payout_tl",
+        ):
+            value = getattr(parsed, field, None)
+            if value is not None and getattr(race, field) is None:
+                setattr(race, field, value)
 
     existing_entries = {
         (e.race_id, e.horse_id): e
@@ -325,11 +342,19 @@ def update_race_results(session: Session, parsed: ParsedRaceCard) -> Race | None
         return None
 
     # Capture race-level results-page fields the program scrape couldn't
-    # possibly have had (Son 800 only appears on the results endpoint).
+    # possibly have had (Son 800 + exotic payouts only appear on the
+    # results endpoint).
     if parsed.pace_l800_leader_s is not None:
         race.pace_l800_leader_s = parsed.pace_l800_leader_s
     if parsed.pace_l800_runner_up_s is not None:
         race.pace_l800_runner_up_s = parsed.pace_l800_runner_up_s
+    for field in (
+        "ganyan_payout_tl", "ikili_payout_tl", "sirali_ikili_payout_tl",
+        "uclu_payout_tl", "dortlu_payout_tl",
+    ):
+        value = getattr(parsed, field, None)
+        if value is not None:
+            setattr(race, field, value)
 
     horse_cache = _fetch_horses_by_names(
         session, [h.name for h in parsed.horses if h.name],

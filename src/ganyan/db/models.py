@@ -63,6 +63,24 @@ class Race(Base):
     pace_l800_runner_up_s: Mapped[float | None] = mapped_column(
         Numeric(6, 2), nullable=True,
     )
+    # Actual parimutuel payouts (TL per 1 TL bet on the winning combo).
+    # Only populated for races whose results page has been scraped and
+    # whose given pool had a winner.
+    ganyan_payout_tl: Mapped[float | None] = mapped_column(
+        Numeric(12, 2), nullable=True,
+    )
+    ikili_payout_tl: Mapped[float | None] = mapped_column(
+        Numeric(12, 2), nullable=True,
+    )
+    sirali_ikili_payout_tl: Mapped[float | None] = mapped_column(
+        Numeric(12, 2), nullable=True,
+    )
+    uclu_payout_tl: Mapped[float | None] = mapped_column(
+        Numeric(12, 2), nullable=True,
+    )
+    dortlu_payout_tl: Mapped[float | None] = mapped_column(
+        Numeric(12, 2), nullable=True,
+    )
 
     track: Mapped["Track"] = relationship(back_populates="races")
     entries: Mapped[list["RaceEntry"]] = relationship(back_populates="race")

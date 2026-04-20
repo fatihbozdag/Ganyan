@@ -50,6 +50,14 @@ class RawRaceCard:
     # the results endpoint, never on the pre-race program.
     pace_l800_leader: str | None = None
     pace_l800_runner_up: str | None = None
+    # Exotic-pool payouts in TL per 1 TL bet.  Only present on the
+    # results page, and only for combinations that actually had winning
+    # tickets (some races only offer a subset of exotic pools).
+    ganyan_payout_tl: float | None = None
+    ikili_payout_tl: float | None = None
+    sirali_ikili_payout_tl: float | None = None
+    uclu_payout_tl: float | None = None
+    dortlu_payout_tl: float | None = None
     horses: list[RawHorseEntry] = field(default_factory=list)
 
 
@@ -95,6 +103,12 @@ class ParsedRaceCard:
     # None when TJK only publishes one value (e.g. wire-to-wire wins).
     pace_l800_leader_s: float | None = None
     pace_l800_runner_up_s: float | None = None
+    # Exotic-pool payouts (TL per 1 TL bet).
+    ganyan_payout_tl: float | None = None
+    ikili_payout_tl: float | None = None
+    sirali_ikili_payout_tl: float | None = None
+    uclu_payout_tl: float | None = None
+    dortlu_payout_tl: float | None = None
     horses: list[ParsedHorseEntry] = field(default_factory=list)
 
 
@@ -208,5 +222,10 @@ def parse_race_card(raw: RawRaceCard) -> ParsedRaceCard:
         weight_rule=raw.weight_rule,
         pace_l800_leader_s=parse_eid_to_seconds(raw.pace_l800_leader),
         pace_l800_runner_up_s=parse_eid_to_seconds(raw.pace_l800_runner_up),
+        ganyan_payout_tl=raw.ganyan_payout_tl,
+        ikili_payout_tl=raw.ikili_payout_tl,
+        sirali_ikili_payout_tl=raw.sirali_ikili_payout_tl,
+        uclu_payout_tl=raw.uclu_payout_tl,
+        dortlu_payout_tl=raw.dortlu_payout_tl,
         horses=horses,
     )
