@@ -148,6 +148,13 @@ def build_training_frame(
         field_size = len(entries)
 
         for entry in entries:
+            # Skip obvious sentinel finish values (DNF / scratched rows that
+            # TJK marks with positions way outside the real field size).
+            # LightGBM LambdaRank rejects negative labels, so any horse
+            # whose recorded finish_position exceeds the field size would
+            # otherwise produce rank_score < 0 and kill the train job.
+            if entry.finish_position > field_size:
+                continue
             trainer_name = entry.horse.trainer if entry.horse else None
             sire_name = entry.horse.sire if entry.horse else None
             features = extract_features(

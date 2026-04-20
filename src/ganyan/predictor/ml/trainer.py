@@ -163,6 +163,7 @@ def train_ranker(
     model_dir: Path | None = None,
     model_name: str | None = None,
     params: dict | None = None,
+    exclude_features: list[str] | None = None,
 ) -> TrainingResult:
     """Fit a LightGBM LambdaRank model on resulted races.
 
@@ -195,6 +196,24 @@ def train_ranker(
         raise RuntimeError(
             "No AGF-bearing resulted races found for training. "
             "Run `ganyan scrape --results-range --from <date>` first.",
+        )
+
+    # Optionally strip specified columns before training.  Used by the
+    # value-betting variant that must NOT see AGF during training so the
+    # engineered features are forced to carry real weight.  The excluded
+    # list is persisted so inference rebuilds the matrix the same way.
+    excluded = list(exclude_features or [])
+    if excluded:
+        keep_cols = [c for c in FEATURE_COLUMNS if c not in excluded]
+        frame = TrainingFrame(
+            features=frame.features[keep_cols].reset_index(drop=True),
+            target=frame.target,
+            groups=frame.groups,
+            race_dates=frame.race_dates,
+        )
+        logger.info(
+            "Excluded %d feature(s) from training: %s",
+            len(excluded), excluded,
         )
 
     train, test = _temporal_split(frame, holdout_fraction)
@@ -236,16 +255,20 @@ def train_ranker(
     meta_path = model_dir / f"{model_name}.meta.json"
     booster.save_model(str(model_path))
 
+    trained_feature_cols = [
+        c for c in FEATURE_COLUMNS if c not in excluded
+    ]
     importance_gain = booster.feature_importance(importance_type="gain")
     feature_importance = dict(
         sorted(
-            zip(FEATURE_COLUMNS, importance_gain.tolist()),
+            zip(trained_feature_cols, importance_gain.tolist()),
             key=lambda kv: kv[1], reverse=True,
         )
     )
 
     metadata = {
-        "feature_columns": FEATURE_COLUMNS,
+        "feature_columns": trained_feature_cols,
+        "excluded_features": excluded,
         "params": effective_params,
         "train_races": int(train.groups.nunique()),
         "test_races": int(test.groups.nunique()),

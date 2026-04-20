@@ -17,6 +17,7 @@ races_app = typer.Typer(help="View race information")
 db_app = typer.Typer(help="Database management")
 train_app = typer.Typer(help="Train the ML ranker model")
 crawl_app = typer.Typer(help="Crawl per-horse detail pages (pedigree, etc.)")
+value_app = typer.Typer(help="Find horses the value-betting model thinks are mispriced")
 
 app.add_typer(scrape_app, name="scrape")
 app.add_typer(predict_app, name="predict")
@@ -25,6 +26,7 @@ app.add_typer(races_app, name="races")
 app.add_typer(db_app, name="db")
 app.add_typer(train_app, name="train")
 app.add_typer(crawl_app, name="crawl")
+app.add_typer(value_app, name="value-picks")
 
 logger = logging.getLogger(__name__)
 
@@ -618,6 +620,15 @@ def train(
     rounds: int = typer.Option(
         500, "--rounds", help="Maximum LightGBM boosting rounds."
     ),
+    exclude_agf: bool = typer.Option(
+        False, "--exclude-agf",
+        help="Train WITHOUT AGF features (for value-betting comparisons).",
+    ),
+    model_name: str = typer.Option(
+        None, "--model-name",
+        help="Filename stem for the saved model (default: lightgbm_ranker, "
+             "or lightgbm_value when --exclude-agf).",
+    ),
 ) -> None:
     """Fit a LightGBM LambdaRank model on resulted races and save to disk."""
     settings = get_settings()
@@ -629,6 +640,10 @@ def train(
     start = datetime.strptime(from_date, "%Y-%m-%d").date() if from_date else None
     end = datetime.strptime(to_date, "%Y-%m-%d").date() if to_date else None
 
+    excluded = ["agf_edge", "agf_raw"] if exclude_agf else None
+    if model_name is None:
+        model_name = "lightgbm_value" if exclude_agf else "lightgbm_ranker"
+
     session = get_session()
     try:
         result = train_ranker(
@@ -637,6 +652,8 @@ def train(
             to_date=end,
             holdout_fraction=holdout,
             num_boost_round=rounds,
+            exclude_features=excluded,
+            model_name=model_name,
         )
     finally:
         session.close()
@@ -700,3 +717,270 @@ def crawl_horses(
 
     stored = asyncio.run(_run())
     typer.echo(f"Crawled {stored} horse profile(s).")
+
+
+# ---------------------------------------------------------------------------
+# value-picks (value-betting picks from the AGF-free model)
+# ---------------------------------------------------------------------------
+
+
+@value_app.callback(invoke_without_command=True)
+def value_picks(
+    race_date: str = typer.Option(
+        None, "--date", help="Date to pick over (YYYY-MM-DD). Defaults to today.",
+    ),
+    race_id: int = typer.Option(None, "--race-id", help="Single race to score."),
+    threshold: float = typer.Option(
+        0.22, "--threshold",
+        help=(
+            "Minimum relative edge (model_prob - agf_prob) / agf_prob to flag. "
+            "Default 0.22 covers the typical 18%% parimutuel takeout."
+        ),
+    ),
+    min_agf: float = typer.Option(
+        2.0, "--min-agf",
+        help="Skip horses with AGF below this (avoids dividing by near-zero).",
+    ),
+    model_name: str = typer.Option(
+        "lightgbm_value", "--model-name",
+        help="Model file stem under models/.  Must be an AGF-free model.",
+    ),
+    json_output: bool = typer.Option(False, "--json", help="Output JSON."),
+) -> None:
+    """List horses the value model thinks are underpriced vs the AGF market."""
+    settings = get_settings()
+    logging.basicConfig(level=settings.log_level)
+
+    target = (
+        datetime.strptime(race_date, "%Y-%m-%d").date() if race_date else date.today()
+    )
+
+    from ganyan.db import get_session
+    from ganyan.db.models import Race, RaceEntry
+    from ganyan.predictor.ml import MLPredictor, load_latest_model
+
+    try:
+        loaded = load_latest_model(model_name=model_name)
+    except FileNotFoundError as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        typer.echo(
+            "Run `ganyan train --exclude-agf` first to build the value model.",
+            err=True,
+        )
+        raise typer.Exit(code=1)
+
+    if "agf_edge" in loaded.feature_columns or "agf_raw" in loaded.feature_columns:
+        typer.echo(
+            "Warning: the loaded model still sees AGF — edges will reflect "
+            "circular self-agreement, not true value.",
+            err=True,
+        )
+
+    session = get_session()
+    try:
+        predictor = MLPredictor(session, model=loaded)
+
+        if race_id is not None:
+            races = [session.get(Race, race_id)]
+            races = [r for r in races if r is not None]
+        else:
+            races = (
+                session.query(Race)
+                .filter(Race.date == target)
+                .order_by(Race.race_number.asc())
+                .all()
+            )
+        if not races:
+            typer.echo(f"No races found for {target}.")
+            return
+
+        all_picks: list[dict] = []
+        for race in races:
+            preds = predictor.predict(race.id)
+            if not preds:
+                continue
+            # Build AGF lookup for this race.
+            entries = {
+                e.horse_id: e for e in
+                session.query(RaceEntry).filter(RaceEntry.race_id == race.id).all()
+            }
+            for p in preds:
+                entry = entries.get(p.horse_id)
+                if entry is None or entry.agf is None:
+                    continue
+                agf_pct = float(entry.agf)
+                if agf_pct < min_agf:
+                    continue
+                edge = (p.probability - agf_pct) / agf_pct
+                if edge < threshold:
+                    continue
+                all_picks.append({
+                    "race_id": race.id,
+                    "track": race.track.name if race.track else "?",
+                    "race_number": race.race_number,
+                    "post_time": race.post_time,
+                    "horse": p.horse_name,
+                    "model_prob": round(p.probability, 2),
+                    "agf": round(agf_pct, 2),
+                    "edge_pct": round(edge * 100.0, 1),
+                    "confidence": round(p.confidence, 2),
+                })
+
+        all_picks.sort(key=lambda x: x["edge_pct"], reverse=True)
+
+        if json_output:
+            import json
+            typer.echo(json.dumps(all_picks, indent=2))
+            return
+
+        if not all_picks:
+            typer.echo(
+                f"No horses on {target} cleared the {threshold:.0%} edge threshold."
+            )
+            return
+
+        typer.echo(
+            f"=== Value picks for {target} "
+            f"(threshold {threshold:.0%}) ==="
+        )
+        typer.echo(
+            f"{'Race':<18} {'Horse':<25} {'Model%':>7} {'AGF%':>6} {'Edge%':>7}"
+        )
+        for pick in all_picks:
+            label = (
+                f"{pick['track']} R{pick['race_number']} "
+                f"{pick['post_time'] or ''}"
+            ).strip()
+            typer.echo(
+                f"{label:<18} {pick['horse']:<25} "
+                f"{pick['model_prob']:>7.2f} {pick['agf']:>6.2f} "
+                f"{pick['edge_pct']:>6.1f}%"
+            )
+    finally:
+        session.close()
+
+
+# ---------------------------------------------------------------------------
+# exotics — Harville-derived exotic-pool combinations
+# ---------------------------------------------------------------------------
+
+_EXOTIC_POOLS = {
+    "ganyan", "plase", "ikili", "sirali-ikili", "uclu", "dortlu",
+}
+
+
+@app.command("exotics")
+def exotics_cmd(
+    race_id: int = typer.Argument(..., help="Race to score."),
+    pool: str = typer.Option(
+        "uclu", "--pool",
+        help=(
+            "Pool: ganyan | plase | ikili | sirali-ikili | uclu | dortlu"
+        ),
+    ),
+    top_n: int = typer.Option(10, "--top-n", help="Show this many combinations."),
+    plase_k: int = typer.Option(
+        2, "--plase-k",
+        help="For --pool plase: horse must finish in top K (2 or 3).",
+    ),
+    model: str = typer.Option(
+        "bayesian", "--model",
+        help="Win-probability source: 'bayesian' or 'ml'.",
+    ),
+    json_output: bool = typer.Option(False, "--json", help="Output JSON."),
+) -> None:
+    """Rank exotic combinations for a race.
+
+    Uses the chosen win-probability model (Ganyan) as input to the
+    Harville conditional-probability model, which derives joint
+    probabilities for multi-horse outcomes.
+    """
+    if pool not in _EXOTIC_POOLS:
+        typer.echo(
+            f"Unknown pool {pool!r}.  Choose one of: {sorted(_EXOTIC_POOLS)}",
+            err=True,
+        )
+        raise typer.Exit(code=1)
+
+    settings = get_settings()
+    logging.basicConfig(level=settings.log_level)
+
+    from ganyan.db import get_session
+    from ganyan.db.models import Race
+    from ganyan.predictor.exotics import (
+        Combo, cumulative_coverage, dortlu_probabilities,
+        ganyan_probabilities, ikili_probabilities, plase_probabilities,
+        sirali_ikili_probabilities, top_n as top_n_fn, uclu_probabilities,
+    )
+
+    session = get_session()
+    try:
+        race = session.get(Race, race_id)
+        if race is None:
+            typer.echo(f"Race {race_id} not found.", err=True)
+            raise typer.Exit(code=1)
+
+        predictor = _build_predictor(session, model)
+        preds = predictor.predict(race_id)
+        if not preds:
+            typer.echo(f"No predictions available for race {race_id}.")
+            return
+
+        # Build horse_id → win probability mapping (normalized to sum 1).
+        win_probs: dict[int, float] = {
+            p.horse_id: p.probability / 100.0 for p in preds
+        }
+        name_for: dict[int, str] = {p.horse_id: p.horse_name for p in preds}
+
+        if pool == "ganyan":
+            combos = ganyan_probabilities(win_probs)
+        elif pool == "plase":
+            combos = plase_probabilities(win_probs, top_k=plase_k)
+        elif pool == "ikili":
+            combos = ikili_probabilities(win_probs)
+        elif pool == "sirali-ikili":
+            combos = sirali_ikili_probabilities(win_probs)
+        elif pool == "uclu":
+            combos = uclu_probabilities(win_probs)
+        elif pool == "dortlu":
+            combos = dortlu_probabilities(win_probs)
+        else:
+            raise AssertionError("unreachable")  # pragma: no cover
+
+        shown = top_n_fn(combos, top_n)
+        cum = cumulative_coverage(shown)
+
+        if json_output:
+            import json
+            typer.echo(json.dumps({
+                "race_id": race_id,
+                "pool": pool,
+                "combinations": [
+                    {
+                        "horses": list(c.horses),
+                        "horse_names": [name_for.get(h, "?") for h in c.horses],
+                        "probability": round(c.probability, 5),
+                        "ordered": c.ordered,
+                        "cumulative": round(cum[i], 5),
+                    }
+                    for i, c in enumerate(shown)
+                ],
+            }, indent=2))
+            return
+
+        track = race.track.name if race.track else "?"
+        typer.echo(
+            f"=== {pool} — {track} R{race.race_number} "
+            f"({race.date}) ===",
+        )
+        if pool == "plase":
+            typer.echo(f"top_k = {plase_k}")
+        separator = " → " if pool in ("sirali-ikili", "uclu", "dortlu") else " + "
+        typer.echo(f"{'#':<3} {'Prob':>7} {'Cum':>7}  Combination")
+        for i, c in enumerate(shown, start=1):
+            names = separator.join(name_for.get(h, "?") for h in c.horses)
+            typer.echo(
+                f"{i:<3} {c.probability*100:>6.2f}% {cum[i-1]*100:>6.2f}%  {names}"
+            )
+    finally:
+        session.close()
