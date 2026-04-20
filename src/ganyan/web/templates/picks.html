@@ -10,13 +10,24 @@
 <div class="small text-muted mb-3">
     Every strategy-level pick the system recommended, with real-world
     hit/miss + TL P&amp;L once the race resolved.  Races where TJK
-    didn't publish a payout for the pool are excluded from the
-    counts — you couldn't have placed that bet in the first place.
+    didn't publish a payout for the pool are excluded from the counts —
+    you couldn't have placed that bet in the first place.
 </div>
+
+<div class="alert alert-info small mb-4">
+    <strong>Neden Üçlü vurma oranı düşük ama kâr pozitif?</strong>
+    Hit oranı tek başına yanıltıcıdır.  Ganyan'da her 10 yarışın ~4'ünde
+    kazanırsın ama kazançlar küçük (ortalama ~2 TL / 1 TL), takeout
+    sonrası uzun vadede kaybedersin.  Üçlü'de her 23 yarışın sadece
+    birinde kazanırsın ama kazanç büyük (~100 TL / 1 TL).  Uzun vadede
+    belirleyici olan <strong>ROI</strong>'dır, vurma oranı değil.
+</div>
+
 
 <!-- Summary cards -->
 <div class="row g-3 mb-4">
     {% set _strategy_labels = {
+        "ganyan_top1": "Ganyan Top-1 (referans)",
         "uclu_top1": "Üçlü Top-1",
         "uclu_box6": "Üçlü Kutu 6",
         "sirali_ikili_top1": "Sıralı İkili Top-1"
@@ -41,6 +52,12 @@
                     Payout: {{ '{:,.0f}'.format(row.payout_tl) }} TL ·
                     Net: <strong class="{% if row.net_tl > 0 %}text-success{% elif row.net_tl < 0 %}text-danger{% endif %}">{{ '{:+,.0f}'.format(row.net_tl) }} TL</strong>
                 </div>
+                {% if row.hits > 0 %}
+                <div class="small text-muted">
+                    Hit başına ortalama kazanç:
+                    <strong>{{ '{:,.0f}'.format(row.payout_tl / row.hits) }} TL</strong>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>

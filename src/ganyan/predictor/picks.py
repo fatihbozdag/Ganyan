@@ -26,7 +26,8 @@ from sqlalchemy.orm import Session
 
 from ganyan.db.models import Pick, Race, RaceEntry, RaceStatus
 from ganyan.predictor.exotics import (
-    Combo, sirali_ikili_probabilities, uclu_probabilities,
+    Combo, ganyan_probabilities, sirali_ikili_probabilities,
+    uclu_probabilities,
 )
 
 
@@ -36,7 +37,7 @@ logger = logging.getLogger(__name__)
 STAKE_PER_TICKET_TL = 100.0
 
 
-STRATEGIES = ("uclu_top1", "uclu_box6", "sirali_ikili_top1")
+STRATEGIES = ("ganyan_top1", "uclu_top1", "uclu_box6", "sirali_ikili_top1")
 
 
 def generate_picks_for_race(
@@ -70,6 +71,23 @@ def generate_picks_for_race(
         session.query(Pick).filter(Pick.race_id == race_id).all()
     }
     added: list[Pick] = []
+
+    # ganyan_top1 — the reference/baseline.  High hit rate (~37% on
+    # AGF favourites) but long-run losing due to takeout.  Useful for
+    # comparison and for psychological feedback ("did we pick the
+    # winner?") that exotic-pool ROI alone doesn't give.
+    gan = ganyan_probabilities(win_probs)
+    if gan and "ganyan_top1" not in existing:
+        top = gan[0]
+        added.append(_make_pick(
+            race_id=race_id,
+            strategy="ganyan_top1",
+            combination=list(top.horses),
+            combination_names=[name_for.get(h, "?") for h in top.horses],
+            stake=STAKE_PER_TICKET_TL,
+            tickets=1,
+            model_prob_pct=top.probability * 100.0,
+        ))
 
     # uclu_top1
     uclu = uclu_probabilities(win_probs)
@@ -156,6 +174,9 @@ def _actual_top3(entries: Iterable[RaceEntry]) -> tuple[int, ...] | None:
 
 def _strategy_hit(strategy: str, combination: list[int], actual: tuple[int, ...]) -> bool | None:
     """Did our combination match the actual finish for this strategy?"""
+    if strategy == "ganyan_top1":
+        if len(actual) < 1: return None
+        return combination[0] == actual[0]
     if strategy == "uclu_top1":
         if len(actual) < 3: return None
         return tuple(combination) == actual[:3]
@@ -169,7 +190,9 @@ def _strategy_hit(strategy: str, combination: list[int], actual: tuple[int, ...]
 
 
 def _strategy_payout_tl(strategy: str, race: Race) -> float | None:
-    if strategy == "sirali_ikili_top1":
+    if strategy == "ganyan_top1":
+        v = race.ganyan_payout_tl
+    elif strategy == "sirali_ikili_top1":
         v = race.sirali_ikili_payout_tl
     else:  # uclu_top1 / uclu_box6 both pay from the üçlü pool
         v = race.uclu_payout_tl
