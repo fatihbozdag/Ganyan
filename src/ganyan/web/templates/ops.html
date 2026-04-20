@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Ganyan Ops{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Ops / Scheduler</h2>
+    <a href="/" class="btn btn-outline-secondary btn-sm">← Ana sayfa</a>
+</div>
+
+{% set status_colour = {"ok": "success", "warn": "warning", "fail": "danger"}.get(health.status, "secondary") %}
+<div class="alert alert-{{ status_colour }}">
+    <strong>Status: {{ health.status | upper }}</strong>
+    {% if health.reasons %}
+    <ul class="mb-0 mt-1">
+        {% for reason in health.reasons %}<li>{{ reason }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="text-muted small">Last scraped race date</div>
+                <div class="fs-5">{{ last_scrape or '—' }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="text-muted small">Last race with results</div>
+                <div class="fs-5">{{ last_result_date or '—' }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="text-muted small">Most recent prediction</div>
+                <div class="fs-5">
+                    {{ last_prediction_at.strftime('%Y-%m-%d %H:%M') if last_prediction_at else '—' }}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="text-muted small">Job failures today</div>
+                <div class="fs-5 {% if failure_count_24h > 0 %}text-danger{% endif %}">
+                    {{ failure_count_24h }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h4>Latest run per job</h4>
+<div class="table-responsive mb-4">
+    <table class="table table-sm table-striped">
+        <thead><tr>
+            <th>Job</th><th>Status</th><th>Started (UTC)</th>
+            <th>Duration</th><th>Error</th>
+        </tr></thead>
+        <tbody>
+            {% for job_id, run in by_job.items() | sort %}
+            <tr class="{% if run.status == 'failed' %}table-danger{% elif run.status == 'missed' %}table-warning{% endif %}">
+                <td><code>{{ job_id }}</code></td>
+                <td>{{ run.status }}</td>
+                <td>{{ run.started_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                <td>{{ run.duration_ms or '—' }} ms</td>
+                <td class="small text-muted">{{ run.error_message or '' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="text-muted">No runs recorded yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<h4>Recent 50 runs</h4>
+<div class="table-responsive">
+    <table class="table table-sm">
+        <thead><tr>
+            <th>Job</th><th>Status</th><th>Started (UTC)</th>
+            <th>Duration</th><th>Error</th>
+        </tr></thead>
+        <tbody>
+            {% for run in recent_runs %}
+            <tr class="{% if run.status == 'failed' %}table-danger{% elif run.status == 'missed' %}table-warning{% endif %}">
+                <td><code>{{ run.job_id }}</code></td>
+                <td>{{ run.status }}</td>
+                <td>{{ run.started_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                <td>{{ run.duration_ms or '—' }} ms</td>
+                <td class="small text-muted">{{ run.error_message or '' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

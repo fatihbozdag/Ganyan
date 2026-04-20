@@ -24,9 +24,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import date, timedelta
+import shutil
+import subprocess
+from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
+from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_EXECUTED, EVENT_JOB_MISSED
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -265,7 +268,108 @@ def _add_jobs(scheduler, settings: Settings) -> None:
 def build_scheduler(
     settings: Settings, *, blocking: bool = False,
 ):
-    """Build either a background or blocking scheduler pre-loaded with jobs."""
+    """Build either a background or blocking scheduler pre-loaded with jobs
+    plus a listener that persists every run to the ``job_runs`` table and
+    pops a macOS notification on failure.
+    """
     scheduler = BlockingScheduler() if blocking else BackgroundScheduler()
     _add_jobs(scheduler, settings)
+    _attach_run_listener(scheduler)
     return scheduler
+
+
+# ---------------------------------------------------------------------------
+# Run persistence + notifications
+# ---------------------------------------------------------------------------
+
+
+def _attach_run_listener(scheduler) -> None:
+    """Record every job execution and alert on failures."""
+    scheduler.add_listener(
+        _on_job_event,
+        EVENT_JOB_EXECUTED | EVENT_JOB_ERROR | EVENT_JOB_MISSED,
+    )
+
+
+def _on_job_event(event) -> None:
+    """APScheduler event handler.
+
+    ``event.code`` is one of the EVENT_JOB_* constants.  On ERROR or
+    MISSED events we emit a macOS notification so the user knows to
+    look at the logs without needing to poll the dashboard.
+    """
+    from ganyan.db import get_session
+    from ganyan.db.models import JobRun, JobStatus
+
+    session = get_session()
+    try:
+        status: str
+        error_message: str | None = None
+        duration_ms: int | None = None
+
+        if event.code == EVENT_JOB_EXECUTED:
+            status = JobStatus.success.value
+        elif event.code == EVENT_JOB_ERROR:
+            status = JobStatus.failed.value
+            error_message = (
+                f"{event.exception.__class__.__name__}: {event.exception}"
+            )[:2000]
+        elif event.code == EVENT_JOB_MISSED:
+            status = JobStatus.missed.value
+            error_message = "scheduler missed run window"
+        else:
+            return
+
+        # APScheduler's event.scheduled_run_time is tz-aware; strip tzinfo
+        # to match our DB column (DateTime without timezone).
+        started_at = event.scheduled_run_time.replace(tzinfo=None)
+        finished_at = datetime.now()
+        duration_ms = int((finished_at - started_at).total_seconds() * 1000)
+
+        run = JobRun(
+            job_id=event.job_id,
+            started_at=started_at,
+            finished_at=finished_at,
+            status=status,
+            duration_ms=duration_ms,
+            error_message=error_message,
+        )
+        session.add(run)
+        session.commit()
+    except Exception:  # noqa: BLE001 — listener must never crash scheduler
+        logger.exception("job-run persistence failed for job %s", event.job_id)
+        session.rollback()
+    finally:
+        session.close()
+
+    if event.code in (EVENT_JOB_ERROR, EVENT_JOB_MISSED):
+        _notify_failure(event)
+
+
+def _notify_failure(event) -> None:
+    """Pop a native macOS notification for a failed/missed job.
+
+    Silently no-ops on non-Darwin hosts or if ``osascript`` isn't on
+    PATH, so the same code runs fine under Linux deployments too.
+    """
+    if shutil.which("osascript") is None:
+        return
+    title = "Ganyan"
+    code_label = (
+        "failed" if event.code == EVENT_JOB_ERROR else "missed"
+    )
+    message = f"Job {event.job_id} {code_label}."
+    if event.code == EVENT_JOB_ERROR and event.exception is not None:
+        message += f" {event.exception.__class__.__name__}: {event.exception}"
+    # AppleScript is finicky with quotes; simple replace is enough.
+    message = message.replace('"', "'")[:200]
+    try:
+        subprocess.run(
+            [
+                "osascript", "-e",
+                f'display notification "{message}" with title "{title}"',
+            ],
+            check=False, timeout=5,
+        )
+    except Exception:  # noqa: BLE001
+        logger.exception("macOS notification failed for job %s", event.job_id)

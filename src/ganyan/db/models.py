@@ -24,6 +24,15 @@ class ScrapeStatus(enum.Enum):
     skipped = "skipped"
 
 
+class JobStatus(enum.Enum):
+    """Outcome of a scheduled job execution."""
+
+    running = "running"
+    success = "success"
+    failed = "failed"
+    missed = "missed"
+
+
 class Track(Base):
     __tablename__ = "tracks"
 
@@ -157,6 +166,40 @@ class ScrapeLog(Base):
     status: Mapped[ScrapeStatus] = mapped_column(Enum(ScrapeStatus))
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     scraped_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class JobRun(Base):
+    """One execution of a scheduled (APScheduler) job.
+
+    Populated by the event listener in :mod:`ganyan.scheduler`.  The
+    ``/ops`` dashboard and the macOS notifier both read from this
+    table.  Keep every row forever — history is cheap and it's useful
+    for seeing *when* a previously-working pipeline broke.
+    """
+
+    __tablename__ = "job_runs"
+    __table_args__ = (
+        Index("ix_job_runs_job_id", "job_id"),
+        Index("ix_job_runs_started_at", "started_at"),
+        Index("ix_job_runs_status", "status"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    job_id: Mapped[str] = mapped_column(String(100))
+    started_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False,
+    )
+    finished_at: Mapped[datetime | None] = mapped_column(
+        DateTime, nullable=True,
+    )
+    # Stored as plain String; JobStatus enum is app-side validation only.
+    status: Mapped[str] = mapped_column(String(16))
+    duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Optional short human-readable summary ("17 races stored", etc.).
+    output_summary: Mapped[str | None] = mapped_column(
+        String(500), nullable=True,
+    )
 
 
 class Prediction(Base):

@@ -531,3 +531,167 @@ def scrape_results():
         ), 500
     finally:
         session.close()
+
+
+# ---------------------------------------------------------------------------
+# Ops dashboard + health endpoint
+# ---------------------------------------------------------------------------
+
+_FRESHNESS_BUDGET = {
+    # Hours before a data-freshness signal turns "stale" on the dashboard.
+    "today_card": 24,        # today's race card should have been scraped
+    "last_results": 12,      # most recent result should be <12h old
+    "last_prediction": 24,   # at least one prediction written in 24h
+}
+
+
+@bp.route("/ops")
+def ops_dashboard():
+    """Show recent scheduled-job runs + data-freshness health."""
+    from ganyan.db.models import JobRun, Prediction, Race, RaceEntry
+    from sqlalchemy import desc, func
+
+    session = _get_session()
+    try:
+        recent_runs = (
+            session.query(JobRun)
+            .order_by(desc(JobRun.started_at))
+            .limit(50)
+            .all()
+        )
+        # Aggregate last run per job_id.
+        by_job: dict[str, JobRun] = {}
+        for r in recent_runs:
+            if r.job_id not in by_job:
+                by_job[r.job_id] = r
+
+        last_scrape = session.query(func.max(Race.date)).scalar()
+        last_result_date = (
+            session.query(func.max(Race.date))
+            .join(RaceEntry)
+            .filter(RaceEntry.finish_position.isnot(None))
+            .scalar()
+        )
+        last_prediction_at = (
+            session.query(func.max(Prediction.predicted_at)).scalar()
+        )
+        failure_count_24h = (
+            session.query(func.count(JobRun.id))
+            .filter(
+                JobRun.status == "failed",
+                JobRun.started_at >= datetime.utcnow().replace(
+                    hour=0, minute=0, second=0, microsecond=0,
+                ),
+            )
+            .scalar()
+        ) or 0
+
+        health = _compute_health(
+            last_scrape, last_result_date, last_prediction_at, failure_count_24h,
+        )
+
+        if _wants_json():
+            return jsonify({
+                "health": health,
+                "last_scrape": last_scrape.isoformat() if last_scrape else None,
+                "last_result_date": (
+                    last_result_date.isoformat() if last_result_date else None
+                ),
+                "last_prediction_at": (
+                    last_prediction_at.isoformat() if last_prediction_at else None
+                ),
+                "failure_count_24h": failure_count_24h,
+                "jobs": [
+                    {
+                        "job_id": jid,
+                        "status": r.status,
+                        "started_at": r.started_at.isoformat(),
+                        "duration_ms": r.duration_ms,
+                        "error_message": r.error_message,
+                    }
+                    for jid, r in sorted(by_job.items())
+                ],
+                "recent_runs": [
+                    {
+                        "job_id": r.job_id,
+                        "status": r.status,
+                        "started_at": r.started_at.isoformat(),
+                        "duration_ms": r.duration_ms,
+                        "error_message": r.error_message,
+                    }
+                    for r in recent_runs
+                ],
+            })
+
+        return render_template(
+            "ops.html",
+            health=health,
+            by_job=by_job,
+            recent_runs=recent_runs,
+            last_scrape=last_scrape,
+            last_result_date=last_result_date,
+            last_prediction_at=last_prediction_at,
+            failure_count_24h=failure_count_24h,
+        )
+    finally:
+        session.close()
+
+
+@bp.route("/ops/health")
+def ops_health():
+    """Lightweight JSON endpoint for external monitors (cron pings, UptimeRobot)."""
+    from ganyan.db.models import JobRun, Race, RaceEntry
+    from sqlalchemy import func
+
+    session = _get_session()
+    try:
+        last_scrape = session.query(func.max(Race.date)).scalar()
+        last_result = (
+            session.query(func.max(Race.date))
+            .join(RaceEntry)
+            .filter(RaceEntry.finish_position.isnot(None))
+            .scalar()
+        )
+        failures = (
+            session.query(func.count(JobRun.id))
+            .filter(JobRun.status == "failed")
+            .filter(JobRun.started_at >= datetime.utcnow().replace(
+                hour=0, minute=0, second=0, microsecond=0,
+            ))
+            .scalar()
+        ) or 0
+        health = _compute_health(last_scrape, last_result, None, failures)
+        status_code = 200 if health["status"] == "ok" else 503
+        return jsonify({
+            "status": health["status"],
+            "reasons": health["reasons"],
+            "failures_24h": failures,
+            "last_scrape": last_scrape.isoformat() if last_scrape else None,
+            "last_result_date": last_result.isoformat() if last_result else None,
+        }), status_code
+    finally:
+        session.close()
+
+
+def _compute_health(
+    last_scrape, last_result_date, last_prediction_at, failure_count_24h,
+) -> dict:
+    """Build a small status payload: ok / warn / fail + reasons."""
+    today = date.today()
+    reasons: list[str] = []
+
+    if last_scrape is None or (today - last_scrape).days > 1:
+        reasons.append("no race scraped today or yesterday")
+    if last_result_date is not None and (today - last_result_date).days > 1:
+        reasons.append("no race results pulled in 48h")
+    if failure_count_24h > 0:
+        reasons.append(f"{failure_count_24h} scheduled-job failure(s) today")
+
+    if not reasons:
+        status = "ok"
+    elif failure_count_24h > 2:
+        status = "fail"
+    else:
+        status = "warn"
+
+    return {"status": status, "reasons": reasons}
