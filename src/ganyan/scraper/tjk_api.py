@@ -227,17 +227,24 @@ def _extract_link_text(td: Tag | None) -> str:
     return td.get_text(strip=True)
 
 
-_EQUIPMENT_CODE_RE = re.compile(r"^([A-ZİÇĞÖŞÜ]{1,3})")
+# The TJK equipment sup has format "<CODE><Explanation>" with no
+# separator — e.g. "KGKapalı gözlük takılacağını ifade eder.".  Since
+# the first letter of the explanation is upper-case too (start of a
+# Turkish sentence), a naive "grab leading capitals" regex eats one
+# letter too many.  We match the shortest uppercase prefix that is
+# immediately followed by "one more uppercase letter + lower-case"
+# — that final upper/lower transition is the start of the explanation.
+_EQUIPMENT_CODE_RE = re.compile(
+    r"^([A-ZİÇĞÖŞÜ]+?)[A-ZİÇĞÖŞÜ][a-zçğıöşü]"
+)
 
 
 def _extract_equipment(td: Tag | None) -> str | None:
     """Pull equipment (takı) codes from ``<sup>`` tags on the name cell.
 
-    Each ``<sup>`` begins with 1-3 capital letters (KG, DB, SK, K, etc.)
-    followed by a long Turkish explanation (e.g. "Kapalı gözlük
-    takılacağını ifade eder.").  We keep only the codes and return a
-    space-separated string.  Returns ``None`` when the horse races
-    bare (no equipment).
+    Each ``<sup>`` begins with 1-3 capital letters (KG, DB, SK, K, …)
+    followed by a long Turkish explanation.  We return the codes as a
+    space-separated string, or ``None`` when the horse races bare.
     """
     if td is None:
         return None
