@@ -972,20 +972,36 @@ def picks_dashboard():
     try:
         summary = strategy_summary(session)
 
-        # Per-day P&L (last 30 days), aggregated across strategies.
+        # Show the 60 most recent races with all their strategies
+        # grouped together.  Ordering by generated_at alone made the
+        # newest backfill dominate the list (all rows of one strategy
+        # shared the same generated_at).  Pull the top race_ids by
+        # race date first, then fetch every pick for those races.
+        recent_race_ids = [
+            rid for (rid,) in
+            session.query(Race.id)
+            .join(Pick, Pick.race_id == Race.id)
+            .group_by(Race.id, Race.date, Race.race_number)
+            .order_by(desc(Race.date), desc(Race.race_number))
+            .limit(60)
+            .all()
+        ]
         recent_picks = (
             session.query(Pick)
-            .options(
-                joinedload(Pick.race).joinedload(Race.track),
+            .filter(Pick.race_id.in_(recent_race_ids))
+            .all()
+        ) if recent_race_ids else []
+        # Sort picks so rows for the same race cluster and strategies
+        # within a race come out in a stable order.
+        _strategy_order = {
+            "ganyan_top1": 0, "sirali_ikili_top1": 1,
+            "uclu_top1": 2, "uclu_box6": 3,
+        }
+        recent_picks.sort(
+            key=lambda p: (
+                -(p.race_id),  # newer race ids first
+                _strategy_order.get(p.strategy, 99),
             )
-            .order_by(desc(Pick.generated_at))
-            .limit(200)
-            .all()
-        ) if hasattr(Pick, "race") else (
-            session.query(Pick)
-            .order_by(desc(Pick.generated_at))
-            .limit(200)
-            .all()
         )
 
         # Pre-fetch race + track data we'll need so the template can't
