@@ -288,30 +288,38 @@ def _extract_horse_name_program(td: Tag | None) -> str:
 
     The cell contains the name in an <a> link, followed by <sup> tooltip
     elements for equipment codes (KG, DB, SK, etc.) that should be excluded.
-    Some TJK renderings append the gate number as ``(N)`` to the link text
-    (e.g. ``"ÇELİK ANSELMO(1)"``); we strip it so names match the results
-    page — otherwise joins between program and results tables silently fail.
+    Some TJK renderings append the gate number as ``(N)`` either at the
+    end (``"ÇELİK ANSELMO(1)"``) or mid-name before a country marker
+    (``"SKY TURK(5) (USA)"``).  We strip the gate number regardless of
+    position so program and results names join on a single canonical
+    horse record.
     """
     if td is None:
         return ""
     link = td.select_one("a")
     raw = link.get_text(strip=True) if link else td.get_text(strip=True)
-    return re.sub(r"\(\d+\)\s*$", "", raw).strip()
+    # Drop any (NN) group that looks like a gate number (digits only).
+    # Country markers like "(USA)" stay because they contain letters.
+    cleaned = re.sub(r"\(\d+\)", "", raw)
+    # Collapse the double space that may remain mid-name.
+    return re.sub(r"\s+", " ", cleaned).strip()
 
 
 def _extract_horse_name_results(td: Tag | None) -> str:
     """Extract horse name from a results name cell.
 
-    Results cells contain the name followed by (gate_number) in the link text,
-    e.g. "FORTHCOMING QUEEN(3)". We strip the trailing gate number.
+    Results cells contain the name followed by (gate_number) somewhere
+    in the link text — usually at the end ("FORTHCOMING QUEEN(3)") but
+    sometimes mid-name before a country marker.  We strip any numeric
+    paren group so the name matches what :func:`_extract_horse_name_program`
+    returns for the same horse.
     """
     if td is None:
         return ""
     link = td.select_one("a")
     raw = link.get_text(strip=True) if link else td.get_text(strip=True)
-    # Remove trailing (N) gate number
-    cleaned = re.sub(r"\(\d+\)\s*$", "", raw).strip()
-    return cleaned
+    cleaned = re.sub(r"\(\d+\)", "", raw)
+    return re.sub(r"\s+", " ", cleaned).strip()
 
 
 def _extract_eid(td: Tag | None) -> str | None:
