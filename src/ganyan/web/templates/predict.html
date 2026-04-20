@@ -16,6 +16,53 @@
     </p>
 </div>
 
+{% if recommendations %}
+<div class="mb-4">
+    <h4>Önerilen Bahisler</h4>
+    <div class="row g-3">
+        {% for r in recommendations %}
+        <div class="col-md-4">
+            <div class="card h-100 {% if r.positive %}border-success{% endif %}">
+                <div class="card-body">
+                    <h6 class="card-title mb-1">{{ r.title }}</h6>
+                    <div class="small text-muted mb-2">{{ r.subtitle }}</div>
+                    <div class="fs-5 mb-2">
+                        {% if r.separator == "→" %}
+                            {{ r.horses | join(' → ') }}
+                        {% else %}
+                            {{ r.horses | join(' + ') }}
+                            <small class="text-muted">(tüm sıralamalar)</small>
+                        {% endif %}
+                    </div>
+                    <div class="small mb-1">
+                        Bilet: <strong>{{ r.tickets }}</strong>
+                        &nbsp;·&nbsp;
+                        Toplam stake: <strong>{{ '%.0f'|format(r.stake_tl) }} TL</strong>
+                    </div>
+                    <div class="small mb-1">
+                        Model olasılığı:
+                        <strong>%{{ '%.2f'|format(r.model_prob_pct) }}</strong>
+                    </div>
+                    <div class="small mb-2">
+                        Uzun vadeli ROI (backtest):
+                        <span class="{% if r.expected_long_run_roi_pct > 0 %}text-success fw-bold{% elif r.expected_long_run_roi_pct < 0 %}text-danger{% endif %}">
+                            {{ '%+.1f'|format(r.expected_long_run_roi_pct) }}%
+                        </span>
+                    </div>
+                    <div class="small text-muted">{{ r.warning }}</div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="small text-muted mt-2">
+        Bu oranlar tek bir yarış için değil, stratejinin <em>uzun vadeli</em>
+        ortalamasını yansıtır.  Üçlü Top-1'de tek kartta %40 ihtimalle hiç
+        vurmayabilirsin; kâr uzun serilerde belirir.
+    </div>
+</div>
+{% endif %}
+
 {% if predictions %}
 <div class="table-responsive">
     <table class="table table-hover">
