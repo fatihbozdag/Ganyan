@@ -332,15 +332,22 @@ def _parse_race_number(text: str) -> int | None:
 
 
 _POOL_LABEL_PATTERNS: dict[str, str] = {
-    # Matches "GANYAN 1 3,35 ₺" / "İKİLİ 1/2 51,20 ₺" etc.  Labels use
-    # a simple keyword alternation because TJK's markup splits each
-    # label into its own element — we strip tags and normalise spaces
-    # in the caller.
-    "ganyan": r"GANYAN\s+\S+\s+([\d.,]+)",
-    "ikili": r"İKİLİ\s+\S+\s+([\d.,]+)",
-    "sirali_ikili": r"SIRALI\s+İKİLİ\s+\S+\s+([\d.,]+)",
-    "uclu": r"ÜÇLÜ\s+\S+\s+([\d.,]+)",
-    "dortlu": r"DÖRTLÜ\s+\S+\s+([\d.,]+)",
+    # Per-pool regexes.  Each specifies the exact shape of its
+    # combination slug so that a loose `\S+` doesn't swallow up multi-
+    # horse combos from higher-order pools.  Without these shape checks
+    # the Pick-7 pool ("7'Lİ GANYAN 3/1,12/...") leaks its 100k-TL
+    # payouts into the Ganyan column.
+    #
+    # Also use `(?<![\w'İ])` to refuse matches where the pool keyword is
+    # itself preceded by another word (e.g. "7'Lİ GANYAN").
+    "ganyan": r"(?<![\w'İ])GANYAN\s+(\d{1,3})\s+([\d.,]+)",
+    "ikili": r"(?<![\w'İ])İKİLİ\s+(\d+/\d+)\s+([\d.,]+)",
+    "sirali_ikili": r"(?<![\w'İ])SIRALI\s+İKİLİ\s+(\d+/\d+)\s+([\d.,]+)",
+    # "ÜÇLÜ BAHİS 3/8/7 393,40" — TJK labels the ordered trifecta with
+    # the "BAHİS" suffix; the bare "ÜÇLÜ" keyword never appears alone.
+    "uclu": r"(?<![\w'İ])ÜÇLÜ\s+BAHİS\s+(\d+/\d+/\d+)\s+([\d.,]+)",
+    # "DÖRTLÜ BAHİS 1/2/3/4 12,50" — same shape as üçlü + one more horse.
+    "dortlu": r"(?<![\w'İ])DÖRTLÜ\s+BAHİS\s+(\d+/\d+/\d+/\d+)\s+([\d.,]+)",
 }
 
 
@@ -373,11 +380,12 @@ def _parse_exotic_payouts(block_text: str) -> dict[str, float | None]:
 
     # SIRALI İKİLİ contains İKİLİ as a substring; match it first and
     # remove it from the working copy so the İKİLİ pattern can't re-hit
-    # the same text.
+    # the same text.  Each regex now captures two groups: combination
+    # slug (unused here, but validates shape) and amount.
     working = block_text
     m = re.search(_POOL_LABEL_PATTERNS["sirali_ikili"], working)
     if m:
-        out["sirali_ikili"] = _parse_payout_amount(m.group(1))
+        out["sirali_ikili"] = _parse_payout_amount(m.group(2))
         working = working[: m.start()] + working[m.end():]
 
     for label, pattern in _POOL_LABEL_PATTERNS.items():
@@ -385,7 +393,7 @@ def _parse_exotic_payouts(block_text: str) -> dict[str, float | None]:
             continue  # already handled
         m = re.search(pattern, working)
         if m:
-            out[label] = _parse_payout_amount(m.group(1))
+            out[label] = _parse_payout_amount(m.group(2))
 
     return out
 

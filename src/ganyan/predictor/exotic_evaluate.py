@@ -217,11 +217,78 @@ def evaluate_all_pools(
     session: Session,
     pools: Iterable[str] = ("ganyan", "ikili", "sirali_ikili", "uclu"),
     top_ns: Iterable[int] = (1, 3, 6, 10),
-    **kwargs,
+    *,
+    from_date: date_type | None = None,
+    to_date: date_type | None = None,
+    predictor_factory: Callable[[Session], object] | None = None,
+    ticket_stake_tl: float = 100.0,
 ) -> list[PoolResult]:
-    """Cartesian product of pools × top-N values.  Results are a flat list."""
-    out: list[PoolResult] = []
-    for pool in pools:
-        for top_n in top_ns:
-            out.append(evaluate_pool(session, pool, top_n, **kwargs))
-    return out
+    """Cartesian product of pools × top-N values with shared predictions.
+
+    Calling :func:`evaluate_pool` repeatedly re-runs inference; with
+    ~1.7k resulted races and 16 pool×top_n cells that's hours of work.
+    This variant iterates races once, runs the predictor once, and
+    scores every strategy off the cached probabilities.
+    """
+    pools = list(pools)
+    top_ns = sorted(set(top_ns))
+    predictor_factory = predictor_factory or (lambda s: BayesianPredictor(s))
+    predictor = predictor_factory(session)
+
+    results: dict[tuple[str, int], PoolResult] = {
+        (p, n): PoolResult(pool=p, top_n=n)
+        for p in pools for n in top_ns
+    }
+
+    q = (
+        session.query(Race)
+        .filter(Race.status == RaceStatus.resulted)
+    )
+    if from_date is not None:
+        q = q.filter(Race.date >= from_date)
+    if to_date is not None:
+        q = q.filter(Race.date <= to_date)
+
+    max_top_n = max(top_ns)
+
+    for race in q.order_by(Race.date.asc(), Race.race_number.asc()).all():
+        entries = list(race.entries)
+        if not entries:
+            continue
+
+        # One predict call serves every pool + every top_n for this race.
+        preds = predictor.predict(race.id)
+        if not preds:
+            continue
+        win_probs = {p.horse_id: p.probability / 100.0 for p in preds}
+
+        for pool in pools:
+            if len(entries) < _COMBO_SIZE[pool]:
+                continue
+            actual = _actual_winning_combo(entries, pool)
+            if actual is None:
+                continue
+            payout = getattr(race, _PAYOUT_COLUMN[pool])
+
+            # Rank once, slice for each top_n.
+            combos_full = _COMBO_FUNCS[pool](win_probs)[:max_top_n]
+            if not combos_full:
+                continue
+
+            for top_n in top_ns:
+                combos = combos_full[:top_n]
+                hit = any(_combo_matches(c, actual, pool) for c in combos)
+                result = results[(pool, top_n)]
+
+                if hit and payout is None:
+                    result.misses_without_payout += 1
+                    continue
+
+                result.races += 1
+                stake = ticket_stake_tl * top_n
+                result.total_stake_tl += stake
+                if hit:
+                    result.hits += 1
+                    result.total_payout_tl += float(payout) * ticket_stake_tl
+
+    return [results[(p, n)] for p in pools for n in top_ns]
