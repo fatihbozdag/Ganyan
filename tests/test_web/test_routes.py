@@ -36,7 +36,11 @@ def app():
         session.add(entry)
         session.commit()
 
-    flask_app = create_app(session_factory=factory, refresh_on_launch=False)
+    flask_app = create_app(
+        session_factory=factory,
+        refresh_on_launch=False,
+        enable_scheduler=False,
+    )
     flask_app.config["TESTING"] = True
     return flask_app
 
@@ -142,7 +146,11 @@ def app_with_results():
         session.add_all([e1, e2])
         session.commit()
 
-    flask_app = create_app(session_factory=factory, refresh_on_launch=False)
+    flask_app = create_app(
+        session_factory=factory,
+        refresh_on_launch=False,
+        enable_scheduler=False,
+    )
     flask_app.config["TESTING"] = True
     return flask_app
 

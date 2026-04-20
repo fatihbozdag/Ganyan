@@ -28,6 +28,7 @@ def create_app(
     *,
     refresh_on_launch: bool | None = None,
     refresh_lookback_days: int = 14,
+    enable_scheduler: bool | None = None,
 ) -> Flask:
     """Create and configure the Flask application.
 
@@ -69,7 +70,38 @@ def create_app(
     if refresh_on_launch:
         _start_launch_refresh(settings, refresh_lookback_days)
 
+    if enable_scheduler is None:
+        enable_scheduler = (
+            os.environ.get("GANYAN_SKIP_SCHEDULER", "").lower()
+            not in {"1", "true", "yes"}
+        )
+    if enable_scheduler:
+        _start_scheduler(settings)
+
     return app
+
+
+# Separate guard so scheduler and refresh don't share the same flag.
+_SCHEDULER_STARTED = False
+
+
+def _start_scheduler(settings: Settings) -> None:
+    """Spin up the APScheduler background jobs once per process."""
+    global _SCHEDULER_STARTED
+    if _SCHEDULER_STARTED:
+        return
+    _SCHEDULER_STARTED = True
+    try:
+        from ganyan.scheduler import build_scheduler
+
+        scheduler = build_scheduler(settings, blocking=False)
+        scheduler.start()
+        logger.info(
+            "APScheduler started with jobs: %s",
+            [j.id for j in scheduler.get_jobs()],
+        )
+    except Exception:  # noqa: BLE001
+        logger.exception("Failed to start APScheduler")
 
 
 def _start_launch_refresh(settings: Settings, lookback_days: int) -> None:

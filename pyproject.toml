@@ -16,6 +16,7 @@ dependencies = [
     "numpy>=1.26",
     "pandas>=2.0",
     "lightgbm>=4.3",
+    "apscheduler>=3.10",
 ]
 
 [project.optional-dependencies]

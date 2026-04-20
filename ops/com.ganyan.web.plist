@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Always-online Ganyan Flask app + embedded APScheduler.
+  launchd keeps it alive across logout, reboot, and crashes.
+
+  Install:
+    cp ops/com.ganyan.web.plist ~/Library/LaunchAgents/
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.ganyan.web.plist
+
+  Status / logs:
+    launchctl print gui/$(id -u)/com.ganyan.web
+    tail -f /tmp/ganyan-web.log
+
+  Stop / uninstall:
+    launchctl bootout gui/$(id -u)/com.ganyan.web
+    rm ~/Library/LaunchAgents/com.ganyan.web.plist
+
+  Edit the two absolute paths below if you move the repo.
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.ganyan.web</string>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/fatihbozdag/Downloads/Cursor-Projects/ganyan</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/homebrew/bin/uv</string>
+        <string>run</string>
+        <string>python</string>
+        <string>-c</string>
+        <string>from ganyan.web.app import run; run()</string>
+    </array>
+
+    <!-- Environment: leave scheduler + launch-refresh enabled (defaults). -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <key>PYTHONUNBUFFERED</key>
+        <string>1</string>
+    </dict>
+
+    <!-- Auto-restart after crash or exit. -->
+    <key>KeepAlive</key>
+    <true/>
+
+    <!-- Launch on load + at login.  Takes effect on reboot too. -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- Log streams (stdout + stderr). -->
+    <key>StandardOutPath</key>
+    <string>/tmp/ganyan-web.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/ganyan-web.err</string>
+
+    <!-- Back off when flapping: don't hammer restarts if something's wrong. -->
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+
+    <!-- Lower process priority so the daemon never starves interactive work. -->
+    <key>Nice</key>
+    <integer>5</integer>
+</dict>
+</plist>

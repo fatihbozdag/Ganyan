@@ -1272,3 +1272,36 @@ def uclu_picks_cmd(
             typer.echo(f"({skipped} race(s) skipped: missing predictions or field < 3)")
     finally:
         session.close()
+
+
+# ---------------------------------------------------------------------------
+# daemon — standalone scheduler (no Flask)
+# ---------------------------------------------------------------------------
+
+
+@app.command("daemon")
+def daemon_cmd() -> None:
+    """Run the Ganyan scheduler in the foreground.
+
+    Blocks forever running the four scheduled jobs (morning card scrape,
+    results polling, weekly pedigree refresh, monthly retrain).
+    Typical deployment: wrap this with launchd (macOS) or systemd
+    (Linux) for auto-restart.  Use Ctrl-C to stop gracefully.
+    """
+    settings = get_settings()
+    logging.basicConfig(
+        level=settings.log_level,
+        format="%(asctime)s  %(levelname)s  %(name)s  %(message)s",
+    )
+
+    from ganyan.scheduler import build_scheduler
+
+    scheduler = build_scheduler(settings, blocking=True)
+    typer.echo(
+        f"Ganyan daemon starting.  Jobs: "
+        f"{[j.id for j in scheduler.get_jobs()]}"
+    )
+    try:
+        scheduler.start()  # blocks
+    except (KeyboardInterrupt, SystemExit):
+        typer.echo("Daemon stopping.")
