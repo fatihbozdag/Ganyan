@@ -93,9 +93,13 @@ def _job_morning_card(settings: Settings) -> None:
         logger.exception("scheduler: morning-card scrape failed")
         return
 
-    # Predict all of today's races that have enough entries.
+    # Predict all of today's races that have enough entries, then write
+    # strategy-level Pick rows so we track real-world ROI over time.
     session = get_session()
+    picks_created = 0
     try:
+        from ganyan.predictor.picks import generate_picks_for_race
+
         predictor = MLPredictor(session)
         races = (
             session.query(Race).join(RaceEntry)
@@ -107,6 +111,8 @@ def _job_morning_card(settings: Settings) -> None:
         for race in races:
             try:
                 predictor.predict_and_save(race.id)
+                picks = generate_picks_for_race(session, race.id)
+                picks_created += len(picks)
                 session.commit()
             except Exception:  # noqa: BLE001
                 session.rollback()
@@ -114,8 +120,8 @@ def _job_morning_card(settings: Settings) -> None:
         session.close()
 
     logger.info(
-        "scheduler: morning-card done (%d races scraped, predictions refreshed)",
-        count,
+        "scheduler: morning-card done (%d races scraped, %d picks written)",
+        count, picks_created,
     )
 
 
@@ -151,7 +157,26 @@ def _job_results_poll(settings: Settings) -> None:
     except Exception:  # noqa: BLE001
         logger.exception("scheduler: results-poll failed")
         return
-    logger.info("scheduler: results-poll done (%d races updated)", n)
+
+    # Grade any picks whose races just resulted.  Cheap no-op when
+    # nothing new finished since the last poll.
+    session = get_session()
+    try:
+        from ganyan.predictor.picks import grade_all_pending
+
+        graded = grade_all_pending(session)
+        session.commit()
+    except Exception:  # noqa: BLE001
+        logger.exception("scheduler: pick grading failed")
+        session.rollback()
+        graded = 0
+    finally:
+        session.close()
+
+    logger.info(
+        "scheduler: results-poll done (%d races updated, %d picks graded)",
+        n, graded,
+    )
 
 
 def _job_pedigree_refresh(settings: Settings) -> None:

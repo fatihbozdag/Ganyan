@@ -202,6 +202,59 @@ class JobRun(Base):
     )
 
 
+class Pick(Base):
+    """A strategy-level bet recommendation — the thing you would place.
+
+    Distinct from :class:`Prediction` (which stores per-horse win
+    probabilities from a given model).  A Pick fixes which pool, which
+    ordered combination, and which strategy label ("uclu_top1", etc.)
+    got recommended for a given race.  After the race resolves, a
+    grader fills in ``hit``, ``payout_tl``, and ``net_tl`` so we can
+    track each strategy's real-world running ROI over time.
+    """
+
+    __tablename__ = "picks"
+    __table_args__ = (
+        Index("ix_picks_race_id", "race_id"),
+        Index("ix_picks_strategy", "strategy"),
+        Index("ix_picks_generated_at", "generated_at"),
+        Index("ix_picks_graded", "graded"),
+        UniqueConstraint(
+            "race_id", "strategy", name="uq_picks_race_strategy",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    race_id: Mapped[int] = mapped_column(ForeignKey("races.id"))
+    strategy: Mapped[str] = mapped_column(String(50))
+    # JSON list of horse_ids in the picked order (for Üçlü this is the
+    # exact 1-2-3 ordering; for box-6 it's still the base top-3).
+    combination: Mapped[list] = mapped_column(JSON)
+    # Human-readable horse names at the time the pick was generated.
+    combination_names: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    stake_tl: Mapped[float] = mapped_column(Numeric(10, 2))
+    ticket_count: Mapped[int] = mapped_column(SmallInteger, default=1)
+    model_prob_pct: Mapped[float | None] = mapped_column(
+        Numeric(6, 3), nullable=True,
+    )
+    generated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False,
+    )
+
+    # Graded fields — filled by grade_picks() after the race resolves.
+    graded: Mapped[bool] = mapped_column(default=False)
+    hit: Mapped[bool | None] = mapped_column(nullable=True)
+    payout_tl: Mapped[float | None] = mapped_column(
+        Numeric(12, 2), nullable=True,
+    )
+    net_tl: Mapped[float | None] = mapped_column(
+        Numeric(12, 2), nullable=True,
+    )
+    graded_at: Mapped[datetime | None] = mapped_column(
+        DateTime, nullable=True,
+    )
+
+
 class Prediction(Base):
     """Audit history of predictions.
 

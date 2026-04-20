@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}Picks ledger{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Picks Ledger</h2>
+    <a href="/live" class="btn btn-outline-primary btn-sm">Live →</a>
+</div>
+
+<div class="small text-muted mb-3">
+    Every strategy-level pick the system recommended, with real-world
+    hit/miss + TL P&amp;L once the race resolved.  Races where TJK
+    didn't publish a payout for the pool are excluded from the
+    counts — you couldn't have placed that bet in the first place.
+</div>
+
+<!-- Summary cards -->
+<div class="row g-3 mb-4">
+    {% set _strategy_labels = {
+        "uclu_top1": "Üçlü Top-1",
+        "uclu_box6": "Üçlü Kutu 6",
+        "sirali_ikili_top1": "Sıralı İkili Top-1"
+    } %}
+    {% for strat_key, row in summary.items() | sort %}
+    <div class="col-md-4">
+        <div class="card h-100 {% if row.roi_pct > 0 %}border-success{% elif row.roi_pct < -10 %}border-danger{% endif %}">
+            <div class="card-body">
+                <h6 class="card-title">
+                    {{ _strategy_labels.get(strat_key, strat_key) }}
+                </h6>
+                <div class="fs-4 {% if row.roi_pct > 0 %}text-success{% elif row.roi_pct < 0 %}text-danger{% endif %}">
+                    ROI {{ '%+.1f'|format(row.roi_pct) }}%
+                </div>
+                <div class="small text-muted">
+                    {{ row.n }} bet{{ '' if row.n == 1 else 's' }} ·
+                    {{ row.hits }} hit{{ '' if row.hits == 1 else 's' }}
+                    ({{ '%.1f'|format(row.hit_rate_pct) }}%)
+                </div>
+                <div class="small mt-1">
+                    Stake: {{ '{:,.0f}'.format(row.stake_tl) }} TL ·
+                    Payout: {{ '{:,.0f}'.format(row.payout_tl) }} TL ·
+                    Net: <strong class="{% if row.net_tl > 0 %}text-success{% elif row.net_tl < 0 %}text-danger{% endif %}">{{ '{:+,.0f}'.format(row.net_tl) }} TL</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12">
+        <div class="alert alert-info">No picks in the ledger yet.</div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Recent picks -->
+<h4>Recent 200 picks</h4>
+<div class="table-responsive">
+    <table class="table table-sm align-middle">
+        <thead class="table-dark">
+            <tr>
+                <th>Generated</th>
+                <th>Race</th>
+                <th>Strategy</th>
+                <th>Combination</th>
+                <th class="text-end">Model%</th>
+                <th class="text-end">Stake</th>
+                <th class="text-center">Result</th>
+                <th class="text-end">Payout</th>
+                <th class="text-end">Net</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in recent_picks %}
+            {% set r = races.get(p.race_id) %}
+            <tr class="{% if p.graded and p.hit %}table-success{% elif p.graded and not p.hit %}table-danger{% elif not p.graded %}text-muted{% endif %}">
+                <td class="small">{{ p.generated_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td class="small">
+                    {% if r %}
+                        {{ r.track.name if r.track else '?' }}
+                        R{{ r.race_number }}
+                        <br><small class="text-muted">{{ r.date }}</small>
+                    {% else %}#{{ p.race_id }}{% endif %}
+                </td>
+                <td class="small"><code>{{ p.strategy }}</code></td>
+                <td class="small">
+                    {% if p.strategy.endswith('_box6') %}
+                        {{ p.combination_names | join(' + ') }}
+                    {% else %}
+                        {{ p.combination_names | join(' → ') }}
+                    {% endif %}
+                </td>
+                <td class="text-end small">
+                    {% if p.model_prob_pct is not none %}
+                        {{ '%.2f'|format(p.model_prob_pct) }}%
+                    {% else %}—{% endif %}
+                </td>
+                <td class="text-end small">{{ '%.0f'|format(p.stake_tl) }} TL</td>
+                <td class="text-center">
+                    {% if not p.graded %}
+                        <span class="badge bg-secondary">pending</span>
+                    {% elif p.hit %}
+                        <span class="badge bg-success">✓ HIT</span>
+                    {% else %}
+                        <span class="badge bg-danger">✗</span>
+                    {% endif %}
+                </td>
+                <td class="text-end small">
+                    {% if p.payout_tl is not none %}
+                        {{ '%.0f'|format(p.payout_tl) }} TL
+                    {% else %}—{% endif %}
+                </td>
+                <td class="text-end small">
+                    {% if p.net_tl is not none %}
+                        <strong class="{% if p.net_tl > 0 %}text-success{% elif p.net_tl < 0 %}text-danger{% endif %}">
+                            {{ '%+.0f'|format(p.net_tl) }}
+                        </strong>
+                    {% else %}—{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

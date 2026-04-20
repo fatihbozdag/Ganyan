@@ -1305,3 +1305,67 @@ def daemon_cmd() -> None:
         scheduler.start()  # blocks
     except (KeyboardInterrupt, SystemExit):
         typer.echo("Daemon stopping.")
+
+
+# ---------------------------------------------------------------------------
+# picks — bet-ledger summary + grade missing
+# ---------------------------------------------------------------------------
+
+
+@app.command("picks")
+def picks_cmd(
+    grade: bool = typer.Option(
+        False, "--grade",
+        help="Grade any ungraded picks whose races have resulted.",
+    ),
+    since: str = typer.Option(
+        None, "--since", help="Only summarise picks on/after this date (YYYY-MM-DD).",
+    ),
+    strategy: str = typer.Option(
+        None, "--strategy",
+        help="Filter to a single strategy (uclu_top1 / uclu_box6 / sirali_ikili_top1).",
+    ),
+    json_output: bool = typer.Option(False, "--json", help="Output JSON."),
+) -> None:
+    """Summarise the picks ledger — your actual running ROI per strategy."""
+    settings = get_settings()
+    logging.basicConfig(level=settings.log_level)
+
+    from datetime import datetime as _dt
+    from ganyan.db import get_session
+    from ganyan.predictor.picks import grade_all_pending, strategy_summary
+
+    since_date = _dt.strptime(since, "%Y-%m-%d") if since else None
+
+    session = get_session()
+    try:
+        if grade:
+            n = grade_all_pending(session)
+            session.commit()
+            typer.echo(f"Graded {n} pick(s).")
+        summary = strategy_summary(session, strategy=strategy, since=since_date)
+    finally:
+        session.close()
+
+    if json_output:
+        import json
+        typer.echo(json.dumps(summary, indent=2, default=str))
+        return
+
+    if not summary:
+        typer.echo("No graded picks yet.")
+        return
+
+    typer.echo(
+        f"{'Strategy':<22} {'N':>5} {'Hits':>5} {'Hit%':>6} "
+        f"{'Stake':>11} {'Payout':>12} {'Net':>11} {'ROI':>8}"
+    )
+    typer.echo("-" * 85)
+    for strat_key in sorted(summary):
+        row = summary[strat_key]
+        typer.echo(
+            f"{strat_key:<22} {row['n']:>5} {row['hits']:>5} "
+            f"{row['hit_rate_pct']:>5.1f}% "
+            f"{row['stake_tl']:>11,.0f} {row['payout_tl']:>12,.0f} "
+            f"{row['net_tl']:>11,.0f} {row['roi_pct']:>+7.1f}%"
+        )

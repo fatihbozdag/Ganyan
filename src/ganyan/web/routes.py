@@ -948,3 +948,82 @@ def live_sheet():
         )
     finally:
         session.close()
+
+
+# ---------------------------------------------------------------------------
+# /picks — strategy-level bet ledger with running ROI
+# ---------------------------------------------------------------------------
+
+
+@bp.route("/picks")
+def picks_dashboard():
+    """Cumulative + per-strategy + recent picks view.
+
+    Reads the picks table (which the scheduler writes & grades) so the
+    user can verify the long-run ROI numbers claimed by the backtest
+    with the system's own live track record.
+    """
+    from ganyan.db.models import Pick, Race, Track
+    from ganyan.predictor.picks import strategy_summary
+    from sqlalchemy import desc
+    from sqlalchemy.orm import joinedload
+
+    session = _get_session()
+    try:
+        summary = strategy_summary(session)
+
+        # Per-day P&L (last 30 days), aggregated across strategies.
+        recent_picks = (
+            session.query(Pick)
+            .options(
+                joinedload(Pick.race).joinedload(Race.track),
+            )
+            .order_by(desc(Pick.generated_at))
+            .limit(200)
+            .all()
+        ) if hasattr(Pick, "race") else (
+            session.query(Pick)
+            .order_by(desc(Pick.generated_at))
+            .limit(200)
+            .all()
+        )
+
+        # Pre-fetch race + track data we'll need so the template can't
+        # trigger lazy-loads outside the session.
+        race_ids = {p.race_id for p in recent_picks}
+        races = {
+            r.id: r for r in
+            session.query(Race).filter(Race.id.in_(race_ids)).all()
+        } if race_ids else {}
+
+        if _wants_json():
+            return jsonify({
+                "summary": summary,
+                "recent_picks": [
+                    {
+                        "id": p.id,
+                        "race_id": p.race_id,
+                        "strategy": p.strategy,
+                        "combination_names": p.combination_names,
+                        "stake_tl": float(p.stake_tl),
+                        "model_prob_pct": (
+                            float(p.model_prob_pct) if p.model_prob_pct is not None else None
+                        ),
+                        "generated_at": p.generated_at.isoformat(),
+                        "graded": p.graded,
+                        "hit": p.hit,
+                        "payout_tl": float(p.payout_tl) if p.payout_tl is not None else None,
+                        "net_tl": float(p.net_tl) if p.net_tl is not None else None,
+                    }
+                    for p in recent_picks
+                ],
+            })
+
+        return render_template(
+            "picks.html",
+            summary=summary,
+            recent_picks=recent_picks,
+            races=races,
+        )
+    finally:
+        session.close()
