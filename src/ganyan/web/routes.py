@@ -695,3 +695,148 @@ def _compute_health(
         status = "warn"
 
     return {"status": status, "reasons": reasons}
+
+
+# ---------------------------------------------------------------------------
+# Live betting sheet — picks + actuals + rolling daily P&L
+# ---------------------------------------------------------------------------
+
+
+@bp.route("/live")
+def live_sheet():
+    """One page per day: our picks, actuals, hit/miss, rolling P&L.
+
+    Auto-refreshes every 30s so the picks appear before the race and
+    fill in outcomes as results come in.
+    """
+    from ganyan.db.models import Race, RaceEntry, RaceStatus
+    from ganyan.predictor.exotics import (
+        ganyan_probabilities, ikili_probabilities,
+        sirali_ikili_probabilities, uclu_probabilities,
+    )
+
+    target_str = request.args.get("date")
+    try:
+        target = (
+            datetime.strptime(target_str, "%Y-%m-%d").date()
+            if target_str else date.today()
+        )
+    except ValueError:
+        target = date.today()
+
+    session = _get_session()
+    try:
+        races = (
+            session.query(Race)
+            .filter(Race.date == target)
+            .order_by(Race.post_time.asc().nullslast(), Race.race_number.asc())
+            .all()
+        )
+
+        rows: list[dict] = []
+        # Pool → (races_staked, hits, stake, payout)
+        tally = {p: [0, 0, 0.0, 0.0] for p in ("ganyan", "ikili", "sirali_ikili", "uclu")}
+        STAKE = 100.0
+
+        for race in races:
+            entries = list(race.entries)
+            name_for = {e.horse_id: (e.horse.name if e.horse else "?") for e in entries}
+            agf_rank_by_id = {}
+            agf_ranked = sorted(
+                [e for e in entries if e.agf is not None],
+                key=lambda e: float(e.agf), reverse=True,
+            )
+            for i, e in enumerate(agf_ranked):
+                agf_rank_by_id[e.horse_id] = i + 1
+
+            # Win probabilities from stored predicted_probability.
+            win_probs = {
+                e.horse_id: float(e.predicted_probability) / 100.0
+                for e in entries if e.predicted_probability is not None
+            }
+            if not win_probs:
+                rows.append({
+                    "race": race, "pending": True, "picks": {}, "actual": None,
+                    "agf_rank_by_id": agf_rank_by_id, "name_for": name_for,
+                })
+                continue
+
+            picks = {
+                "ganyan": ganyan_probabilities(win_probs)[:1],
+                "ikili": ikili_probabilities(win_probs)[:1] if len(win_probs) >= 2 else [],
+                "sirali_ikili": sirali_ikili_probabilities(win_probs)[:1] if len(win_probs) >= 2 else [],
+                "uclu": uclu_probabilities(win_probs)[:1] if len(win_probs) >= 3 else [],
+            }
+
+            winners = sorted(
+                [e for e in entries if e.finish_position in (1, 2, 3)],
+                key=lambda e: e.finish_position,
+            )
+            is_finished = race.status == RaceStatus.resulted and len(winners) >= 1
+            actual_ids = tuple(e.horse_id for e in winners) if is_finished else None
+
+            # Hit + payout per pool.
+            results: dict[str, dict] = {}
+            for pool, combos in picks.items():
+                if not combos:
+                    results[pool] = {"combo": None, "hit": None, "payout": None}
+                    continue
+                our = combos[0]
+                hit: bool | None = None
+                if is_finished:
+                    if pool == "ganyan" and len(winners) >= 1:
+                        hit = our.horses[0] == actual_ids[0]
+                    elif pool == "ikili" and len(winners) >= 2:
+                        hit = set(our.horses) == set(actual_ids[:2])
+                    elif pool == "sirali_ikili" and len(winners) >= 2:
+                        hit = our.horses == actual_ids[:2]
+                    elif pool == "uclu" and len(winners) >= 3:
+                        hit = our.horses == actual_ids[:3]
+                payout_col = f"{pool}_payout_tl"
+                payout_tl = getattr(race, payout_col, None)
+                results[pool] = {
+                    "combo": our,
+                    "horses": [name_for.get(h, "?") for h in our.horses],
+                    "prob_pct": our.probability * 100.0,
+                    "hit": hit,
+                    "payout": float(payout_tl) if payout_tl is not None else None,
+                }
+
+                # Feed the daily tally only when we have a payout (so rows
+                # where TJK didn't offer that pool don't drag the denominator).
+                if is_finished and payout_tl is not None:
+                    tally[pool][0] += 1        # races staked
+                    tally[pool][2] += STAKE    # stake
+                    if hit:
+                        tally[pool][1] += 1
+                        tally[pool][3] += float(payout_tl) * STAKE
+
+            rows.append({
+                "race": race,
+                "pending": not is_finished,
+                "picks": results,
+                "actual": [
+                    name_for.get(e.horse_id, "?") for e in winners[:3]
+                ] if is_finished else None,
+                "agf_rank_by_id": agf_rank_by_id,
+                "name_for": name_for,
+            })
+
+        tally_display = {}
+        for pool, (n, hits, stake, payout) in tally.items():
+            net = payout - stake
+            roi_pct = (net / stake) * 100.0 if stake > 0 else None
+            tally_display[pool] = {
+                "races": n, "hits": hits, "stake": stake,
+                "payout": payout, "net": net, "roi_pct": roi_pct,
+            }
+
+        return render_template(
+            "live.html",
+            rows=rows,
+            tally=tally_display,
+            target=target,
+            now=datetime.now(),
+        )
+    finally:
+        session.close()

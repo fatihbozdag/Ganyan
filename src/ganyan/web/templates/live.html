@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Ganyan Live — {{ target }}{% endblock %}
+{% block head_extra %}
+<meta http-equiv="refresh" content="30">
+<style>
+  .pick-cell { white-space: nowrap; }
+  .hit-yes   { background: #d1e7dd; }
+  .hit-no    { background: #f8d7da; }
+  .hit-na    { color: #adb5bd; }
+  .pending   { opacity: 0.75; }
+  td.num     { font-variant-numeric: tabular-nums; text-align: right; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-2">
+    <h2>Live — {{ target }}</h2>
+    <div class="small text-muted">refreshes every 30s · {{ now.strftime('%H:%M:%S') }}</div>
+</div>
+<div class="mb-3 small text-muted">
+    Picks are generated from the stored ML-model win probabilities and
+    Harville joint probabilities.  Stake = 100 TL per ticket per pool.
+    Daily P&amp;L below only counts races where TJK actually published a
+    payout for that pool.
+</div>
+
+<!-- Running daily P&L -->
+<div class="row g-2 mb-4">
+    {% for pool_key, label in [("ganyan", "Ganyan"), ("ikili", "İkili"), ("sirali_ikili", "Sıralı İkili"), ("uclu", "Üçlü")] %}
+    {% set t = tally[pool_key] %}
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body py-2">
+                <div class="text-muted small">{{ label }} &nbsp;({{ t.races }} races)</div>
+                <div class="fs-5">
+                    {{ t.hits }} hit
+                    {% if t.hits == 1 %}{% else %}s{% endif %}
+                    &nbsp;|&nbsp;
+                    <span class="{% if t.net > 0 %}text-success{% elif t.net < 0 %}text-danger{% endif %}">
+                        {{ '%+.0f'|format(t.net) }} TL
+                    </span>
+                </div>
+                <div class="small text-muted">
+                    stake {{ '%.0f'|format(t.stake) }} · payout {{ '%.0f'|format(t.payout) }} ·
+                    ROI {% if t.roi_pct is not none %}{{ '%+.1f'|format(t.roi_pct) }}%{% else %}—{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Race-by-race board -->
+<div class="table-responsive">
+<table class="table table-sm align-middle">
+    <thead class="table-dark">
+        <tr>
+            <th>Post</th>
+            <th>Race</th>
+            <th>Actual 1→2→3</th>
+            <th>Ganyan</th>
+            <th>İkili</th>
+            <th>Sıralı İkili</th>
+            <th>Üçlü</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in rows %}
+        {% set race = row.race %}
+        <tr class="{% if row.pending %}pending{% endif %}">
+            <td class="text-nowrap">
+                {% if race.post_time %}{{ race.post_time }}{% else %}—{% endif %}
+                {% if row.pending %}
+                    <span class="badge bg-secondary">pending</span>
+                {% endif %}
+            </td>
+            <td class="text-nowrap">
+                {{ race.track.name if race.track else '?' }}
+                &nbsp;R{{ race.race_number }}
+                <br><small class="text-muted">
+                    {{ race.distance_meters }}m / {{ race.surface or '?' }}
+                </small>
+            </td>
+
+            <td class="small">
+                {% if row.actual %}
+                    {% for name in row.actual %}
+                        {{ loop.index }}. {{ name }}<br>
+                    {% endfor %}
+                {% else %}
+                    <span class="hit-na">—</span>
+                {% endif %}
+            </td>
+
+            {% for pool_key in ["ganyan", "ikili", "sirali_ikili", "uclu"] %}
+            {% set p = row.picks.get(pool_key) %}
+            <td class="pick-cell {% if p and p.hit is true %}hit-yes{% elif p and p.hit is false %}hit-no{% endif %}">
+                {% if p and p.horses %}
+                    {% if pool_key in ("sirali_ikili", "uclu") %}
+                        {{ p.horses | join(' → ') }}
+                    {% else %}
+                        {{ p.horses | join(' + ') }}
+                    {% endif %}
+                    <br><small class="text-muted">
+                        {{ '%.2f'|format(p.prob_pct) }}%
+                        {% if p.hit is true %}
+                            &nbsp;✓
+                            {% if p.payout is not none %}
+                                <span class="text-success">+{{ '%.0f'|format(p.payout * 100) }} TL</span>
+                            {% endif %}
+                        {% elif p.hit is false %}
+                            &nbsp;✗
+                            {% if p.payout is not none %}
+                                <span class="text-muted">({{ '%.1f'|format(p.payout) }} TL paid)</span>
+                            {% endif %}
+                        {% endif %}
+                    </small>
+                {% else %}
+                    <span class="hit-na">—</span>
+                {% endif %}
+            </td>
+            {% endfor %}
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="text-muted">No races on {{ target }}.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+
+<div class="small text-muted mt-3">
+    Variance warning: at ~5% Üçlü hit rate, zero-hit days (−100% daily ROI)
+    happen ~40% of cards.  Only the long run is positive.
+</div>
+{% endblock %}
