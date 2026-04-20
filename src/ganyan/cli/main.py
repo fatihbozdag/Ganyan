@@ -606,13 +606,30 @@ def db_reset() -> None:
 # ---------------------------------------------------------------------------
 
 
+# Default training window — the profitable strategy depends on
+# recent AGF calibration, not long history.  90 days captures current
+# jockey/trainer form and a reasonable sire-offspring sample; more
+# history just adds stale signal without deepening the tree.
+_DEFAULT_TRAIN_WINDOW_DAYS = 90
+
+
 @train_app.callback(invoke_without_command=True)
 def train(
     from_date: str = typer.Option(
-        None, "--from", help="Earliest race date to include (YYYY-MM-DD)."
+        None, "--from",
+        help=(
+            "Earliest race date to include (YYYY-MM-DD).  "
+            f"Default: today minus {_DEFAULT_TRAIN_WINDOW_DAYS} days.  "
+            "Pass an explicit date (or --all-history) to override."
+        ),
     ),
     to_date: str = typer.Option(
         None, "--to", help="Latest race date to include (YYYY-MM-DD)."
+    ),
+    all_history: bool = typer.Option(
+        False, "--all-history",
+        help="Train on every resulted race in the DB (bypasses the "
+             f"{_DEFAULT_TRAIN_WINDOW_DAYS}-day default).  Slower, rarely useful.",
     ),
     holdout: float = typer.Option(
         0.2, "--holdout", help="Fraction of latest dates held out for eval."
@@ -634,15 +651,24 @@ def train(
     settings = get_settings()
     logging.basicConfig(level=settings.log_level)
 
+    from datetime import timedelta
     from ganyan.db import get_session
     from ganyan.predictor.ml import train_ranker
 
-    start = datetime.strptime(from_date, "%Y-%m-%d").date() if from_date else None
+    if from_date is not None:
+        start = datetime.strptime(from_date, "%Y-%m-%d").date()
+    elif all_history:
+        start = None
+    else:
+        start = date.today() - timedelta(days=_DEFAULT_TRAIN_WINDOW_DAYS)
     end = datetime.strptime(to_date, "%Y-%m-%d").date() if to_date else None
 
     excluded = ["agf_edge", "agf_raw"] if exclude_agf else None
     if model_name is None:
         model_name = "lightgbm_value" if exclude_agf else "lightgbm_ranker"
+
+    window = f"from {start}" if start else "all history"
+    typer.echo(f"Training window: {window} → {end or 'today'}")
 
     session = get_session()
     try:
