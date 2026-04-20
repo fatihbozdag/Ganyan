@@ -26,7 +26,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
 from ganyan.db.models import Race, RaceEntry, RaceStatus
-from ganyan.predictor.features import extract_features
+from ganyan.predictor.features import compute_field_pace_density, extract_features
 from ganyan.scraper.parser import parse_eid_to_seconds, parse_last_six
 
 
@@ -47,6 +47,12 @@ FEATURE_COLUMNS: list[str] = [
     "agf_edge",
     "sire_win_rate",
     "sire_surface_rate",
+    # Domain-derived signals ("sürpriz at" features).
+    "surface_switch",
+    "distance_delta_m",
+    "equipment_changed",
+    "apprentice_jockey",
+    "field_pace_density",
     # Raw values — give the tree room to learn non-linear effects.
     "agf_raw",
     "hp_raw",
@@ -146,6 +152,11 @@ def build_training_frame(
         field_avg_weight = sum(weights) / len(weights) if weights else None
         field_avg_hp = sum(hps) / len(hps) if hps else None
         field_size = len(entries)
+        # Compute race-level pace density once per race from every
+        # horse's last_six string — same for every row in this race.
+        pace_density = compute_field_pace_density(
+            [parse_last_six(e.last_six) for e in entries]
+        )
 
         for entry in entries:
             # Skip obvious sentinel finish values (DNF / scratched rows that
@@ -176,6 +187,8 @@ def build_training_frame(
                 agf=float(entry.agf) if entry.agf is not None else None,
                 field_size=field_size,
                 sire=sire_name,
+                equipment=entry.equipment,
+                field_pace_density=pace_density,
             )
             rows.append({
                 GROUP_COLUMN: race.id,
@@ -195,6 +208,11 @@ def build_training_frame(
                 "agf_edge": features.agf_edge,
                 "sire_win_rate": features.sire_win_rate,
                 "sire_surface_rate": features.sire_surface_rate,
+                "surface_switch": features.surface_switch,
+                "distance_delta_m": features.distance_delta_m,
+                "equipment_changed": features.equipment_changed,
+                "apprentice_jockey": features.apprentice_jockey,
+                "field_pace_density": features.field_pace_density,
                 # Raw
                 "agf_raw": float(entry.agf) if entry.agf is not None else np.nan,
                 "hp_raw": float(entry.hp) if entry.hp is not None else np.nan,
@@ -250,6 +268,9 @@ def build_race_frame(session: Session, race_id: int) -> pd.DataFrame:
     field_avg_weight = sum(weights) / len(weights) if weights else None
     field_avg_hp = sum(hps) / len(hps) if hps else None
     field_size = len(entries)
+    pace_density = compute_field_pace_density(
+        [parse_last_six(e.last_six) for e in entries]
+    )
 
     rows: list[dict] = []
     for entry in entries:
@@ -274,6 +295,8 @@ def build_race_frame(session: Session, race_id: int) -> pd.DataFrame:
             agf=float(entry.agf) if entry.agf is not None else None,
             field_size=field_size,
             sire=sire_name,
+            equipment=entry.equipment,
+            field_pace_density=pace_density,
         )
         rows.append({
             "horse_id": entry.horse_id,
@@ -289,6 +312,11 @@ def build_race_frame(session: Session, race_id: int) -> pd.DataFrame:
             "agf_edge": features.agf_edge,
             "sire_win_rate": features.sire_win_rate,
             "sire_surface_rate": features.sire_surface_rate,
+            "surface_switch": features.surface_switch,
+            "distance_delta_m": features.distance_delta_m,
+            "equipment_changed": features.equipment_changed,
+            "apprentice_jockey": features.apprentice_jockey,
+            "field_pace_density": features.field_pace_density,
             "agf_raw": float(entry.agf) if entry.agf is not None else np.nan,
             "hp_raw": float(entry.hp) if entry.hp is not None else np.nan,
             "weight_kg_raw": (

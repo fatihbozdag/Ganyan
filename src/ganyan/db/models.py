@@ -132,6 +132,10 @@ class RaceEntry(Base):
     gny: Mapped[float | None] = mapped_column(Numeric(5, 2))
     agf: Mapped[float | None] = mapped_column(Numeric(5, 2))
     last_six: Mapped[str | None] = mapped_column(String(50))
+    # Equipment (takı) codes this horse wears in this race.  Space-
+    # separated 1-3-letter codes (KG, DB, SK, K, AG, Y, NL, ...).  First-
+    # time equipment is a classic upset signal in Turkish handicapping.
+    equipment: Mapped[str | None] = mapped_column(String(100))
     finish_position: Mapped[int | None] = mapped_column(SmallInteger)
     finish_time: Mapped[str | None] = mapped_column(String(20))
     performance_score: Mapped[float | None] = mapped_column(Numeric(5, 2))

@@ -227,6 +227,31 @@ def _extract_link_text(td: Tag | None) -> str:
     return td.get_text(strip=True)
 
 
+_EQUIPMENT_CODE_RE = re.compile(r"^([A-ZİÇĞÖŞÜ]{1,3})")
+
+
+def _extract_equipment(td: Tag | None) -> str | None:
+    """Pull equipment (takı) codes from ``<sup>`` tags on the name cell.
+
+    Each ``<sup>`` begins with 1-3 capital letters (KG, DB, SK, K, etc.)
+    followed by a long Turkish explanation (e.g. "Kapalı gözlük
+    takılacağını ifade eder.").  We keep only the codes and return a
+    space-separated string.  Returns ``None`` when the horse races
+    bare (no equipment).
+    """
+    if td is None:
+        return None
+    codes: list[str] = []
+    for sup in td.find_all("sup"):
+        text = sup.get_text(strip=True)
+        if not text:
+            continue
+        m = _EQUIPMENT_CODE_RE.match(text)
+        if m:
+            codes.append(m.group(1))
+    return " ".join(codes) if codes else None
+
+
 def _extract_at_id(td: Tag | None) -> int | None:
     """Pull the TJK AtId from the horse-name cell's <a href>.
 
@@ -1069,6 +1094,7 @@ class TJKClient:
             agf=_extract_agf(row.select_one(_P_AGF)),
             last_six=_extract_text(row.select_one(_P_LAST6)) or None,
             tjk_at_id=_extract_at_id(name_cell),
+            equipment=_extract_equipment(name_cell),
         )
 
     def _parse_result_row(self, row: Tag) -> RawHorseEntry | None:
@@ -1095,4 +1121,5 @@ class TJKClient:
             finish_position=_safe_int(_extract_text(row.select_one(_R_FINISH))),
             finish_time=_extract_text(row.select_one(_R_TIME)) or None,
             tjk_at_id=_extract_at_id(name_cell),
+            equipment=_extract_equipment(name_cell),
         )

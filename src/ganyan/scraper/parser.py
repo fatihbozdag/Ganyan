@@ -31,6 +31,11 @@ class RawHorseEntry:
     # /Query/ConnectedPage/AtKosuBilgileri?QueryParameter_AtId=X for
     # pedigree details.
     tjk_at_id: int | None = None
+    # Equipment (takı) codes attached to the horse for this race, e.g.
+    # "KG DB SK".  Space-separated string of 1-3-letter codes lifted
+    # from the <sup> tags on the horse name cell.  Domain handicappers
+    # consider first-time equipment a major form-change signal.
+    equipment: str | None = None
 
 
 @dataclass
@@ -86,6 +91,7 @@ class ParsedHorseEntry:
     finish_position: int | None = None
     finish_time: str | None = None
     tjk_at_id: int | None = None
+    equipment: str | None = None
 
 
 @dataclass
@@ -208,6 +214,7 @@ def parse_race_card(raw: RawRaceCard) -> ParsedRaceCard:
             finish_position=h.finish_position,
             finish_time=h.finish_time,
             tjk_at_id=h.tjk_at_id,
+            equipment=h.equipment,
         ))
 
     return ParsedRaceCard(

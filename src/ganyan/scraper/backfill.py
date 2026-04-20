@@ -70,7 +70,7 @@ def get_or_create_horse(session: Session, name: str, **kwargs) -> Horse:
 
 _ENTRY_REFRESH_FIELDS = (
     "gate_number", "jockey", "weight_kg", "hp", "kgs",
-    "s20", "eid", "gny", "agf", "last_six",
+    "s20", "eid", "gny", "agf", "last_six", "equipment",
 )
 
 
@@ -196,6 +196,7 @@ def store_race_card(session: Session, parsed: ParsedRaceCard) -> Race:
             gny=h.gny,
             agf=h.agf,
             last_six=h.last_six,
+            equipment=h.equipment,
             finish_position=h.finish_position,
             finish_time=h.finish_time,
         )
@@ -311,6 +312,7 @@ def store_historical_race(session: Session, parsed: ParsedRaceCard) -> Race:
             gny=h.gny,
             agf=h.agf,
             last_six=h.last_six,
+            equipment=h.equipment,
             finish_position=h.finish_position,
             finish_time=h.finish_time,
         )

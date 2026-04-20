@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import date as date_type
 
@@ -30,6 +31,14 @@ class HorseFeatures:
     agf_edge: float | None = None  # market (AGF) deviation from uniform
     sire_win_rate: float | None = None  # sire's offspring overall win rate
     sire_surface_rate: float | None = None  # sire's offspring rate on this surface
+    # Domain-derived signals that Turkish handicappers ("sürpriz at")
+    # look for — decorrelated from AGF because the public often ignores
+    # them.  All are 0/1 indicators except distance_delta_m.
+    surface_switch: float | None = None  # 1 if surface differs from last race
+    distance_delta_m: float | None = None  # current distance - last race distance
+    equipment_changed: float | None = None  # 1 if equipment differs from last
+    apprentice_jockey: float | None = None  # 1 if jockey name looks apprentice
+    field_pace_density: float | None = None  # fraction of field that's front-running type
     track_affinity: float | None = None  # retained for compatibility
 
 
@@ -298,6 +307,138 @@ def _smoothed_person_win_rate(
     return _bayesian_smoothed_rate(wins, runs)
 
 
+def compute_surface_switch(
+    session: Session,
+    horse_id: int | None,
+    current_surface: str | None,
+    before_date: date_type | None,
+) -> float | None:
+    """Return 1 if the horse's last resulted race was on a different
+    surface than the current race, 0 if same surface, ``None`` if we
+    have no prior race to compare to.
+    """
+    if horse_id is None or current_surface is None or before_date is None:
+        return None
+    prev = (
+        session.query(Race.surface)
+        .join(RaceEntry, RaceEntry.race_id == Race.id)
+        .filter(
+            RaceEntry.horse_id == horse_id,
+            Race.status == RaceStatus.resulted,
+            Race.date < before_date,
+            Race.surface.isnot(None),
+        )
+        .order_by(Race.date.desc())
+        .limit(1)
+        .scalar()
+    )
+    if prev is None:
+        return None
+    return 1.0 if prev != current_surface else 0.0
+
+
+def compute_distance_delta(
+    session: Session,
+    horse_id: int | None,
+    current_distance: int | None,
+    before_date: date_type | None,
+) -> float | None:
+    """Meters-change from this horse's last-raced distance.  Positive =
+    stepping up, negative = stepping down.  ``None`` when no history.
+    """
+    if horse_id is None or current_distance is None or before_date is None:
+        return None
+    prev = (
+        session.query(Race.distance_meters)
+        .join(RaceEntry, RaceEntry.race_id == Race.id)
+        .filter(
+            RaceEntry.horse_id == horse_id,
+            Race.status == RaceStatus.resulted,
+            Race.date < before_date,
+            Race.distance_meters.isnot(None),
+        )
+        .order_by(Race.date.desc())
+        .limit(1)
+        .scalar()
+    )
+    if prev is None:
+        return None
+    return float(current_distance - prev)
+
+
+def compute_equipment_changed(
+    session: Session,
+    horse_id: int | None,
+    current_equipment: str | None,
+    before_date: date_type | None,
+) -> float | None:
+    """1 if equipment differs from this horse's last race, 0 if same."""
+    if horse_id is None or before_date is None:
+        return None
+    prev = (
+        session.query(RaceEntry.equipment)
+        .join(Race, Race.id == RaceEntry.race_id)
+        .filter(
+            RaceEntry.horse_id == horse_id,
+            Race.status == RaceStatus.resulted,
+            Race.date < before_date,
+        )
+        .order_by(Race.date.desc())
+        .limit(1)
+        .scalar()
+    )
+    if prev is None:
+        return None
+    norm_prev = (prev or "").strip() or None
+    norm_curr = (current_equipment or "").strip() or None
+    return 1.0 if norm_prev != norm_curr else 0.0
+
+
+# Turkish apprentice jockeys typically appear with a trailing " A" or
+# asterisk suffix on TJK.  In our data the jockey name field shows the
+# name as a bare string (the apprentice tooltip is stripped during
+# parsing) — we match on heuristic patterns that still survive.
+_APPRENTICE_NAME_RE = re.compile(
+    r"(\bA\.|\bAPA\b|\bapr\b)", re.IGNORECASE,
+)
+
+
+def compute_apprentice_jockey(jockey: str | None) -> float | None:
+    """1 if jockey name looks like an apprentice; 0 otherwise.
+
+    Heuristic — our scrape already strips the explanatory <sup> so we
+    can only go on the surviving name string.  Low-precision feature
+    but cheap to compute.
+    """
+    if not jockey:
+        return None
+    return 1.0 if _APPRENTICE_NAME_RE.search(jockey) else 0.0
+
+
+def compute_field_pace_density(
+    last_six_by_horse: list[list[int | None] | None],
+) -> float | None:
+    """Estimate "how speed-laden is this race?".
+
+    For each horse with known last-six positions, we count how many
+    front-running finishes (1, 2, 3) they had in their last 6.  A horse
+    with >=3 top-3 finishes is treated as a likely front-runner.  The
+    returned value is ``front_runners / field_size`` — higher means a
+    speed-duel scenario, which classically favours closers.
+    """
+    if not last_six_by_horse:
+        return None
+    valid = [ls for ls in last_six_by_horse if ls]
+    if not valid:
+        return None
+    front_runners = 0
+    for ls in valid:
+        top3 = sum(1 for p in ls if p is not None and p <= 3)
+        if top3 >= 3:
+            front_runners += 1
+    return front_runners / len(valid)
+
+
 def _bayesian_smoothed_rate(wins: int, runs: int) -> float:
     """Apply a Beta(prior_mean·weight, (1-prior_mean)·weight) smoothing."""
     alpha = _WINRATE_PRIOR_MEAN * _WINRATE_PRIOR_WEIGHT
@@ -406,6 +547,8 @@ def extract_features(
     agf: float | None = None,
     field_size: int | None = None,
     sire: str | None = None,
+    equipment: str | None = None,
+    field_pace_density: float | None = None,
 ) -> HorseFeatures:
     features = HorseFeatures(
         speed_figure=compute_speed_figure(eid_seconds, distance_meters),
@@ -415,6 +558,8 @@ def extract_features(
         class_indicator=compute_class_indicator(hp, field_avg_hp),
         gate_bias=compute_gate_bias(gate_number, distance_meters, surface),
         agf_edge=compute_agf_edge(agf, field_size),
+        apprentice_jockey=compute_apprentice_jockey(jockey),
+        field_pace_density=field_pace_density,
     )
     if session is not None:
         features.jockey_win_rate = compute_jockey_win_rate(
@@ -435,4 +580,13 @@ def extract_features(
                 before_date=race_date,
             )
             features.track_affinity = features.surface_affinity
+            features.surface_switch = compute_surface_switch(
+                session, horse_id, surface, race_date,
+            )
+            features.distance_delta_m = compute_distance_delta(
+                session, horse_id, distance_meters, race_date,
+            )
+            features.equipment_changed = compute_equipment_changed(
+                session, horse_id, equipment, race_date,
+            )
     return features
