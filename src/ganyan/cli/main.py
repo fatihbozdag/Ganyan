@@ -984,3 +984,102 @@ def exotics_cmd(
             )
     finally:
         session.close()
+
+
+# ---------------------------------------------------------------------------
+# exotics-backtest — back-test exotic-pool ROI against actual payouts
+# ---------------------------------------------------------------------------
+
+
+@app.command("exotics-backtest")
+def exotics_backtest_cmd(
+    pool: str = typer.Option(
+        None, "--pool",
+        help="Pool to backtest.  If omitted, all of ganyan/ikili/sirali-ikili/uclu.",
+    ),
+    top_n: int = typer.Option(
+        None, "--top-n",
+        help="Combinations per race to bet.  If omitted, sweep [1, 3, 6, 10].",
+    ),
+    from_date: str = typer.Option(
+        None, "--from", help="Earliest race date (YYYY-MM-DD)."
+    ),
+    to_date: str = typer.Option(
+        None, "--to", help="Latest race date (YYYY-MM-DD)."
+    ),
+    model: str = typer.Option(
+        "bayesian", "--model",
+        help="Win-probability source: 'bayesian' (recommended) or 'ml'.",
+    ),
+    stake: float = typer.Option(
+        100.0, "--stake", help="Flat TL stake per ticket."
+    ),
+    json_output: bool = typer.Option(False, "--json", help="Output JSON."),
+) -> None:
+    """Back-test Harville-derived exotic-pool strategies vs real payouts."""
+    settings = get_settings()
+    logging.basicConfig(level=settings.log_level)
+
+    from ganyan.db import get_session
+    from ganyan.predictor.exotic_evaluate import (
+        _COMBO_FUNCS, evaluate_all_pools, evaluate_pool,
+    )
+
+    valid_pools = list(_COMBO_FUNCS.keys())
+    # normalise kebab-case
+    if pool is not None:
+        pool_norm = pool.replace("-", "_")
+        if pool_norm not in valid_pools:
+            typer.echo(
+                f"Unknown pool {pool!r}. Choose from {valid_pools}.", err=True,
+            )
+            raise typer.Exit(code=1)
+        pools = [pool_norm]
+    else:
+        pools = ["ganyan", "ikili", "sirali_ikili", "uclu"]
+
+    top_ns = [top_n] if top_n is not None else [1, 3, 6, 10]
+    start = datetime.strptime(from_date, "%Y-%m-%d").date() if from_date else None
+    end = datetime.strptime(to_date, "%Y-%m-%d").date() if to_date else None
+
+    def _factory(session):
+        return _build_predictor(session, model)
+
+    session = get_session()
+    try:
+        results = evaluate_all_pools(
+            session,
+            pools=pools,
+            top_ns=top_ns,
+            from_date=start,
+            to_date=end,
+            predictor_factory=_factory,
+            ticket_stake_tl=stake,
+        )
+    finally:
+        session.close()
+
+    if json_output:
+        import json
+        typer.echo(json.dumps([r.summary_row() for r in results], indent=2))
+        return
+
+    typer.echo("=== Exotic-pool backtest ===")
+    if start or end:
+        typer.echo(
+            f"Window: {start.isoformat() if start else '…'} → "
+            f"{end.isoformat() if end else 'today'}"
+        )
+    typer.echo(f"Model: {model}   Ticket stake: {stake:.0f} TL")
+    typer.echo("")
+    typer.echo(
+        f"{'Pool':<14} {'TopN':>5} {'Races':>6} {'Hits':>5} "
+        f"{'Hit%':>6} {'Stake':>10} {'Payout':>12} {'ROI':>8}"
+    )
+    typer.echo("-" * 78)
+    for r in results:
+        typer.echo(
+            f"{r.pool:<14} {r.top_n:>5} {r.races:>6} {r.hits:>5} "
+            f"{r.hit_rate:>5.1f}% {r.total_stake_tl:>10,.0f} "
+            f"{r.total_payout_tl:>12,.0f} {r.roi*100:>+7.1f}%"
+        )
