@@ -261,6 +261,48 @@ MIT — `LICENSE` dosyasına bakın.
 
 ---
 
+## 🔄 Sürüm Geçmişi
+
+Proje gerçek tarihlere göre belgelenmiştir. Eski Selenium-tabanlı
+prototip (2025) mevcut mimari için tamamen yeniden yazılmıştır.
+
+- **2026-04-21 — Picks ledger + halka açılma**
+  Strateji-bazlı `picks` tablosu ve gerçek-dünya grading'i
+  (`hit` / `payout_tl` / `net_tl`). `/picks` panosu, `/live` üzerinde
+  günlük rolling P&L, tek-yarış bahis öneri kartları.
+  `ganyan_top1` referans baseline olarak deftere eklendi. Kişisel veri
+  temizliği sonrası repo halka açıldı.
+
+- **2026-04-20 — Egzotik-havuz dönemi**
+  Harville joint probabilities (Üçlü / İkili / Sıralı İkili / Dörtlü);
+  TJK egzotik-havuz payout kazıyıcısı (`7'Lİ GANYAN` trap dahil);
+  `exotics-backtest` CLI; Üçlü Top-1 stratejisinde **+149% strict
+  out-of-sample ROI** keşfi. Her-zaman-online stack (APScheduler +
+  macOS launchd, 4 zamanlı iş), `/ops` sağlık panosu, sürpriz-at
+  domain özellikleri (ekipman değişikliği vb.).
+
+- **2026-04-19 — Audit-driven güçlendirme**
+  LightGBM LambdaRank modeli (AGF-farkında + AGF-kör varyant),
+  AGF özelliği ve 14-gün geçmiş veri backfill, paralel şehir
+  kazıma (5×), yarış saati (post time), soy crawler'ı
+  (`AtKosuBilgileri`), Son 800m pace özelliği.
+
+- **2026-04-05 — Tam refactor**
+  Selenium → `httpx` AJAX client; SQLite → PostgreSQL 16 + SQLAlchemy
+  2.0 + Alembic; eski script'ler → modüler `scraper/` + `predictor/` +
+  `web/` + `cli/` monorepo'su; Flask + HTMX (Bootstrap 5) arayüz;
+  Typer CLI; Bayesian tahmin motoru; `docker-compose` dev ortamı;
+  tahmin-değerlendirme pipeline'ı.
+
+- **2025-02-06 — Eski Selenium prototipi**
+  İlk çalışan versiyon: SQLite, Selenium + Safari WebDriver,
+  `requirements.txt`, manuel veri girişi. (Artık kullanımda değil.)
+
+- **2025-01-21 — İlk prototip**
+  Temel kazıyıcı + analiz araçları.
+
+---
+
 ⚠️ **Not:** Bu sistem sadece eğitim ve araştırma amaçlıdır.
 Kumar bağımlılık yapar. Yalnızca kaybetmeyi göze aldığınız tutarları
 riske atın.
