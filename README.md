@@ -151,8 +151,8 @@ Yaygın hatalar ve çözümleri:
 Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için `LICENSE` dosyasına bakınız.
 
 ## 📞 İletişim
-- 👨‍💻 GitHub: [@fatihbozdag](https://github.com/fatihbozdag)
-- 📧 Email: [fatihbozdag@example.com](mailto:fatihbozdag@example.com)
+Sorular, öneriler veya hata bildirimleri için lütfen
+[GitHub Issues](../../issues) üzerinden iletişime geçin.
 
 ## 🙏 Teşekkürler
 Bu projeye katkıda bulunan herkese teşekkürler.

@@ -15,7 +15,9 @@
     launchctl bootout gui/$(id -u)/com.ganyan.web
     rm ~/Library/LaunchAgents/com.ganyan.web.plist
 
-  Edit the two absolute paths below if you move the repo.
+  Before installing: replace /ABSOLUTE/PATH/TO/ganyan below with the
+  absolute path to your local checkout (e.g. /Users/you/code/ganyan).
+  launchd does not expand ~ or environment variables in WorkingDirectory.
 -->
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -24,7 +26,7 @@
     <string>com.ganyan.web</string>
 
     <key>WorkingDirectory</key>
-    <string>/Users/fatihbozdag/Downloads/Cursor-Projects/ganyan</string>
+    <string>/ABSOLUTE/PATH/TO/ganyan</string>
 
     <key>ProgramArguments</key>
     <array>

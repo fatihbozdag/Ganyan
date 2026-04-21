@@ -13,6 +13,9 @@
   Stop / uninstall:
     launchctl bootout gui/$(id -u)/com.ganyan.daemon
     rm ~/Library/LaunchAgents/com.ganyan.daemon.plist
+
+  Before installing: replace /ABSOLUTE/PATH/TO/ganyan below with the
+  absolute path to your local checkout.  launchd does not expand ~.
 -->
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -21,7 +24,7 @@
     <string>com.ganyan.daemon</string>
 
     <key>WorkingDirectory</key>
-    <string>/Users/fatihbozdag/Downloads/Cursor-Projects/ganyan</string>
+    <string>/ABSOLUTE/PATH/TO/ganyan</string>
 
     <key>ProgramArguments</key>
     <array>
