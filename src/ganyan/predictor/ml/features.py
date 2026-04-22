@@ -53,11 +53,14 @@ FEATURE_COLUMNS: list[str] = [
     "equipment_changed",
     "apprentice_jockey",
     "field_pace_density",
+    # Last-20-races score — engineered (vs field avg) and raw.
+    "s20_edge",
     # Raw values — give the tree room to learn non-linear effects.
     "agf_raw",
     "hp_raw",
     "weight_kg_raw",
     "kgs_raw",
+    "s20_raw",
     "gate_number",
     "age",
     # Race-level context.
@@ -149,8 +152,10 @@ def build_training_frame(
 
         weights = [float(e.weight_kg) for e in entries if e.weight_kg is not None]
         hps = [float(e.hp) for e in entries if e.hp is not None]
+        s20s = [float(e.s20) for e in entries if e.s20 is not None]
         field_avg_weight = sum(weights) / len(weights) if weights else None
         field_avg_hp = sum(hps) / len(hps) if hps else None
+        field_avg_s20 = sum(s20s) / len(s20s) if s20s else None
         field_size = len(entries)
         # Compute race-level pace density once per race from every
         # horse's last_six string — same for every row in this race.
@@ -177,6 +182,8 @@ def build_training_frame(
                 kgs=int(entry.kgs) if entry.kgs is not None else None,
                 hp=float(entry.hp) if entry.hp is not None else None,
                 field_avg_hp=field_avg_hp,
+                s20=float(entry.s20) if entry.s20 is not None else None,
+                field_avg_s20=field_avg_s20,
                 session=session,
                 jockey=entry.jockey,
                 trainer=trainer_name,
@@ -213,6 +220,7 @@ def build_training_frame(
                 "equipment_changed": features.equipment_changed,
                 "apprentice_jockey": features.apprentice_jockey,
                 "field_pace_density": features.field_pace_density,
+                "s20_edge": features.s20_edge,
                 # Raw
                 "agf_raw": float(entry.agf) if entry.agf is not None else np.nan,
                 "hp_raw": float(entry.hp) if entry.hp is not None else np.nan,
@@ -220,6 +228,7 @@ def build_training_frame(
                     float(entry.weight_kg) if entry.weight_kg is not None else np.nan
                 ),
                 "kgs_raw": int(entry.kgs) if entry.kgs is not None else np.nan,
+                "s20_raw": float(entry.s20) if entry.s20 is not None else np.nan,
                 "gate_number": (
                     int(entry.gate_number) if entry.gate_number is not None else np.nan
                 ),
@@ -265,8 +274,10 @@ def build_race_frame(session: Session, race_id: int) -> pd.DataFrame:
     entries = list(race.entries)
     weights = [float(e.weight_kg) for e in entries if e.weight_kg is not None]
     hps = [float(e.hp) for e in entries if e.hp is not None]
+    s20s = [float(e.s20) for e in entries if e.s20 is not None]
     field_avg_weight = sum(weights) / len(weights) if weights else None
     field_avg_hp = sum(hps) / len(hps) if hps else None
+    field_avg_s20 = sum(s20s) / len(s20s) if s20s else None
     field_size = len(entries)
     pace_density = compute_field_pace_density(
         [parse_last_six(e.last_six) for e in entries]
@@ -285,6 +296,8 @@ def build_race_frame(session: Session, race_id: int) -> pd.DataFrame:
             kgs=int(entry.kgs) if entry.kgs is not None else None,
             hp=float(entry.hp) if entry.hp is not None else None,
             field_avg_hp=field_avg_hp,
+            s20=float(entry.s20) if entry.s20 is not None else None,
+            field_avg_s20=field_avg_s20,
             session=session,
             jockey=entry.jockey,
             trainer=trainer_name,
@@ -317,12 +330,14 @@ def build_race_frame(session: Session, race_id: int) -> pd.DataFrame:
             "equipment_changed": features.equipment_changed,
             "apprentice_jockey": features.apprentice_jockey,
             "field_pace_density": features.field_pace_density,
+            "s20_edge": features.s20_edge,
             "agf_raw": float(entry.agf) if entry.agf is not None else np.nan,
             "hp_raw": float(entry.hp) if entry.hp is not None else np.nan,
             "weight_kg_raw": (
                 float(entry.weight_kg) if entry.weight_kg is not None else np.nan
             ),
             "kgs_raw": int(entry.kgs) if entry.kgs is not None else np.nan,
+            "s20_raw": float(entry.s20) if entry.s20 is not None else np.nan,
             "gate_number": (
                 int(entry.gate_number) if entry.gate_number is not None else np.nan
             ),
