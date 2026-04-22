@@ -7,8 +7,15 @@ olan bahis stratejilerini otomatik olarak öneri defterine işler.
 
 Üçlü Top-1 stratejisi için strict out-of-sample backtest (2026-01-16
 → 2026-04-19, 1.477 yarış): **+149.5% ROI**. Canlı defter (3.185
-işlemli pick): **+50.9% ROI**. Detaylar aşağıda — lütfen önce
-"Dürüst Uyarılar" kısmını okuyun.
+işlemli pick, v3-bayesian döneminden birikmiş): **+50.9% ROI**.
+Detaylar aşağıda — lütfen önce "Dürüst Uyarılar" kısmını okuyun.
+
+2026-04-22 itibarıyla **varsayılan tahminci LightGBM (ml)**; 3 aylık
+veri rescrape'i (EİD / son_6 / KGS / s20 alanları 7-8% → 94-99%
+kapsama) ve modeli yeniden eğitme sonrası 303 out-of-sample yarış
+üzerinde Üçlü Top-1 ROI **+452%**, Üçlü Kutu-6 ROI **+82%** ölçüldü.
+Bayesian model (hand-tuned, v5-s20) `--model bayesian` ile hâlâ
+erişilebilir referans olarak kalıyor.
 
 ---
 
@@ -28,9 +35,10 @@ TJK AJAX → scraper/  →  PostgreSQL
   paralel çeker; `parser.py` HTML'i dataclass'a dönüştürür; `backfill.py`
   idempotent ekleme ve geçmiş veri yükleme.
 - **predictor/** — `features.py` (speed figure, form cycle, weight delta,
-  rest fitness, class, AGF, soy, ekipman değişikliği vb.), `ranker.py`
-  (AGF-farkında LightGBM LambdaRank), `value_model.py` (AGF-kör varyant),
-  `bayesian.py` (referans Bayes modeli), `exotics.py` (Harville joint
+  rest fitness, class, AGF, **s20 edge**, soy, ekipman değişikliği vb.),
+  `ml/predictor.py` + `ml/trainer.py` (AGF-farkında LightGBM LambdaRank,
+  **varsayılan tahminci**; AGF-kör value varyantı için `--exclude-agf`),
+  `bayesian.py` (v5-s20 hand-tuned referans), `exotics.py` (Harville joint
   probabilities), `picks.py` (strateji-bazlı öneri defteri + grading).
 - **web/** + **cli/** — Flask dashboard (HTMX + Bootstrap 5, Türkçe
   arayüz) ve Typer CLI doğrudan predictor/scraper'ı tüketir.
@@ -39,14 +47,22 @@ TJK AJAX → scraper/  →  PostgreSQL
 
 | Kategori | Özellikler |
 |---|---|
-| Form | Son 20 yarış performansı (S20), KGS (koşmama gün sayısı, 14-28 optimal), form cycle (exponential decay) |
-| Hız | En iyi derece (EİD, saniyeye çevrilmiş), speed figure |
-| Fiziksel | Kilo farkı, ekipman değişikliği sinyalleri |
-| Pazar | AGF (Ağırlıklı Galibiyet Faktörü), Ganyan oranı, son 800m pace |
+| Form | **S20 edge** (son 20 yarış skoru, alan ortalamasına göre), son_6 finishes, KGS (14-28 optimal), form cycle |
+| Hız | En iyi derece (EİD → saniye), speed figure (m/s) |
+| Fiziksel | Kilo farkı, ekipman değişikliği, gate (start kapısı) |
+| Pazar | AGF (Ağırlıklı Galibiyet Faktörü) — ham, edge, ve normalize varyant |
 | Soy | Sire-level win rate ve zemin uyumu |
-| Koşu | HP (handikap), yarış sınıfı, pist tipi, GNY |
+| Koşu | HP (handikap), yarış sınıfı, pist tipi, GNY, field size |
 
-Her özellik için bkz. `src/ganyan/predictor/features.py`.
+Her özellik için bkz. `src/ganyan/predictor/features.py` ve
+`src/ganyan/predictor/ml/features.py` (LightGBM feature matrisi).
+
+> **Model sağlığı hakkında not.** 2026-04-22 post-hoc denetim: ham
+> veri kapsama hatası nedeniyle form/speed/rest özellikleri tarihsel
+> olarak 85-93% sabit değerdeydi. Rescrape sonrası kapsama 94-99%'a
+> çıktı; yeniden eğitilen LightGBM'in feature importance'ı **agf_edge
+> baskın, 11 özellik sıfır-üzeri gain** (önceden 4 özellik sıfır-üzeri,
+> geri kalan feature'lar NaN nedeniyle hiç split'e sokulmamıştı).
 
 ---
 
@@ -67,14 +83,17 @@ Her özellik için bkz. `src/ganyan/predictor/features.py`.
 
 ```bash
 uv run ganyan races --today                     # bugünün kartı
-uv run ganyan predict <race_id>                 # tek yarış
+uv run ganyan predict <race_id>                 # tek yarış (varsayılan: ml)
 uv run ganyan predict --today --json            # tüm günün tahminleri
+uv run ganyan predict --model bayesian <race>   # hand-tuned Bayesian fallback
 uv run ganyan uclu-picks --date 2026-04-21      # Üçlü Top-1 önerileri
 uv run ganyan picks --grade                     # bekleyen pick'leri grade et
 uv run ganyan picks --since 2026-04-01          # canlı ROI defteri
 uv run ganyan exotics-backtest --from 2026-01-16  --model ml  # backtest
 uv run ganyan scrape --today                    # bugünün programı
 uv run ganyan scrape --results                  # sonuçlar
+uv run ganyan scrape --backfill --rescrape \    # geçmiş veriyi (re-)scrape et
+    --from 2026-01-22 --to 2026-04-18
 uv run ganyan train                             # 90-günlük pencere ile retrain
 uv run ganyan crawl horses                      # incremental pedigree crawl
 uv run ganyan daemon                            # scheduler'ı foreground'da çalıştır
@@ -104,8 +123,12 @@ cp .env.example .env
 # Veritabanı şemasını oluştur
 uv run alembic upgrade head
 
-# İlk kazımayı yap (geriye dönük 14 gün önerilir)
-uv run ganyan scrape --backfill --from 2026-04-07
+# İlk kazımayı yap — eğitim verisi için geriye dönük 90 gün önerilir.
+# --rescrape, scrape_log'da tam-başarı işaretine rağmen yeniden
+# kazıma yapar; eski verileriniz özellikle son_6 / EİD / KGS / s20
+# alanlarında boş ise gereklidir.
+uv run ganyan scrape --backfill --rescrape \
+    --from 2026-01-22 --to 2026-04-18
 
 # Web app'i başlat
 uv run python -c "from ganyan.web.app import run; run()"
@@ -153,14 +176,26 @@ yazılır ve macOS bildirim balonu çıkar (`osascript`).
 
 ## 📈 Strateji Defteri (`/picks`)
 
-Her yarış için 4 strateji kaydedilir:
+Her yarış için 4 strateji kaydedilir; `ganyan picks` CLI çıktısı
+**Betting** (gerçek P&L) ve **Reference** (gösterim amaçlı, bahse
+girmiyoruz) olarak ikiye ayrılır.
 
-| Strateji | Stake | Ne | Backtest ROI | Canlı ROI |
+| Strateji | Stake | Ne | OOS ROI (ml-new, 2026-04-01→18, 303 yarış) | Sınıf |
 |---|---|---|---|---|
-| `ganyan_top1` | 100 TL | **Referans** — Ganyan Top-1 (modelin favorisi) | takeout'tan ~-20% | ~-20% |
-| `sirali_ikili_top1` | 100 TL | Harville Sıralı İkili Top-1 | marginal | -9.9% |
-| `uclu_top1` | 100 TL | Harville Üçlü Top-1 | **+149.5%** | **+50.9%** |
-| `uclu_box6` | 600 TL | Aynı top-3'ün 6 kutu permütasyonu | **+112.6%** | **+41.5%** |
+| `uclu_top1` | 100 TL | Harville Üçlü Top-1 | **+452.5%** | Betting |
+| `uclu_box6` | 600 TL | Aynı top-3'ün 6 kutu permütasyonu | **+82.3%** | Betting |
+| `sirali_ikili_top1` | 100 TL | Harville Sıralı İkili Top-1 | **+44.4%** | Betting |
+| `ganyan_top1` | 100 TL | Ganyan Top-1 (modelin favorisi) | -7.8% | Referans |
+
+Yukarıdaki ROI'lar **yeniden eğitilen LightGBM ranker (ml-new)**
+üzerinden out-of-sample 303 yarışlık bir pencerede ölçüldü. Aynı
+pencerede pre-retrain LightGBM +351 / +56 / +25 / -16 üretiyor,
+hand-tuned Bayesian v5-s20 +71 / -8 / -7 / -22 üretiyor — mevcut
+edge'in büyük kısmı **doğru tahminci seçimine bağlı**.
+
+Canlı defterdeki tarihsel rakamlar v3-bayesian dönemine ait (sirali
+tarihsel -11% ROI); sınıflandırma ileriye dönük — yeni picks
+ml-new ile üretiliyor.
 
 `ganyan_top1` referans olarak tutulur — uzun vadede kaybeder ama
 model sağlığını denetlemek ve hit-rate karşılaştırması için
@@ -220,8 +255,16 @@ Ana dosyalar:
 ```
 src/ganyan/
 ├── scraper/      # tjk_api.py, parser.py, backfill.py
-├── predictor/    # features.py, ranker.py, value_model.py,
-│                 # exotics.py, picks.py, bayesian.py
+├── predictor/
+│   ├── features.py         # engineered features (paylaşımlı)
+│   ├── bayesian.py         # v5-s20 hand-tuned referans
+│   ├── ml/
+│   │   ├── features.py     # LightGBM feature matrisi
+│   │   ├── trainer.py      # eğitim + temporal holdout
+│   │   └── predictor.py    # MLPredictor (varsayılan)
+│   ├── exotics.py          # Harville joint probabilities
+│   ├── picks.py            # strateji defteri + grading
+│   └── exotic_evaluate.py  # backtest
 ├── db/           # models.py (SQLAlchemy 2.0), session.py
 ├── web/          # app.py, routes.py, templates/
 ├── cli/          # main.py (Typer)
@@ -265,6 +308,22 @@ MIT — `LICENSE` dosyasına bakın.
 
 Proje gerçek tarihlere göre belgelenmiştir. Eski Selenium-tabanlı
 prototip (2025) mevcut mimari için tamamen yeniden yazılmıştır.
+
+- **2026-04-22 — Rescrape, Bayesian v5-s20, ml-new, default switch**
+  Post-hoc audit: Bayesian'ın form/speed/rest factor'leri 85-93%
+  oranında sabit değerdeydi — üst kaynak (EİD / son_6 / KGS / s20)
+  tarihsel veride sadece 7-8% kapsamaydı çünkü scraper 2026-04-19
+  civarında düzeltilmişti. 3 aylık `--backfill --rescrape`
+  (2026-01-22→2026-04-18) kapsamayı **94-99%**'a çıkardı. Bu veriyle:
+  (a) Bayesian v4-pruned (form/speed/rest zero-weight), (b) Bayesian
+  v5-s20 (s20 edge weight 0.10 ile eklendi, |r|=0.13), (c) LightGBM
+  yeniden eğitildi — eski model best_iter=1 ve 22 feature'dan 18'i
+  sıfır önemli; yenisi 11 önemli feature ile top-1 43.4% → 49.1%.
+  303 out-of-sample yarışlık head-to-head: ml-new **+452% uclu_top1**,
+  **+82% uclu_box6**, **+44% sirali_ikili** (sirali reference →
+  betting sınıfına taşındı). Varsayılan CLI / web tahmincisi ml'e
+  çevrildi; `--model bayesian` hâlâ fallback. `scrape --backfill`'in
+  `--to` / `--rescrape` flag'lerini yok sayma bug'ı düzeltildi.
 
 - **2026-04-21 — Picks ledger + halka açılma**
   Strateji-bazlı `picks` tablosu ve gerçek-dünya grading'i
