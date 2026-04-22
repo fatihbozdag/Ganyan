@@ -261,8 +261,8 @@ def predict(
     today: bool = typer.Option(False, "--today", help="Predict all today's races"),
     json_output: bool = typer.Option(False, "--json", help="Output JSON format"),
     model: str = typer.Option(
-        "bayesian", "--model",
-        help="Predictor to use: 'bayesian' (hand-tuned) or 'ml' (LightGBM ranker).",
+        "ml", "--model",
+        help="Predictor to use: 'ml' (LightGBM ranker, default) or 'bayesian' (hand-tuned fallback).",
     ),
 ) -> None:
     """Generate race predictions."""
@@ -1371,8 +1371,13 @@ def picks_cmd(
     # we actually stake.  Reference strategies are kept for "did we pick
     # the winner?" feedback but are known-losing structurally (takeout
     # eats the edge on public favourites) so they're shown separately.
-    BETTING = {"uclu_top1", "uclu_box6"}
-    REFERENCE = {"ganyan_top1", "sirali_ikili_top1"}
+    #
+    # sirali_ikili_top1 was previously classified as "reference" based on
+    # Bayesian-v3's track record (-11% ROI).  Post-rescrape head-to-head
+    # on 303 held-out races showed LightGBM lifts it to +44% ROI, so it
+    # is now a live betting strategy.
+    BETTING = {"uclu_top1", "uclu_box6", "sirali_ikili_top1"}
+    REFERENCE = {"ganyan_top1"}
 
     header = (
         f"{'Strategy':<22} {'N':>5} {'Hits':>5} {'Hit%':>6} "

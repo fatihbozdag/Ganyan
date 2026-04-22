@@ -125,13 +125,13 @@ def predict_race(race_id: int):
                 return jsonify({"error": "Race not found"}), 404
             abort(404)
 
-        from ganyan.predictor import BayesianPredictor
+        from ganyan.predictor.ml import MLPredictor
         from ganyan.predictor.exotics import (
             ikili_probabilities, sirali_ikili_probabilities,
             uclu_probabilities,
         )
 
-        predictor = BayesianPredictor(session)
+        predictor = MLPredictor(session)
         predictions = predictor.predict(race_id)
 
         recommendations = _build_bet_recommendations(
@@ -422,7 +422,7 @@ def scrape_today():
 
 @bp.route("/predict/today", methods=["POST"])
 def predict_today():
-    from ganyan.predictor import BayesianPredictor
+    from ganyan.predictor.ml import MLPredictor
 
     session = _get_session()
     try:
@@ -441,7 +441,7 @@ def predict_today():
                 "index.html", today_races=[], recent_races=[], message=msg,
             )
 
-        predictor = BayesianPredictor(session)
+        predictor = MLPredictor(session)
         count = 0
         for race in today_races:
             predictor.predict_and_save(race.id)
