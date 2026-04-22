@@ -12,26 +12,34 @@ from ganyan.scraper.parser import parse_eid_to_seconds, parse_last_six
 
 # Bump this when the feature set, weights, or formula change so the
 # predictions audit table can distinguish results across model variants.
-MODEL_VERSION = "bayesian-v3-agf"
+MODEL_VERSION = "bayesian-v4-pruned"
 
 
 # Feature weights for likelihood computation.
 #
-# AGF carries the most weight because it aggregates public information
-# (odds board, recent form, stable whispers) that individual features
-# can't recover from thin historical data.  The other features refine
-# the market signal rather than competing with it.
+# v4 (2026-04): post-hoc factor audit on 7073 graded bayesian-v3 rows
+# showed three features — ``form``, ``speed``, ``rest`` — were effectively
+# constant (>85% of entries sat at the default value) and had |Pearson|
+# correlation with winning of <0.03.  They were consuming 0.31 of the
+# total likelihood budget as pure noise.  v4 zero-weights them and
+# redistributes their budget to the three features that carry real
+# signal: AGF (|r|=0.35), class (|r|=0.18), jockey (|r|=0.12).  The
+# features are still computed and stored in ``contributing_factors`` so
+# downstream display/analysis code doesn't break; they just don't
+# affect the prediction any more.
 FEATURE_WEIGHTS: dict[str, float] = {
-    "agf": 0.40,
-    "speed": 0.14,
-    "form": 0.12,
-    "class": 0.09,
-    "jockey": 0.08,
+    "agf": 0.55,
+    "class": 0.17,
+    "jockey": 0.16,
     "weight": 0.05,
-    "rest": 0.05,
     "surface_affinity": 0.04,
     "trainer": 0.02,
     "gate": 0.01,
+    # Zero-weighted — kept for backwards compatibility of the factors
+    # dict.  See v4 rationale above.
+    "speed": 0.0,
+    "form": 0.0,
+    "rest": 0.0,
 }
 
 
@@ -284,12 +292,13 @@ class BayesianPredictor:
         uniform_prob = 100.0 / n if n > 0 else 0.0
 
         for i, (_entry, features) in enumerate(entry_features):
-            # Data completeness: fraction of non-None features.
+            # Data completeness: fraction of non-None features.  Only
+            # counts features that actually carry weight in v4 — the
+            # zero-weighted speed_figure / form_cycle / rest_fitness are
+            # excluded because their availability doesn't affect the
+            # prediction.
             feature_values = [
-                features.speed_figure,
-                features.form_cycle,
                 features.weight_delta,
-                features.rest_fitness,
                 features.class_indicator,
                 features.jockey_win_rate,
                 features.trainer_win_rate,

@@ -1356,16 +1356,64 @@ def picks_cmd(
         typer.echo("No graded picks yet.")
         return
 
-    typer.echo(
+    # Betting strategies have positive historical ROI and are the ones
+    # we actually stake.  Reference strategies are kept for "did we pick
+    # the winner?" feedback but are known-losing structurally (takeout
+    # eats the edge on public favourites) so they're shown separately.
+    BETTING = {"uclu_top1", "uclu_box6"}
+    REFERENCE = {"ganyan_top1", "sirali_ikili_top1"}
+
+    header = (
         f"{'Strategy':<22} {'N':>5} {'Hits':>5} {'Hit%':>6} "
         f"{'Stake':>11} {'Payout':>12} {'Net':>11} {'ROI':>8}"
     )
-    typer.echo("-" * 85)
-    for strat_key in sorted(summary):
-        row = summary[strat_key]
-        typer.echo(
+
+    def _fmt(strat_key: str, row: dict) -> str:
+        return (
             f"{strat_key:<22} {row['n']:>5} {row['hits']:>5} "
             f"{row['hit_rate_pct']:>5.1f}% "
             f"{row['stake_tl']:>11,.0f} {row['payout_tl']:>12,.0f} "
             f"{row['net_tl']:>11,.0f} {row['roi_pct']:>+7.1f}%"
         )
+
+    betting_keys = sorted(k for k in summary if k in BETTING)
+    reference_keys = sorted(k for k in summary if k in REFERENCE)
+    other_keys = sorted(k for k in summary if k not in BETTING and k not in REFERENCE)
+
+    if betting_keys:
+        typer.echo("=== Betting strategies (real P&L) ===")
+        typer.echo(header)
+        typer.echo("-" * 85)
+        agg_n = agg_hits = 0
+        agg_stake = agg_payout = agg_net = 0.0
+        for k in betting_keys:
+            row = summary[k]
+            typer.echo(_fmt(k, row))
+            agg_n += row["n"]; agg_hits += row["hits"]
+            agg_stake += row["stake_tl"]; agg_payout += row["payout_tl"]
+            agg_net += row["net_tl"]
+        if len(betting_keys) > 1:
+            agg_hr = 100 * agg_hits / agg_n if agg_n else 0
+            agg_roi = 100 * agg_net / agg_stake if agg_stake else 0
+            typer.echo(_fmt("TOTAL (betting)", {
+                "n": agg_n, "hits": agg_hits, "hit_rate_pct": agg_hr,
+                "stake_tl": agg_stake, "payout_tl": agg_payout,
+                "net_tl": agg_net, "roi_pct": agg_roi,
+            }))
+
+    if reference_keys:
+        if betting_keys:
+            typer.echo("")
+        typer.echo("=== Reference strategies (display only — not staked) ===")
+        typer.echo(header)
+        typer.echo("-" * 85)
+        for k in reference_keys:
+            typer.echo(_fmt(k, summary[k]))
+
+    if other_keys:
+        typer.echo("")
+        typer.echo("=== Other ===")
+        typer.echo(header)
+        typer.echo("-" * 85)
+        for k in other_keys:
+            typer.echo(_fmt(k, summary[k]))
