@@ -40,6 +40,7 @@ class HorseFeatures:
     apprentice_jockey: float | None = None  # 1 if jockey name looks apprentice
     field_pace_density: float | None = None  # fraction of field that's front-running type
     track_affinity: float | None = None  # retained for compatibility
+    s20_edge: float | None = None  # last-20-races score, relative to field average
 
 
 def compute_agf_edge(
@@ -109,6 +110,21 @@ def compute_weight_delta(
     if horse_weight is None or field_avg_weight is None:
         return None
     return (field_avg_weight - horse_weight) / field_avg_weight
+
+
+def compute_s20_edge(
+    s20: float | None, field_avg_s20: float | None,
+) -> float | None:
+    """Relative last-20-races score vs field.
+
+    ``s20`` is the TJK-published "Son 20" score (roughly 0–30).  Returns
+    ``(s20 - field_avg) / field_avg`` — positive for above-field horses,
+    negative for below-field.  Same shape as ``compute_class_indicator``
+    so the downstream likelihood block can amplify it consistently.
+    """
+    if s20 is None or field_avg_s20 is None or field_avg_s20 <= 0:
+        return None
+    return (s20 - field_avg_s20) / field_avg_s20
 
 
 def compute_rest_fitness(kgs: int | None) -> float | None:
@@ -536,6 +552,8 @@ def extract_features(
     kgs: int | None = None,
     hp: float | None = None,
     field_avg_hp: float | None = None,
+    s20: float | None = None,
+    field_avg_s20: float | None = None,
     *,
     session: Session | None = None,
     jockey: str | None = None,
@@ -560,6 +578,7 @@ def extract_features(
         agf_edge=compute_agf_edge(agf, field_size),
         apprentice_jockey=compute_apprentice_jockey(jockey),
         field_pace_density=field_pace_density,
+        s20_edge=compute_s20_edge(s20, field_avg_s20),
     )
     if session is not None:
         features.jockey_win_rate = compute_jockey_win_rate(

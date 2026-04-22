@@ -12,7 +12,7 @@ from ganyan.scraper.parser import parse_eid_to_seconds, parse_last_six
 
 # Bump this when the feature set, weights, or formula change so the
 # predictions audit table can distinguish results across model variants.
-MODEL_VERSION = "bayesian-v4-pruned"
+MODEL_VERSION = "bayesian-v5-s20"
 
 
 # Feature weights for likelihood computation.
@@ -23,14 +23,21 @@ MODEL_VERSION = "bayesian-v4-pruned"
 # correlation with winning of <0.03.  They were consuming 0.31 of the
 # total likelihood budget as pure noise.  v4 zero-weights them and
 # redistributes their budget to the three features that carry real
-# signal: AGF (|r|=0.35), class (|r|=0.18), jockey (|r|=0.12).  The
-# features are still computed and stored in ``contributing_factors`` so
-# downstream display/analysis code doesn't break; they just don't
-# affect the prediction any more.
+# signal: AGF (|r|=0.35), class (|r|=0.18), jockey (|r|=0.12).
+#
+# v5 (2026-04, post-rescrape): after backfilling EID/last_six/KGS/s20
+# across 2026-01-22 → 2026-04-18, a re-audit on 13,300 finishers
+# confirmed form/speed/rest are still weak — |r|<0.03 once AGF is
+# partialled out — but surfaced ``s20`` (TJK last-20-races score) as a
+# previously-unused signal with |r|=0.13 overall and 0.075 independent
+# of AGF.  v5 adds ``s20`` at weight 0.10, funded from AGF (-0.05) and
+# class/jockey (-0.05 combined).  Zero-weighted factors from v4 remain
+# zero-weighted.
 FEATURE_WEIGHTS: dict[str, float] = {
-    "agf": 0.55,
-    "class": 0.17,
-    "jockey": 0.16,
+    "agf": 0.50,
+    "class": 0.13,
+    "jockey": 0.15,
+    "s20": 0.10,
     "weight": 0.05,
     "surface_affinity": 0.04,
     "trainer": 0.02,
@@ -102,8 +109,10 @@ class BayesianPredictor:
         # Compute field averages for relative features.
         weights = [float(e.weight_kg) for e in entries if e.weight_kg is not None]
         hps = [float(e.hp) for e in entries if e.hp is not None]
+        s20s = [float(e.s20) for e in entries if e.s20 is not None]
         field_avg_weight = sum(weights) / len(weights) if weights else None
         field_avg_hp = sum(hps) / len(hps) if hps else None
+        field_avg_s20 = sum(s20s) / len(s20s) if s20s else None
 
         distance = race.distance_meters
 
@@ -124,6 +133,8 @@ class BayesianPredictor:
                 kgs=int(entry.kgs) if entry.kgs is not None else None,
                 hp=float(entry.hp) if entry.hp is not None else None,
                 field_avg_hp=field_avg_hp,
+                s20=float(entry.s20) if entry.s20 is not None else None,
+                field_avg_s20=field_avg_s20,
                 session=self.session,
                 jockey=entry.jockey,
                 trainer=trainer_name,
@@ -271,6 +282,16 @@ class BayesianPredictor:
         else:
             factors["agf"] = 0.0
 
+        # S20 edge: last-20-races score deviation from field average.
+        # Same amplification as class_indicator (x3) since both are
+        # relative deltas in the ~±20% range.
+        if features.s20_edge is not None:
+            impact = features.s20_edge * 3.0
+            factors["s20"] = impact
+            weighted_sum += FEATURE_WEIGHTS["s20"] * impact
+        else:
+            factors["s20"] = 0.0
+
         # Convert to positive likelihood using softmax-style exp.
         likelihood = math.exp(weighted_sum)
 
@@ -305,6 +326,7 @@ class BayesianPredictor:
                 features.gate_bias,
                 features.surface_affinity,
                 features.agf_edge,
+                features.s20_edge,
             ]
             available = sum(1 for v in feature_values if v is not None)
             completeness = available / len(feature_values)

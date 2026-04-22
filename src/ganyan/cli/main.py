@@ -72,7 +72,10 @@ def scrape(
             typer.echo("Error: --from is required with --backfill", err=True)
             raise typer.Exit(code=1)
         start = datetime.strptime(from_date, "%Y-%m-%d").date()
-        asyncio.run(_run_backfill(settings, start))
+        end = (
+            datetime.strptime(to_date, "%Y-%m-%d").date() if to_date else None
+        )
+        asyncio.run(_run_backfill(settings, start, end, rescrape=rescrape))
     elif history:
         if from_date is None:
             typer.echo("Error: --from is required with --history", err=True)
@@ -161,7 +164,13 @@ async def _scrape_results(settings) -> None:
         session.close()
 
 
-async def _run_backfill(settings, from_date: date) -> None:
+async def _run_backfill(
+    settings,
+    from_date: date,
+    to_date: date | None = None,
+    *,
+    rescrape: bool = False,
+) -> None:
     """Run the BackfillManager for historical data."""
     from ganyan.db import get_session
     from ganyan.scraper import TJKClient
@@ -173,7 +182,9 @@ async def _run_backfill(settings, from_date: date) -> None:
             base_url=settings.tjk_base_url, delay=settings.scrape_delay
         ) as client:
             manager = BackfillManager(session, client)
-            await manager.backfill(from_date=from_date)
+            await manager.backfill(
+                from_date=from_date, to_date=to_date, rescrape=rescrape,
+            )
             typer.echo("Backfill complete.")
     except Exception as exc:
         session.rollback()

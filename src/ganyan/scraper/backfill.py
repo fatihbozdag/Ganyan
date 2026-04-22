@@ -467,6 +467,8 @@ class BackfillManager:
         self,
         from_date: date,
         to_date: date | None = None,
+        *,
+        rescrape: bool = False,
     ) -> None:
         """Scrape race cards for a date range, newest first.
 
@@ -476,11 +478,15 @@ class BackfillManager:
             Earliest date to scrape (inclusive).
         to_date:
             Latest date to scrape (inclusive). Defaults to today.
+        rescrape:
+            If ``True``, re-scrape even dates already marked complete in
+            :class:`ScrapeLog`.  If ``False`` (default), skip any date
+            with an ``ALL`` success marker.
         """
         if to_date is None:
             to_date = date.today()
 
-        already_scraped = get_scraped_dates(self.session)
+        already_scraped = set() if rescrape else get_scraped_dates(self.session)
 
         # Build list of dates in reverse chronological order
         current = to_date
