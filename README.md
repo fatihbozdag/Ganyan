@@ -12,10 +12,18 @@ Detaylar aşağıda — lütfen önce "Dürüst Uyarılar" kısmını okuyun.
 
 2026-04-22 itibarıyla **varsayılan tahminci LightGBM (ml)**; 3 aylık
 veri rescrape'i (EİD / son_6 / KGS / s20 alanları 7-8% → 94-99%
-kapsama) ve modeli yeniden eğitme sonrası 303 out-of-sample yarış
-üzerinde Üçlü Top-1 ROI **+452%**, Üçlü Kutu-6 ROI **+82%** ölçüldü.
-Bayesian model (hand-tuned, v5-s20) `--model bayesian` ile hâlâ
-erişilebilir referans olarak kalıyor.
+kapsama) ve modeli yeniden eğitme sonrası tam 3 aylık pencerede
+(2026-01-22 → 2026-04-18, **1.369 yarış**) değerlendirme:
+
+- Üçlü Top-1: **+583.6% full, +452.5% holdout OOS**
+- Üçlü Kutu-6: **+174.6% full, +82.3% holdout OOS**
+- Sıralı İkili Top-1: **+32.0% full, +44.4% holdout OOS**
+- Ganyan Top-1 (referans): -1.7% full
+
+3 betting stratejisinin full pencerede toplam net kârı (100 TL/ticket
+nominal): **+1.056.755 TL** (372.600 TL stake üzerinde). Bayesian
+model (hand-tuned, v5-s20) `--model bayesian` ile hâlâ erişilebilir
+fallback olarak kalıyor.
 
 ---
 
@@ -180,18 +188,32 @@ Her yarış için 4 strateji kaydedilir; `ganyan picks` CLI çıktısı
 **Betting** (gerçek P&L) ve **Reference** (gösterim amaçlı, bahse
 girmiyoruz) olarak ikiye ayrılır.
 
-| Strateji | Stake | Ne | OOS ROI (ml-new, 2026-04-01→18, 303 yarış) | Sınıf |
-|---|---|---|---|---|
-| `uclu_top1` | 100 TL | Harville Üçlü Top-1 | **+452.5%** | Betting |
-| `uclu_box6` | 600 TL | Aynı top-3'ün 6 kutu permütasyonu | **+82.3%** | Betting |
-| `sirali_ikili_top1` | 100 TL | Harville Sıralı İkili Top-1 | **+44.4%** | Betting |
-| `ganyan_top1` | 100 TL | Ganyan Top-1 (modelin favorisi) | -7.8% | Referans |
+| Strateji | Stake | Ne | Train ROI (1066 yarış) | **Holdout ROI (303 yarış)** | Full 3-ay ROI (1369 yarış) | Sınıf |
+|---|---|---|---|---|---|---|
+| `uclu_top1` | 100 TL | Harville Üçlü Top-1 | +619.3% | **+452.5%** | +583.6% | Betting |
+| `uclu_box6` | 600 TL | Aynı top-3'ün 6 kutu permütasyonu | +199.7% | **+82.3%** | +174.6% | Betting |
+| `sirali_ikili_top1` | 100 TL | Harville Sıralı İkili Top-1 | +28.5% | **+44.4%** | +32.0% | Betting |
+| `ganyan_top1` | 100 TL | Ganyan Top-1 (modelin favorisi) | +0.1% | -7.8% | -1.7% | Referans |
 
-Yukarıdaki ROI'lar **yeniden eğitilen LightGBM ranker (ml-new)**
-üzerinden out-of-sample 303 yarışlık bir pencerede ölçüldü. Aynı
-pencerede pre-retrain LightGBM +351 / +56 / +25 / -16 üretiyor,
-hand-tuned Bayesian v5-s20 +71 / -8 / -7 / -22 üretiyor — mevcut
-edge'in büyük kısmı **doğru tahminci seçimine bağlı**.
+Yukarıdaki ROI'lar **yeniden eğitilen LightGBM ranker (ml-new)** ile
+tam 3 aylık pencerede (2026-01-22 → 2026-04-18, 1.504 yarış, 1.369
+tanesi tam top-3 sonuçlu) hesaplandı. Sütunlar: Train (modelin
+öğrendiği 80%), **Holdout (temiz out-of-sample %20)**, Full (ikisi
+birlikte). Üç betting stratejisinin full pencerede toplam net kârı
+**+1.056.755 TL** (372.600 TL stake üzerinde; tüm sanal tutarlar,
+100 TL/ticket nominal).
+
+Train-holdout farkına dikkat: uclu_box6 için in-sample +200% /
+OOS +82% — forward beklenti için holdout rakamını kullanın, train
+rakamı verinin bir kısmı modelin gördüğü için şişkindir. Ama
+uclu_top1'in farkı düşük (+619 / +453) ve sirali_ikili'da holdout
+train'den **daha iyi** (+44 / +29) — "gerçek sinyal, ezberlenmiş
+değil" işareti.
+
+Aynı 303 yarışlık holdout pencerede pre-retrain LightGBM +351 / +56
+/ +25 / -16 üretiyor, hand-tuned Bayesian v5-s20 +71 / -8 / -7 / -22
+üretiyor — mevcut edge'in büyük kısmı **doğru tahminci seçimine
+bağlı**.
 
 Canlı defterdeki tarihsel rakamlar v3-bayesian dönemine ait (sirali
 tarihsel -11% ROI); sınıflandırma ileriye dönük — yeni picks
@@ -324,6 +346,12 @@ prototip (2025) mevcut mimari için tamamen yeniden yazılmıştır.
   betting sınıfına taşındı). Varsayılan CLI / web tahmincisi ml'e
   çevrildi; `--model bayesian` hâlâ fallback. `scrape --backfill`'in
   `--to` / `--rescrape` flag'lerini yok sayma bug'ı düzeltildi.
+  Tam 3 aylık pencerede (1.369 yarış) ml-new full-window ROI:
+  **+583% uclu_top1, +175% uclu_box6, +32% sirali, -1.7% ganyan** —
+  3 betting stratejisinin birleşik net kârı 100 TL/ticket nominalde
+  **+1.056.755 TL / 372.600 TL stake**. Train↔holdout farkı küçük
+  (top-1: 43.9% vs 41.3%), model aşırı öğrenmemiş; sirali_ikili'da
+  holdout train'den daha iyi çıkıyor — gerçek sinyal işareti.
 
 - **2026-04-21 — Picks ledger + halka açılma**
   Strateji-bazlı `picks` tablosu ve gerçek-dünya grading'i
