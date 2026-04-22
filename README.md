@@ -21,9 +21,12 @@ kapsama) ve modeli yeniden eğitme sonrası tam 3 aylık pencerede
 - Ganyan Top-1 (referans): -1.7% full
 
 3 betting stratejisinin full pencerede toplam net kârı (100 TL/ticket
-nominal): **+1.056.755 TL** (372.600 TL stake üzerinde). Bayesian
-model (hand-tuned, v5-s20) `--model bayesian` ile hâlâ erişilebilir
-fallback olarak kalıyor.
+nominal): **+1.056.755 TL kombine net, 571.600 TL kombine stake
+üzerinde — birleşik ROI +184.9%**. (uclu_top1 62.100 + uclu_box6
+372.600 + sirali 136.900 TL stake'lerin toplamı.) Bu "bir yarışa 100
+TL bahis" değil — 3 ay boyunca her uygun yarışta her stratejiye 100
+TL/ticket koyarsanız toplam kümülatif sonuç. Bayesian model (v5-s20)
+`--model bayesian` ile hâlâ erişilebilir fallback olarak kalıyor.
 
 ---
 
@@ -199,9 +202,21 @@ Yukarıdaki ROI'lar **yeniden eğitilen LightGBM ranker (ml-new)** ile
 tam 3 aylık pencerede (2026-01-22 → 2026-04-18, 1.504 yarış, 1.369
 tanesi tam top-3 sonuçlu) hesaplandı. Sütunlar: Train (modelin
 öğrendiği 80%), **Holdout (temiz out-of-sample %20)**, Full (ikisi
-birlikte). Üç betting stratejisinin full pencerede toplam net kârı
-**+1.056.755 TL** (372.600 TL stake üzerinde; tüm sanal tutarlar,
-100 TL/ticket nominal).
+birlikte). Üç betting stratejisi aynı anda çalıştırıldığında full
+pencerede kümülatif P&L (100 TL/ticket nominal):
+
+| | Stake | Payout | Net | Birleşik ROI |
+|---|---|---|---|---|
+| uclu_top1 | 62.100 | 424.510 | +362.410 | |
+| uclu_box6 | 372.600 | 1.023.140 | +650.540 | |
+| sirali_ikili | 136.900 | 180.705 | +43.805 | |
+| **Toplam** | **571.600** | **1.628.355** | **+1.056.755** | **+184.9%** |
+
+Not: Bu "100 TL = 285 TL geri dönüş" değil. uclu_top1 tek bilet
+100 TL, %6.1 oranında kazanır; kazanırsanız ortalama ≈5.000 TL
+ödeme, %94 oranında 100 TL'yi kaybedersiniz. Yukarıdaki +584% ROI
+**çok sayıda bahisten sonra** ortalama geri dönüştür. Varyans sert:
+18 yarışlık bir kartta uclu_top1'den sıfır kazanma ihtimali ~%40.
 
 Train-holdout farkına dikkat: uclu_box6 için in-sample +200% /
 OOS +82% — forward beklenti için holdout rakamını kullanın, train
