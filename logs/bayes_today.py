@@ -1,4 +1,5 @@
 """Run the Bayes posterior on today's races and compare to actual results."""
+import os
 import argparse
 from datetime import date
 from pathlib import Path
@@ -22,7 +23,7 @@ def main():
 
     idata, frame = load_posterior(base)
 
-    eng = create_engine("postgresql+psycopg://ganyan:ganyan@localhost:5432/ganyan")
+    eng = create_engine(os.environ.get('DATABASE_URL', "sqlite:///data/ganyan.db"))
     with Session(eng) as s:
         from ganyan.predictor.speed_figures import (
             build_horse_speed_history, compute_track_variants, horse_speed_score,

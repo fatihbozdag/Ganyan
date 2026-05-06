@@ -1,4 +1,5 @@
 """Holdout eval: Bayes posterior vs LightGBM ranker."""
+import os
 import argparse
 from datetime import date
 from pathlib import Path
@@ -33,7 +34,7 @@ def main():
         f"track_dist={len(frame.track_dist_index)}"
     )
 
-    eng = create_engine("postgresql+psycopg://ganyan:ganyan@localhost:5432/ganyan")
+    eng = create_engine(os.environ.get('DATABASE_URL', "sqlite:///data/ganyan.db"))
     bayes_races = []
     lgbm_races = []
     n_skipped = 0

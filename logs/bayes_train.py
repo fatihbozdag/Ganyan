@@ -1,4 +1,5 @@
 """One-off Bayesian training script (not part of the package)."""
+import os
 import argparse
 import time
 from datetime import date
@@ -26,7 +27,7 @@ def main():
     print(f"window: {fd} → {td}, iters: {args.iters}, out: {out}")
 
     t0 = time.time()
-    eng = create_engine("postgresql+psycopg://ganyan:ganyan@localhost:5432/ganyan")
+    eng = create_engine(os.environ.get('DATABASE_URL', "sqlite:///data/ganyan.db"))
     with Session(eng) as s:
         train_full(s, fd, td, out, n_iter=args.iters)
     elapsed = time.time() - t0

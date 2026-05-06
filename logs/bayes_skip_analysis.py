@@ -2,6 +2,7 @@
 identify and skip the bets we shouldn't make? If yes, the kept-bet
 hit rate should rise sharply.
 """
+import os
 import argparse
 from datetime import date
 from pathlib import Path
@@ -27,7 +28,7 @@ def main():
     base = Path(args.posterior)
 
     idata, frame = load_posterior(base)
-    eng = create_engine("postgresql+psycopg://ganyan:ganyan@localhost:5432/ganyan")
+    eng = create_engine(os.environ.get('DATABASE_URL', "sqlite:///data/ganyan.db"))
 
     rows = []  # (mean_prob, ci_width, lo_5, hit, lgbm_top1_hit)
 
