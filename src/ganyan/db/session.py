@@ -6,7 +6,7 @@ from ganyan.config import get_settings
 
 def get_engine(database_url: str | None = None):
     url = database_url or get_settings().database_url
-    return create_engine(url)
+    return create_engine(url, echo=False)
 
 
 def get_session_factory(database_url: str | None = None) -> sessionmaker[Session]:

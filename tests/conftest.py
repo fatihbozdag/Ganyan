@@ -20,7 +20,7 @@ def _fast_tjk_retries(monkeypatch):
 @pytest.fixture
 def settings():
     return Settings(
-        database_url="postgresql+psycopg://ganyan:ganyan@localhost:5432/ganyan_test"
+        database_url="sqlite:///tmp/ganyan_test.db"
     )
 
 
