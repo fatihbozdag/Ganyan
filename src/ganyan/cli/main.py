@@ -422,7 +422,7 @@ def _predict_race(race_id: int, json_output: bool, model: str) -> None:
             typer.echo(f"No predictions for race {race_id}.")
             return
         session.commit()
-        _display_predictions(predictions, race_id, json_output)
+        _display_predictions(race_id, json_output)
     finally:
         session.close()
 
@@ -445,7 +445,7 @@ def _predict_today(json_output: bool, model: str) -> None:
         predictor = _build_predictor(session, model)
         for race in races:
             predictions = predictor.predict_and_save(race.id)
-            _display_predictions(predictions, race.id, json_output)
+            _display_predictions(race.id, json_output)
             typer.echo("")  # blank line separator
         # Refresh picks so /advice reflects the fresh predictions rather
         # than a stale morning snapshot.  Graded picks are preserved.
@@ -457,8 +457,22 @@ def _predict_today(json_output: bool, model: str) -> None:
         session.close()
 
 
-def _display_predictions(predictions, race_id: int, json_output: bool) -> None:
+def _display_predictions(race_id: int, json_output: bool) -> None:
     """Display predictions for a single race."""
+    from ganyan.db import get_session, ViewPrediction
+    session = get_session()
+
+    try:
+        _predictions = (
+            session.query(ViewPrediction)
+            .filter(ViewPrediction.race_id == race_id)
+        )
+        
+        info = _predictions.first()
+        predictions = _predictions.all()
+    finally:
+        session.close()
+        
     if json_output:
         import json
 
@@ -474,7 +488,9 @@ def _display_predictions(predictions, race_id: int, json_output: bool) -> None:
         ]
         typer.echo(json.dumps({"race_id": race_id, "predictions": data}, indent=2))
     else:
-        typer.echo(f"Race {race_id} predictions:")
+        typer.echo(f"{info.track_name} - #{info.race_number} ({info.race_date.strftime('%d.%m.%Y')} @ {info.race_time})")
+        typer.echo(f"{info.horse_type}, {info.race_type}")
+        typer.echo("")
         typer.echo(f"{'#':<4} {'Horse':<25} {'Prob %':<10} {'Conf':<8}")
         typer.echo("-" * 50)
         for i, p in enumerate(predictions, 1):

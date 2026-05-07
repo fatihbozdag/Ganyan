@@ -344,6 +344,36 @@ class Pick(Base):
     )
 
 
+class ViewPrediction(Base):
+    """
+    DB View to simplify output of predictions
+    
+    Since this is a view, never try to write to this model, you will fail.
+    """
+
+    __tablename__ = "view_predictions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True) # Prediction ID
+    race_id: Mapped[int] = mapped_column(Integer)
+    race_date: Mapped[datetime] = mapped_column(DateTime) # Race Date
+    race_time: Mapped[str] = mapped_column(String)
+    race_type: Mapped[str] = mapped_column(String)
+    horse_type: Mapped[str] = mapped_column(String)
+    race_number: Mapped[int] = mapped_column(Integer) # Race Number, kaçıncı ayak
+    horse_id: Mapped[Horse] = mapped_column(ForeignKey("horses.id"))
+    horse_name: Mapped[str] = mapped_column(String)
+    jockey_name: Mapped[str] = mapped_column(String)
+    horse_type: Mapped[str] = mapped_column(String)
+    gate_number: Mapped[int] = mapped_column(Integer)
+    track_name: Mapped[str]= mapped_column(String)
+    race_entry_id: Mapped[int] = mapped_column(ForeignKey("race_entries.id"))
+    model_version: Mapped[str] = mapped_column(String)
+    predicted_at: Mapped[datetime] = mapped_column(DateTime)
+    probability: Mapped[float] = mapped_column(Numeric)
+    confidence: Mapped[float | None] = mapped_column(Numeric)
+    factors: Mapped[dict | None] = mapped_column(JSON)
+                
+
 class Prediction(Base):
     """Audit history of predictions.
 
