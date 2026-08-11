@@ -209,12 +209,14 @@ def generate_picks_for_race(
         ))
 
     # plase_top1 — top-2 finish coverage on the most-likely-top-2 horse.
-    # Mirrors bet_recommendations.compute_bet_recommendations Plase line
-    # (top_k=2). Tracks the CLAUDE.md invariant 5 ("Tek+Plase is the
-    # default at high conviction"). Payout column not scraped yet, so
-    # graded picks carry hit but NULL payout/net — observability for hit
-    # rate now, ROI gated on a future plase_payout_tl scraper change.
-    if "plase_top1" not in existing and len(win_probs) >= 2:
+    # Field-size gate: TJK plase pool only runs with field ≥ 8 (pays
+    # 1st-2nd; ≥16 pays 1st-2nd-3rd). On 2026-05-11 audit, 24% of
+    # plase_top1 picks were in fields ≤ 7 where the pool can NEVER pay
+    # — those are -100% drag on the strategy. Skip them at source.
+    if (
+        "plase_top1" not in existing
+        and len(win_probs) >= 8
+    ):
         plase = plase_probabilities(win_probs, top_k=2)
         if plase:
             top = plase[0]
