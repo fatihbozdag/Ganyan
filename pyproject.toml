@@ -8,6 +8,7 @@ dependencies = [
     "alembic>=1.13",
     "psycopg[binary]>=3.1",
     "httpx>=0.27",
+    "truststore>=0.9",  # OS trust store for TJK's incomplete TLS chain (tjk_api.py)
     "beautifulsoup4>=4.12",
     "pydantic>=2.0",
     "pydantic-settings>=2.0",
@@ -30,6 +31,11 @@ dev = [
 bayes = [
     "pymc>=5.10",
     "arviz>=0.18,<1.0",
+]
+gui = [
+    "customtkinter>=5.2",
+    "matplotlib>=3.7",
+    "openpyxl>=3.1",
 ]
 
 [project.scripts]

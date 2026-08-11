@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
+import ssl
 from collections import defaultdict
 from datetime import date, datetime
 from typing import Awaitable, Callable, TypeVar
@@ -646,6 +647,17 @@ class TJKClient:
         # 5 is a compromise: ~5× speedup with no observed TJK rate-limit
         # responses at this level.  Drop to 1 if throttled.
         self.city_concurrency = max(1, city_concurrency)
+        # TJK serves an incomplete cert chain (intermediate
+        # "GeoTrust TLS RSA CA G1" not included). Browsers/curl cache
+        # intermediates from the system trust store; Python's bundled
+        # certifi store doesn't, so verification fails on macOS.
+        # truststore makes Python use the OS trust store, mirroring curl.
+        ssl_ctx: ssl.SSLContext
+        try:
+            import truststore
+            ssl_ctx = truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        except ImportError:
+            ssl_ctx = ssl.create_default_context()
         self._client = httpx.AsyncClient(
             base_url=self.base_url,
             headers={
@@ -657,6 +669,7 @@ class TJKClient:
             },
             follow_redirects=True,
             timeout=30.0,
+            verify=ssl_ctx,
         )
 
     async def _retry(
