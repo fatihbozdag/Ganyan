@@ -25,16 +25,15 @@
     <key>Label</key>
     <string>com.ganyan.web</string>
 
-    <key>WorkingDirectory</key>
-    <string>/ABSOLUTE/PATH/TO/ganyan</string>
-
+    <!-- No WorkingDirectory: launchd chdir-ing into a TCC-protected folder
+         (~/Downloads etc.) hangs the process pre-exec.  Use a wrapper script
+         OUTSIDE the protected folder that cd's into the repo itself — see
+         ~/.ganyan-daemons/web.sh.  The wrapped binary (uv) must also hold
+         Full Disk Access; upgrading uv invalidates the grant (2026-08-12). -->
     <key>ProgramArguments</key>
     <array>
-        <string>/opt/homebrew/bin/uv</string>
-        <string>run</string>
-        <string>python</string>
-        <string>-c</string>
-        <string>from ganyan.web.app import run; run()</string>
+        <string>/bin/bash</string>
+        <string>/ABSOLUTE/PATH/TO/.ganyan-daemons/web.sh</string>
     </array>
 
     <!-- Environment: leave scheduler + launch-refresh enabled (defaults). -->
