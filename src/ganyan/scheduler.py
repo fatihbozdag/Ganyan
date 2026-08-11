@@ -128,6 +128,54 @@ def _job_morning_card(settings: Settings) -> None:
         count, picks_created,
     )
 
+    # Multi-race 6'lı paper-trade coupon — per project_pivot_steps_2026_05_11.
+    # All single-race structures are negative-EV; multi-race exotics are
+    # the only remaining path with mathematical EV. Daily paper trade
+    # records what we WOULD have bet to validate Step 2's EV math.
+    # 6'lı pool = last 6 races by TJK convention (16/16 days verified
+    # 2026-05-11 across all tracks). Max 144 tickets per coupon = 144 TL
+    # nominal stake.
+    session = get_session()
+    multi_coupons = 0
+    try:
+        from sqlalchemy import func
+        from ganyan.predictor.multi_race_picks import (
+            generate_coupon, persist_coupon,
+        )
+        from ganyan.db.models import Track
+
+        track_max_race = (
+            session.query(Track.name, func.max(Race.race_number))
+            .join(Race, Race.track_id == Track.id)
+            .filter(Race.date == today)
+            .group_by(Track.name)
+            .all()
+        )
+        for track_name, max_race in track_max_race:
+            if max_race is None or max_race < 6:
+                continue
+            start_race = max_race - 5  # 6 legs ending at max_race
+            try:
+                draft = generate_coupon(
+                    session, today, track_name, start_race,
+                    pool_type="6li", max_tickets=144,
+                )
+                persist_coupon(
+                    session, today, track_name, start_race, draft,
+                    pool_type="6li",
+                )
+                session.commit()
+                multi_coupons += 1
+            except Exception:  # noqa: BLE001
+                logger.exception(
+                    "scheduler: multi-race coupon generation failed for "
+                    "%s R%d-R%d", track_name, start_race, max_race,
+                )
+                session.rollback()
+    finally:
+        session.close()
+    logger.info("scheduler: morning-card generated %d multi-race coupon(s)", multi_coupons)
+
 
 def _job_repredict_upcoming(settings: Settings) -> None:
     """Re-predict every still-upcoming race today using current AGF.
@@ -432,7 +480,7 @@ def _job_monthly_retrain(settings: Settings) -> None:
 
 
 def _add_jobs(scheduler, settings: Settings) -> None:
-    """Register the four jobs with the given scheduler."""
+    """Register the scheduled jobs with the given scheduler."""
     scheduler.add_job(
         _job_morning_card,
         CronTrigger(hour=8, minute=30, timezone=_TZ),
@@ -522,15 +570,20 @@ def _add_jobs(scheduler, settings: Settings) -> None:
         replace_existing=True,
         max_instances=1,
     )
-    scheduler.add_job(
-        _job_monthly_retrain,
-        CronTrigger(day=1, hour=3, minute=30, timezone=_TZ),
-        args=[settings],
-        id="monthly_retrain",
-        name="Monthly model retrain",
-        replace_existing=True,
-        max_instances=1,
-    )
+    # DISARMED 2026-08-12 — CLAUDE.md invariant #7: this job bare-trained onto
+    # the LIVE model files with no OOS gate and degraded top-1 42.94% → 40.92%
+    # on 2026-06-01.  Re-enable only after it trains to a candidate name (NOT
+    # in models/ root — the ensemble globs *.meta.json there) and passes
+    # logs/discordance_oos_backtest.py.
+    # scheduler.add_job(
+    #     _job_monthly_retrain,
+    #     CronTrigger(day=1, hour=3, minute=30, timezone=_TZ),
+    #     args=[settings],
+    #     id="monthly_retrain",
+    #     name="Monthly model retrain",
+    #     replace_existing=True,
+    #     max_instances=1,
+    # )
 
 
 def build_scheduler(
