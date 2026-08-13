@@ -1,0 +1,26 @@
+{
+  "window": [
+    "2025-01-01",
+    "2026-01-30"
+  ],
+  "n": 6939,
+  "live": {
+    "name": "lightgbm_ranker",
+    "top1_hits": 2444,
+    "top1_pct": 35.22121343133016
+  },
+  "candidate": {
+    "name": "candidates/lightgbm_ranker_v2_20260813",
+    "top1_hits": 2304,
+    "top1_pct": 33.20363164721141
+  },
+  "agf_baseline": {
+    "n": 6730,
+    "top1_hits": 2322
+  },
+  "delta_pp": -2.0175817841187538,
+  "mcnemar_b": 267,
+  "mcnemar_c": 127,
+  "mcnemar_p": 1.470103436124482e-12,
+  "swap": false
+}
