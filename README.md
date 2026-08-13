@@ -114,6 +114,29 @@ Her özellik için bkz. `src/ganyan/predictor/features.py` ve
 > çıkarılamaz). Feature importance'ta `dam_surface_rate` #5,
 > `jockey_track_win_rate` #9 sırada (training holdout).
 
+> **Per-model OOS geçidi + ölçüm düzeltmesi (2026-08-14).**
+> `logs/discordance_oos_backtest.py` betiğinin `--model` bayrağını
+> sessizce YOK SAYDIĞI keşfedildi (argparse yok; her zaman canlı
+> ensemble'ı skorlar) — o yolla üretilmiş tekil-model "geçit" sayıları
+> aslında ensemble'ın kendisiyle karşılaştırmasıydı. Çalışan geçit
+> artık `logs/oos_model_gate.py`: aynı yarışlar üzerinde eşleştirilmiş
+> canlı-vs-aday karşılaştırma + exact McNemar + AGF-favori baseline.
+> İlk gerçek koşu (6.939 OOS yarış, 2025-01-01 → 2026-01-30):
+>
+> | | Top-1 |
+> |---|---|
+> | Canlı model (pedigree_v1, 42 feature) | **35.22%** |
+> | AGF favorisi (saf kalabalık) | 34.50% |
+> | Aday v2 (41 leak-fixed feature, 90 günlük pencere) | 33.20% |
+>
+> Canlı model kalabalığı +0.72pp geçiyor; 90 günlük pencereyle eğitilen
+> aday ise kalabalığın ALTINDA (−2.02pp vs canlı, McNemar p≈0) →
+> **swap yok**. Ders: 90 günlük eğitim penceresi Şubat–Mayıs
+> ağırlıklarıyla yarışamayacak kadar küçük/sezonsal. Temporal-leak
+> düzeltmeleri (tarih-kapsamlı scrape sentinelleri, per-date
+> `agf_reliability` cutoff'u, ölü `apprentice_jockey` kolonunun
+> çıkarılması) model swap'ı için değil pipeline dürüstlüğü için kalıcı.
+
 ---
 
 ## 📊 Panolar (Flask, :5003)
@@ -135,13 +158,17 @@ Her özellik için bkz. `src/ganyan/predictor/features.py` ve
 
 ```bash
 uv run ganyan races --today                     # bugünün kartı
-uv run ganyan predict <race_id>                 # tek yarış (varsayılan: ensemble)
+uv run ganyan predict <race_id>                 # tek yarış (varsayılan: ml single-head)
+uv run ganyan predict --today --model ensemble  # günün tamamı, 11-head ensemble ile
 uv run ganyan predict --today --json            # tüm günün tahminleri
+uv run ganyan predictions                       # daemon'ın kaydettiği ensemble tahminleri (read-only)
 uv run ganyan advice                            # bugünün Bayes-geçit + Kelly tavsiyeleri
 uv run ganyan advice --no-cohort-filter         # cohort filtresini kapat
 uv run ganyan advice --bayes-min-prob 0.30      # geçit eşiğini gevşet
 uv run ganyan morning                           # tek-atışta scrape + predict + picks
 uv run ganyan uclu-picks --date 2026-04-21      # Üçlü Top-1 önerileri
+uv run ganyan multi-picks                       # çoklu-yarış (6'lı) paper-trade kuponları
+uv run ganyan multi-grade                       # sonuçlanan çoklu-yarış kuponlarını grade et
 uv run ganyan picks --grade                     # bekleyen pick'leri grade et
 uv run ganyan picks --since 2026-04-01          # canlı ROI defteri
 uv run ganyan tune-thresholds                   # ledger üzerinde min-prob arar
@@ -150,7 +177,10 @@ uv run ganyan scrape --today                    # bugünün programı
 uv run ganyan scrape --results                  # sonuçlar
 uv run ganyan scrape --backfill --rescrape \    # geçmiş veriyi (re-)scrape et
     --from 2026-01-22 --to 2026-04-18
-uv run ganyan train                             # 90-günlük pencere ile retrain
+# DİKKAT: çıplak `ganyan train` CANLI modelin üzerine yazar. Aday isme
+# eğitin, OOS geçidini (≥ +1pp top-1) geçmeden swap etmeyin:
+uv run ganyan train --model-name candidates/lightgbm_ranker_aday
+uv run python logs/oos_model_gate.py --candidate candidates/lightgbm_ranker_aday
 uv run ganyan crawl horses                      # incremental pedigree crawl
 uv run ganyan daemon                            # scheduler'ı foreground'da çalıştır
 ```
@@ -220,13 +250,13 @@ Detaylar ve headless varyant için bkz. [`ops/README.md`](ops/README.md).
 
 | ID | Zaman | Ne yapar |
 |---|---|---|
-| `morning_card` | 08:30 | Günün programını kazır, her yarışa tahmin + pick üretir |
-| `agf_snapshot` | 11:30 sonrası | AGF değerleri yayınlanınca pick'leri yeniden üretir (sabah AGF=NULL) |
-| `re_predict_upcoming` | Her 30 dk | Henüz başlamamış yarışları yeniden tahmin eder; başlamış yarışların pick'i frozen |
-| `external_signals` | Sabah erken | Tipster + ceza + workout + pist + komiser plugin'lerini çalıştırır |
-| `results_poll` | Her 20 dk, 13:00–23:59 | Sonuçları çeker, bekleyen pick'leri grade eder |
+| `morning_card` | 08:30 | Günün programını kazır, tahmin + pick üretir, pist başına günlük 6'lı paper-trade kuponu yazar |
+| `external_signals` | 09:15 + 18:15 | Tipster + ceza + workout + pist + komiser plugin'lerini çalıştırır |
+| `agf_snapshot` | 11:00–22:30, :00/:30 | AGF zaman serisini kaydeder (late-drift feature'ının ham verisi) |
+| `repredict_upcoming` | 11:05–20:35, :05/:35 | Başlamamış yarışları güncel AGF ile yeniden tahmin eder; başlamış yarışların pick'i frozen |
+| `results_poll` | 13:00–23:40, her 20 dk | Sonuçları çeker, bekleyen pick'leri ve çoklu-yarış kuponlarını grade eder |
 | `pedigree_refresh` | Pazar 03:00 | Yeni atlar için soy verisi çeker |
-| `monthly_retrain` | Ayın 1'i 03:30 | Her iki modeli de 90-günlük pencereyle yeniden eğitir |
+| `monthly_retrain` | — | **DEVRE DIŞI (2026-08-12).** OOS geçidi olmadan canlı modelin üzerine yazıyordu; 2026-06-01'de fire edip top-1'i 42.9% → 40.9% düşürdü. Aday-isim + `logs/oos_model_gate.py` akışı kurulmadan yeniden açmayın |
 
 Hata yakalama: her job hata verirse / kaçırılırsa `job_runs` tablosuna
 yazılır ve macOS bildirim balonu çıkar (`osascript`).
@@ -330,7 +360,7 @@ açılmamış demektir.
 
 ```bash
 uv sync --all-extras
-uv run pytest tests/ -v                          # 165+ test
+uv run pytest tests/ -v                          # 271 test
 uv run pytest tests/test_predictor/ -v           # sadece predictor
 uv run pytest -k test_exotics                    # isim eşleşmesi
 uv run alembic upgrade head                      # migration
@@ -403,6 +433,22 @@ MIT — `LICENSE` dosyasına bakın.
 
 Proje gerçek tarihlere göre belgelenmiştir. Eski Selenium-tabanlı
 prototip (2025) mevcut mimari için tamamen yeniden yazılmıştır.
+
+- **2026-08-12/14 — Stack canlandırma + ölçüm dürüstlüğü**
+  6 haftalık kesinti giderildi (launchd agent'ları disable olmuş;
+  uv'nin macOS TCC/Full-Disk-Access grant'i uv upgrade'iyle düşmüştü)
+  ve 45 günlük veri açığı kapatıldı: +825 tam-alan sonuçlu yarış,
+  eğitim havuzu 13.4K yarış. `monthly_retrain` DEVRE DIŞI — 2026-06-01'de
+  OOS geçidi olmadan canlı modelin üzerine yazıp top-1'i 42.9%→40.9%
+  düşürmüştü; canlı ağırlıklar geri yüklendi. Ölü hava-durumu head'i
+  (`lightgbm_ranker_wx_v1`, 5 all-NaN feature ile oy kullanıyordu)
+  karantinaya alındı → ensemble 11 head. TJK'nın eksik TLS zinciri
+  için `truststore` düzeltmesi (temiz clone artık macOS'ta kazıyabiliyor).
+  Üç temporal-leak düzeltmesi + çalışan per-model OOS geçidi
+  (`logs/oos_model_gate.py`; eski betiğin `--model`'i no-op'tu —
+  yukarıdaki not). İlk gerçek geçit koşusu: aday −2.02pp, swap yok.
+  `morning_card` artık pist başına günlük 6'lı paper-trade kuponu
+  üretiyor (`multi_race_picks` tablosu, `ganyan multi-grade` ile grade).
 
 - **2026-05-01 — Asimetrik trip-wire**
   Trip-wire OVER-confidence durumunda halt ETMİYOR — feature pipeline
