@@ -110,8 +110,11 @@ uv run pytest tests/test_predictor/test_bayesian.py::test_probabilities_sum_to_1
    # 1. Train under a non-production name
    uv run ganyan train --model-name lightgbm_ranker_test
 
-   # 2. OOS validate against the project's window bar (≥365d, ≥1500 races)
-   uv run python logs/discordance_oos_backtest.py --model lightgbm_ranker_test
+   # 2. OOS validate against the project's window bar (≥365d, ≥1500 races).
+   # Use the PER-MODEL gate. (discordance_oos_backtest.py IGNORES --model —
+   # it always scores the live ensemble; discovered 2026-08-13 when a
+   # candidate "gate" run returned bit-identical numbers to the live run.)
+   uv run python logs/oos_model_gate.py --candidate candidates/lightgbm_ranker_test
 
    # 3. ONLY swap if OOS top-1 lift ≥ +1pp vs current production
    mv models/lightgbm_ranker_test.txt models/lightgbm_ranker.txt
