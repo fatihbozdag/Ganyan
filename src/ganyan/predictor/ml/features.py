@@ -56,7 +56,9 @@ FEATURE_COLUMNS: list[str] = [
     "surface_switch",
     "distance_delta_m",
     "equipment_changed",
-    "apprentice_jockey",
+    # "apprentice_jockey" removed 2026-08-13: compute_apprentice_jockey
+    # hard-returns None (parser strips TJK's <sup> apprentice marker), so
+    # the column was a permanently all-NaN input in every head.
     "field_pace_density",
     # Last-20-races score — engineered (vs field avg) and raw.
     "s20_edge",
@@ -201,18 +203,14 @@ def build_training_frame(
     if race_type_prefix is not None:
         q = q.filter(Race.race_type.like(f"{race_type_prefix}%"))
 
-    # Precompute AGF reliability regime table once — one aggregate SQL
-    # instead of one query per race.  Leak-free snapshot: cutoff is the
-    # earliest training race so no race in the training set contributes
-    # to its own regime's historical hit rate.
     candidate_races = q.order_by(Race.date.asc(), Race.race_number.asc()).all()
-    if candidate_races:
-        earliest_date = min(r.date for r in candidate_races)
-        agf_reliability_table = precompute_agf_reliability_table(
-            session, before_date=earliest_date,
-        )
-    else:
-        agf_reliability_table = {}
+    # AGF-reliability regime tables, one per race DATE (cached), each
+    # with before_date = that date.  Mirrors the inference path exactly
+    # (build_race_frame uses before_date=race.date).  The old single
+    # snapshot at the window's earliest date was leak-free but
+    # systematically STALER than what the model sees at serve time — a
+    # train/serve distribution shift on a top-importance feature.
+    reliability_tables_by_date: dict = {}
 
     rows: list[dict] = []
     for race in candidate_races:
@@ -241,8 +239,14 @@ def build_training_frame(
         pace_density = compute_field_pace_density(
             [parse_last_six(e.last_six) for e in entries]
         )
+        reliability_table = reliability_tables_by_date.get(race.date)
+        if reliability_table is None:
+            reliability_table = precompute_agf_reliability_table(
+                session, before_date=race.date,
+            )
+            reliability_tables_by_date[race.date] = reliability_table
         agf_reliability = lookup_agf_reliability(
-            agf_reliability_table, race.race_type, field_size, race.surface,
+            reliability_table, race.race_type, field_size, race.surface,
         )
 
         for entry in entries:
@@ -338,7 +342,6 @@ def build_training_frame(
                 "surface_switch": features.surface_switch,
                 "distance_delta_m": features.distance_delta_m,
                 "equipment_changed": features.equipment_changed,
-                "apprentice_jockey": features.apprentice_jockey,
                 "field_pace_density": features.field_pace_density,
                 "s20_edge": features.s20_edge,
                 "agf_reliability": features.agf_reliability,
@@ -480,7 +483,6 @@ def build_race_frame(session: Session, race_id: int) -> pd.DataFrame:
             "surface_switch": features.surface_switch,
             "distance_delta_m": features.distance_delta_m,
             "equipment_changed": features.equipment_changed,
-            "apprentice_jockey": features.apprentice_jockey,
             "field_pace_density": features.field_pace_density,
             "s20_edge": features.s20_edge,
             "agf_reliability": features.agf_reliability,

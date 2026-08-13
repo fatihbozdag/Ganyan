@@ -832,14 +832,26 @@ def compute_steward_report_flag(
     )
     if found is not None:
         return 1.0
-    # Distinguish "no report" from "haven't scraped yet": if any
-    # tjk_steward_reports rows exist at all, we've scraped.
-    any_today = (
+    # Distinguish "no report" from "haven't scraped yet".  The existence
+    # check must be scoped to THIS race's date: an unscoped "any row
+    # ever" check flips every pre-plugin historical entry from None to
+    # 0.0 the moment the plugin first runs — a calendar-position leak
+    # sitting on both sides of the temporal holdout.
+    race_date = (
+        session.query(Race.date).filter(Race.id == race_id).scalar()
+    )
+    if race_date is None:
+        return None
+    any_same_day = (
         session.query(ExternalSignal.id)
-        .filter(ExternalSignal.source_name == "tjk_steward_reports")
+        .join(Race, ExternalSignal.race_id == Race.id)
+        .filter(
+            ExternalSignal.source_name == "tjk_steward_reports",
+            Race.date == race_date,
+        )
         .first()
     )
-    return 0.0 if any_today is not None else None
+    return 0.0 if any_same_day is not None else None
 
 
 def compute_workout_signals(
@@ -964,15 +976,30 @@ def compute_jockey_discipline_flag(
     if session.query(q.exists()).scalar():
         return 1.0
     # Distinguish "no signal at all" (None — pre-scrape) from "scraped
-    # but clean" (0).  Heuristic: if any tjk_discipline rows exist for
-    # any entry today, we've scraped — so this entry being absent
-    # means clean = 0.  Cheap because the index is selective.
-    any_today = (
+    # but clean" (0).  Scoped to THIS entry's race date: "any
+    # tjk_discipline row ever" flips every pre-plugin historical entry
+    # from None to 0.0 — a calendar-position leak.  A genuinely clean
+    # day (no jockeys flagged league-wide) now reads None rather than
+    # 0.0; LightGBM branches on missingness, so the honesty is cheap.
+    entry_race_date = (
+        session.query(Race.date)
+        .join(RaceEntry, RaceEntry.race_id == Race.id)
+        .filter(RaceEntry.id == race_entry_id)
+        .scalar()
+    )
+    if entry_race_date is None:
+        return None
+    any_same_day = (
         session.query(ExternalSignal.id)
-        .filter(ExternalSignal.source_name == "tjk_discipline")
+        .join(RaceEntry, ExternalSignal.race_entry_id == RaceEntry.id)
+        .join(Race, RaceEntry.race_id == Race.id)
+        .filter(
+            ExternalSignal.source_name == "tjk_discipline",
+            Race.date == entry_race_date,
+        )
         .limit(1)
     )
-    if session.query(any_today.exists()).scalar():
+    if session.query(any_same_day.exists()).scalar():
         return 0.0
     return None
 
