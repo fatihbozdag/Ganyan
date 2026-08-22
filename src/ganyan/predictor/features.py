@@ -80,6 +80,13 @@ class HorseFeatures:
     n_workouts_recent: float | None = None  # distinct workout dates in lookback window
     # 1 when a steward report exists for this race's track-day.
     steward_report_flag: float | None = None
+    # TJK Pist Bilgileri race-level weather readings.  Race-level (same
+    # for every entry in the race).  ``None`` when no reading captured.
+    humidity_pct: float | None = None
+    sky_bucket: float | None = None   # 0=clear … 4=rainy/overcast
+    wind_kph: float | None = None
+    temperature_c: float | None = None
+    is_wet: float | None = None  # 1 when humidity>=80 OR sky_bucket>=3
 
 
 def compute_agf_edge(
@@ -809,6 +816,92 @@ def lookup_agf_reliability(
     return table.get((race_type, bucket, surface))
 
 
+_SKY_BUCKET_MAP = {
+    "açık": 0,
+    "az bulutlu": 1,
+    "parçalı bulutlu": 2,
+    "çok bulutlu": 3,
+    "yağmurlu": 4,
+}
+
+
+def _sky_bucket_from_text(sky_text: str | None) -> int | None:
+    """Fallback ordinal from ``sky_text`` when the stored bucket is absent."""
+    if not sky_text:
+        return None
+    norm = sky_text.strip().lower()
+    # Longest-match first avoids "bulutlu" matching before "çok bulutlu".
+    for key, bucket in sorted(_SKY_BUCKET_MAP.items(), key=lambda x: -len(x[0])):
+        if key in norm:
+            return bucket
+    return None
+
+
+def compute_track_conditions(
+    session: Session,
+    track_name: str | None,
+    race_date: date_type | None,
+) -> tuple[float | None, float | None, float | None, float | None, float | None]:
+    """Latest TJK Pist Bilgileri reading for (track_name, race_date).
+
+    Returns (humidity_pct, sky_bucket, wind_kph, temperature_c, is_wet).
+    All five are float or None.  Picks the row with the latest
+    reading_time string for the given track+date pair.
+    """
+    from ganyan.db.models import ExternalSignal
+
+    _empty = (None, None, None, None, None)
+    if track_name is None or race_date is None:
+        return _empty
+
+    rows = (
+        session.query(ExternalSignal.payload)
+        .filter(
+            ExternalSignal.source_name == "tjk_track_conditions",
+            ExternalSignal.signal_type == "track_conditions",
+            ExternalSignal.payload["track_name"].as_string() == track_name,
+            ExternalSignal.payload["reading_date"].as_string() == race_date.isoformat(),
+        )
+        .all()
+    )
+    if not rows:
+        return _empty
+
+    best_payload = None
+    best_time = ""
+    for (payload,) in rows:
+        if not payload:
+            continue
+        t = payload.get("reading_time") or ""
+        if best_payload is None or t > best_time:
+            best_payload = payload
+            best_time = t
+
+    if best_payload is None:
+        return _empty
+
+    humidity = best_payload.get("humidity_pct")
+    sky_b = best_payload.get("sky_bucket")
+    if sky_b is None:
+        sky_b = _sky_bucket_from_text(best_payload.get("sky_text"))
+    wind = best_payload.get("wind_kph")
+    temp = best_payload.get("temperature_c")
+
+    humidity_f = float(humidity) if humidity is not None else None
+    sky_f = float(sky_b) if sky_b is not None else None
+    wind_f = float(wind) if wind is not None else None
+    temp_f = float(temp) if temp is not None else None
+
+    is_wet: float | None = None
+    if humidity_f is not None or sky_f is not None:
+        wet = (humidity_f is not None and humidity_f >= 80.0) or (
+            sky_f is not None and sky_f >= 3.0
+        )
+        is_wet = 1.0 if wet else 0.0
+
+    return humidity_f, sky_f, wind_f, temp_f, is_wet
+
+
 def compute_steward_report_flag(
     session: Session, race_id: int | None,
 ) -> float | None:
@@ -1248,6 +1341,12 @@ def extract_features(
     agf_reliability: float | None = None,
     race_entry_id: int | None = None,
     race_id_for_signals: int | None = None,
+    # Weather / track conditions — race-level, pre-fetched to avoid N+1.
+    wx_humidity_pct: float | None = None,
+    wx_sky_bucket: float | None = None,
+    wx_wind_kph: float | None = None,
+    wx_temperature_c: float | None = None,
+    wx_is_wet: float | None = None,
 ) -> HorseFeatures:
     features = HorseFeatures(
         speed_figure=compute_speed_figure(eid_seconds, distance_meters),
@@ -1261,6 +1360,11 @@ def extract_features(
         field_pace_density=field_pace_density,
         s20_edge=compute_s20_edge(s20, field_avg_s20),
         agf_reliability=agf_reliability,
+        humidity_pct=wx_humidity_pct,
+        sky_bucket=wx_sky_bucket,
+        wind_kph=wx_wind_kph,
+        temperature_c=wx_temperature_c,
+        is_wet=wx_is_wet,
     )
     if session is not None:
         features.late_agf_drift = compute_late_agf_drift(session, race_entry_id)

@@ -26,7 +26,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from ganyan.db.models import Race, RaceEntry, RaceStatus
 from ganyan.predictor.features import (
-    compute_field_pace_density, extract_features,
+    compute_field_pace_density, compute_track_conditions, extract_features,
     lookup_agf_reliability, precompute_agf_reliability_table,
 )
 from ganyan.scraper.parser import parse_eid_to_seconds, parse_last_six
@@ -113,6 +113,14 @@ FEATURE_COLUMNS: list[str] = [
     # value branch handle "not yet published / weird surface" rather
     # than bucketing it with Sentetik under a shared sentinel.
     "surface_is_kum",
+    # TJK Pist Bilgileri race-level weather readings.  NaN when no
+    # reading captured for this (track_name, race_date) pair — most
+    # older races and any track where Pist Bilgileri wasn't scraped.
+    "humidity_pct",
+    "sky_bucket",
+    "wind_kph",
+    "temperature_c",
+    "is_wet",
 ]
 
 TARGET_COLUMN = "rank_score"
@@ -248,6 +256,11 @@ def build_training_frame(
         agf_reliability = lookup_agf_reliability(
             reliability_table, race.race_type, field_size, race.surface,
         )
+        track_name = race.track.name if race.track else None
+        (
+            wx_humidity_pct, wx_sky_bucket, wx_wind_kph,
+            wx_temperature_c, wx_is_wet,
+        ) = compute_track_conditions(session, track_name, race.date)
 
         for entry in entries:
             # Skip obvious sentinel finish values (DNF / scratched rows that
@@ -288,6 +301,11 @@ def build_training_frame(
                 agf_reliability=agf_reliability,
                 race_entry_id=entry.id,
                 race_id_for_signals=race.id,
+                wx_humidity_pct=wx_humidity_pct,
+                wx_sky_bucket=wx_sky_bucket,
+                wx_wind_kph=wx_wind_kph,
+                wx_temperature_c=wx_temperature_c,
+                wx_is_wet=wx_is_wet,
             )
             # Finish-time target: this horse's actual recorded time in
             # seconds.  Same TJK string format as EID — minutes.seconds.
@@ -373,6 +391,21 @@ def build_training_frame(
                 ),
                 "field_size": field_size,
                 "surface_is_kum": _surface_encode(race.surface),
+                "humidity_pct": (
+                    features.humidity_pct if features.humidity_pct is not None else np.nan
+                ),
+                "sky_bucket": (
+                    features.sky_bucket if features.sky_bucket is not None else np.nan
+                ),
+                "wind_kph": (
+                    features.wind_kph if features.wind_kph is not None else np.nan
+                ),
+                "temperature_c": (
+                    features.temperature_c if features.temperature_c is not None else np.nan
+                ),
+                "is_wet": (
+                    features.is_wet if features.is_wet is not None else np.nan
+                ),
             })
 
     df = pd.DataFrame(rows)
@@ -428,6 +461,11 @@ def build_race_frame(session: Session, race_id: int) -> pd.DataFrame:
     agf_reliability = lookup_agf_reliability(
         agf_reliability_table, race.race_type, field_size, race.surface,
     )
+    track_name = race.track.name if race.track else None
+    (
+        wx_humidity_pct, wx_sky_bucket, wx_wind_kph,
+        wx_temperature_c, wx_is_wet,
+    ) = compute_track_conditions(session, track_name, race.date)
 
     rows: list[dict] = []
     for entry in entries:
@@ -462,6 +500,11 @@ def build_race_frame(session: Session, race_id: int) -> pd.DataFrame:
             agf_reliability=agf_reliability,
             race_entry_id=entry.id,
             race_id_for_signals=race.id,
+            wx_humidity_pct=wx_humidity_pct,
+            wx_sky_bucket=wx_sky_bucket,
+            wx_wind_kph=wx_wind_kph,
+            wx_temperature_c=wx_temperature_c,
+            wx_is_wet=wx_is_wet,
         )
         rows.append({
             "horse_id": entry.horse_id,
@@ -512,6 +555,21 @@ def build_race_frame(session: Session, race_id: int) -> pd.DataFrame:
             ),
             "field_size": field_size,
             "surface_is_kum": _surface_encode(race.surface),
+            "humidity_pct": (
+                features.humidity_pct if features.humidity_pct is not None else np.nan
+            ),
+            "sky_bucket": (
+                features.sky_bucket if features.sky_bucket is not None else np.nan
+            ),
+            "wind_kph": (
+                features.wind_kph if features.wind_kph is not None else np.nan
+            ),
+            "temperature_c": (
+                features.temperature_c if features.temperature_c is not None else np.nan
+            ),
+            "is_wet": (
+                features.is_wet if features.is_wet is not None else np.nan
+            ),
         })
 
     return pd.DataFrame(rows)
