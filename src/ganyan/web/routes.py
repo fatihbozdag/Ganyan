@@ -306,10 +306,6 @@ def predict_race(race_id: int):
 
         from ganyan.predictor.ml import MLPredictor
         from ganyan.predictor.ml.ensemble import EnsemblePredictor
-        from ganyan.predictor.exotics import (
-            ikili_probabilities, sirali_ikili_probabilities,
-            uclu_probabilities,
-        )
 
         predictor = MLPredictor(session)
         predictions = predictor.predict(race_id)
@@ -1848,7 +1844,7 @@ def multi_picks_page():
     """
     from datetime import timedelta
 
-    from ganyan.db.models import MultiRacePick, Track
+    from ganyan.db.models import MultiRacePool, MultiRacePick, Track
     from ganyan.predictor.multi_race_picks import generate_coupon
 
     target_qs = request.args.get("date")
@@ -1876,12 +1872,28 @@ def multi_picks_page():
         for track, race in tracks:
             races_per_track.setdefault(track.name, []).append(race)
 
-        # TJK's pool window varies per program — Adana 6'lı might be R4-R9
-        # while İzmir's is R1-R6. The bahisSonucCard parser doesn't yet
-        # capture the published window (NULL on existing rows), so until
-        # that lands we render every valid window and let the user pick
-        # the one matching TJK's published pool. For a 9-race day with
-        # 7'lı, that's 3 cards (R1-R7, R2-R8, R3-R9).
+        # Collect published race windows from multi_race_pools rows that
+        # have already been scraped for this date (start_race_no non-NULL).
+        # Key: (track_name, pool_type) → ordered list of (start, end) tuples.
+        # Falls back to every valid mathematical window when missing or NULL.
+        pub_rows = (
+            session.query(MultiRacePool, Track)
+            .join(Track, Track.id == MultiRacePool.track_id)
+            .filter(
+                MultiRacePool.date == target,
+                MultiRacePool.start_race_no.isnot(None),
+                MultiRacePool.end_race_no.isnot(None),
+            )
+            .order_by(Track.name, MultiRacePool.pool_type, MultiRacePool.pool_index)
+            .all()
+        )
+        published_windows: dict[tuple[str, str], list[tuple[int, int]]] = {}
+        for pool_row, track_row in pub_rows:
+            key = (track_row.name, pool_row.pool_type)
+            published_windows.setdefault(key, []).append(
+                (pool_row.start_race_no, pool_row.end_race_no),
+            )
+
         coupons: list[dict] = []
         skipped: list[dict] = []
         for track_name, race_list in races_per_track.items():
@@ -1906,9 +1918,19 @@ def multi_picks_page():
                 applicable.append(("7li", 7))
 
             for pool_type, leg_count in applicable:
-                n_windows = n - leg_count + 1
-                for start_race_no in range(1, n_windows + 1):
-                    end_race_no = start_race_no + leg_count - 1
+                pub_key = (track_name, pool_type)
+                if pub_key in published_windows:
+                    windows = published_windows[pub_key]
+                    window_source = "tjk"
+                else:
+                    n_fallback = n - leg_count + 1
+                    windows = [
+                        (s, s + leg_count - 1)
+                        for s in range(1, n_fallback + 1)
+                    ]
+                    window_source = "inferred"
+
+                for start_race_no, end_race_no in windows:
                     try:
                         draft = generate_coupon(
                             session, target, track_name, start_race_no,
@@ -1958,7 +1980,8 @@ def multi_picks_page():
                         "leg_count": leg_count,
                         "start_race_no": start_race_no,
                         "end_race_no": end_race_no,
-                        "n_windows": n_windows,
+                        "n_windows": len(windows),
+                        "window_source": window_source,
                         "legs": legs,
                         "total_tickets": draft.total_tickets,
                     })
@@ -2031,7 +2054,7 @@ def bet_picks_page():
     """
     from ganyan.predictor.bet_recommendations import compute_bet_recommendations
     from ganyan.predictor.ml.ensemble import EnsemblePredictor
-    from ganyan.db.models import RaceEntry, Track
+    from ganyan.db.models import RaceEntry
 
     target_qs = request.args.get("date")
     target = (

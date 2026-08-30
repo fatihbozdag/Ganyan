@@ -313,10 +313,16 @@ def _persist_multi_race_pools(
                 pool_index=entry["pool_index"],
                 winning_combo=entry.get("winning_combo"),
                 payout_tl=entry.get("payout_tl"),
+                start_race_no=entry.get("start_race_no"),
+                end_race_no=entry.get("end_race_no"),
             ))
         else:
             existing.winning_combo = entry.get("winning_combo")
             existing.payout_tl = entry.get("payout_tl")
+            if entry.get("start_race_no") is not None:
+                existing.start_race_no = entry["start_race_no"]
+            if entry.get("end_race_no") is not None:
+                existing.end_race_no = entry["end_race_no"]
 
 
 def store_historical_race(session: Session, parsed: ParsedRaceCard) -> Race:

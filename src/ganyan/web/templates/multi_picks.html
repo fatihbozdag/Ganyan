@@ -30,13 +30,15 @@
 </div>
 
 <div class="alert alert-info small mb-4">
-    <strong>Koşu penceresi seçimi:</strong> TJK her programda 6'lı/5'lı/7'lı
-    havuzunu <em>belirli</em> bir koşu aralığında oynatır
-    (ör. Adana 6'lı genelde R4-R9). Sistem henüz TJK'nın yayınladığı
-    pencereyi otomatik okuyamadığı için, bir programa uygun <em>tüm</em>
-    pencereleri ayrı ayrı kart olarak gösteriyoruz —
-    TJK'nın bahis kuponunda hangi koşu aralığı yazıyorsa, ona uyan
-    kartı seç.
+    <strong>Koşu penceresi:</strong> TJK her programda 6'lı/5'lı/7'lı
+    havuzunu <em>belirli</em> bir koşu aralığında oynatır.
+    <span class="badge bg-success text-dark">TJK yayını</span> etiketli
+    kartlar TJK sonuç sayfasından otomatik okunan pencereyi gösterir —
+    bunlar tek ve kesindir. Henüz sonuçlanmamış veya pencere verisi
+    olmayan programlar için
+    <span class="badge bg-light text-muted border">olası pencere</span>
+    etiketiyle tüm matematiksel olasılıklar listelenir; TJK kuponundaki
+    aralığa uyan kartı seç.
 </div>
 
 {% if not coupons %}
@@ -58,10 +60,10 @@
             <span class="badge bg-info text-dark ms-2 fs-6">
                 R{{ coupon.start_race_no }}–R{{ coupon.end_race_no }}
             </span>
-            {% if coupon.n_windows and coupon.n_windows > 1 %}
-            <small class="text-muted ms-2">
-                ({{ coupon.n_windows }} olası pencereden biri)
-            </small>
+            {% if coupon.window_source == "tjk" %}
+            <span class="badge bg-success text-dark ms-2">(TJK yayını)</span>
+            {% elif coupon.n_windows and coupon.n_windows > 1 %}
+            <small class="text-muted ms-2">(olası pencere)</small>
             {% endif %}
         </h5>
         <div>

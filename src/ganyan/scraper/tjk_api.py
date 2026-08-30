@@ -493,14 +493,57 @@ def _parse_exotic_payouts(block_text: str) -> dict[str, float | None]:
     return out
 
 
+# Matches "4. Koşu - 9. Koşu" (and KOŞU / ASCII-fallback "Kosu" variants).
+# ş, Ş, s, S are all accepted; separator is ASCII hyphen or Unicode en-dash.
+# Captures (start_no, end_no) as digit strings.
+_MULTI_POOL_WINDOW_RE = re.compile(
+    r'(\d{1,2})\.\s*[Kk][Oo][ŞşSs][Uu]\s*[-–]\s*(\d{1,2})\.\s*[Kk][Oo][ŞşSs][Uu]',
+)
+
+
+def _parse_multi_race_pool_window(
+    block_text: str,
+    near_pos: int,
+    search_radius: int = 200,
+) -> tuple[int | None, int | None]:
+    """Find the published race window for a multi-race pool match at near_pos.
+
+    Searches ±search_radius characters around near_pos for TJK race-range
+    markers like "N. Koşu - M. Koşu".  When multiple markers fall within
+    the search window (e.g. two 6'lı pools in the same block), returns the
+    one whose position in block_text is closest to near_pos, which correctly
+    attributes each window to its own pool label.
+    Returns (start, end) when 1 ≤ start < end ≤ 20; otherwise (None, None).
+    """
+    lo = max(0, near_pos - search_radius)
+    hi = min(len(block_text), near_pos + search_radius)
+    snippet = block_text[lo:hi]
+
+    best: tuple[int | None, int | None] = (None, None)
+    best_dist = float("inf")
+    for m in _MULTI_POOL_WINDOW_RE.finditer(snippet):
+        start, end = int(m.group(1)), int(m.group(2))
+        if not (1 <= start < end <= 20):
+            continue
+        marker_pos = lo + m.start()
+        dist = abs(marker_pos - near_pos)
+        if dist < best_dist:
+            best_dist = dist
+            best = (start, end)
+    return best
+
+
 def _parse_multi_race_pools(block_text: str) -> list[dict]:
     """Extract any 5'lı/6'lı/7'lı pool entries from a bahisSonucCard block.
 
-    Returns a list of dicts ``{pool_type, pool_index, winning_combo, payout_tl}``
-    in the order they appear. ``pool_index`` is 1 for the first occurrence
+    Returns a list of dicts with keys ``pool_type``, ``pool_index``,
+    ``winning_combo``, ``payout_tl``, ``start_race_no``, ``end_race_no``
+    in the order they appear.  ``pool_index`` is 1 for the first occurrence
     of a given pool_type in the block, 2 for the second, etc. — TJK
     occasionally runs two 6'lı pools on the same program and labels them
     "1. 6'LI" / "2. 6'LI", so we count occurrences positionally.
+    ``start_race_no`` and ``end_race_no`` are None when TJK does not
+    publish the race window in a parseable form on this card.
     """
     if not block_text:
         return []
@@ -509,11 +552,16 @@ def _parse_multi_race_pools(block_text: str) -> list[dict]:
         index = 0
         for m in re.finditer(pattern, block_text):
             index += 1
+            start_race_no, end_race_no = _parse_multi_race_pool_window(
+                block_text, m.start(),
+            )
             out.append({
                 "pool_type": pool_type,
                 "pool_index": index,
                 "winning_combo": m.group(1),
                 "payout_tl": _parse_payout_amount(m.group(2)),
+                "start_race_no": start_race_no,
+                "end_race_no": end_race_no,
             })
     return out
 
