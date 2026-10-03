@@ -929,6 +929,10 @@ def train(
              "objective: lightgbm_ranker / lightgbm_finish_time, with "
              "`_value` suffix when --exclude-agf.",
     ),
+    model_dir: str = typer.Option(
+        None, "--model-dir",
+        help="Candidate directory to write into (default models/candidates).",
+    ),
 ) -> None:
     """Fit a LightGBM model on resulted races and save to disk.
 
@@ -987,6 +991,7 @@ def train(
             num_boost_round=rounds,
             exclude_features=excluded,
             model_name=model_name,
+            model_dir=model_dir,
             objective=objective,
         )
     finally:
@@ -1010,6 +1015,19 @@ def train(
         if i >= 10:
             break
         typer.echo(f"  {feat:<22} {gain:>10.1f}")
+
+
+def _train_window(from_date, to_date, all_history):
+    """Resolve --from/--to/--all-history for the train subcommands."""
+    from datetime import timedelta
+    if from_date is not None:
+        start = date.fromisoformat(from_date)
+    elif all_history:
+        start = None
+    else:
+        start = race_today() - timedelta(days=_DEFAULT_TRAIN_WINDOW_DAYS)
+    end = date.fromisoformat(to_date) if to_date else None
+    return start, end
 
 
 # Race-type buckets a specialist will be trained on.  Prefixes so
@@ -1043,6 +1061,9 @@ def train_linear(
     model_name: str = typer.Option(
         None, "--model-name", help="Filename stem. Default reflects family.",
     ),
+    from_date: str = typer.Option(None, "--from", help="Earliest race date (YYYY-MM-DD); overrides --all-history."),
+    to_date: str = typer.Option(None, "--to", help="Latest race date (YYYY-MM-DD)."),
+    model_dir: str = typer.Option(None, "--model-dir", help="Candidate directory (default models/candidates)."),
 ) -> None:
     """Train a pure-numpy linear ranker (Conditional Logit or Plackett-
     Luce) as an additional ensemble head.  Saves a ``.npz`` + meta.json
@@ -1055,14 +1076,10 @@ def train_linear(
         )
     settings = get_settings()
     logging.basicConfig(level=settings.log_level)
-    from datetime import timedelta
     from ganyan.db import get_session
     from ganyan.predictor.ml.linear_ranker import train_conditional_logit
 
-    start = (
-        None if all_history
-        else race_today() - timedelta(days=_DEFAULT_TRAIN_WINDOW_DAYS)
-    )
+    start, end = _train_window(from_date, to_date, all_history)
     name = model_name or (
         "linear_conditional_logit" if family == "conditional_logit"
         else "linear_plackett_luce"
@@ -1073,6 +1090,8 @@ def train_linear(
         res = train_conditional_logit(
             session,
             from_date=start,
+            to_date=end,
+            model_dir=model_dir,
             epochs=epochs,
             lr=lr,
             plackett_luce=(family == "plackett_luce"),
@@ -1183,6 +1202,9 @@ def train_specialists(
         200, "--min-races",
         help="Skip buckets with fewer resulted races than this — too noisy.",
     ),
+    from_date: str = typer.Option(None, "--from", help="Earliest race date (YYYY-MM-DD); overrides --all-history."),
+    to_date: str = typer.Option(None, "--to", help="Latest race date (YYYY-MM-DD)."),
+    model_dir: str = typer.Option(None, "--model-dir", help="Candidate directory (default models/candidates)."),
 ) -> None:
     """Train one LightGBM model per race-type bucket.
 
@@ -1195,14 +1217,10 @@ def train_specialists(
     settings = get_settings()
     logging.basicConfig(level=settings.log_level)
 
-    from datetime import timedelta
     from ganyan.db import get_session
     from ganyan.predictor.ml import train_ranker
 
-    start = (
-        None if all_history
-        else race_today() - timedelta(days=_DEFAULT_TRAIN_WINDOW_DAYS)
-    )
+    start, end = _train_window(from_date, to_date, all_history)
 
     results: list[tuple[str, object, str | None]] = []
     for prefix, name in _SPECIALIST_BUCKETS:
@@ -1213,6 +1231,8 @@ def train_specialists(
                 result = train_ranker(
                     session,
                     from_date=start,
+                    to_date=end,
+                    model_dir=model_dir,
                     holdout_fraction=0.2,
                     num_boost_round=rounds,
                     model_name=name,
@@ -3101,18 +3121,60 @@ def model_gate_cmd(
     to_date: str = typer.Option(..., "--to"),
     output: str = typer.Option(..., "--output"),
     retrospective: bool = typer.Option(False, "--retrospective"),
+    live: str = typer.Option(
+        "lightgbm_ranker", "--live",
+        help="Baseline head: approved head name, or a path relative to models/. "
+             "Promotion only accepts gates run against the approved live head.",
+    ),
 ):
     """Evaluate exact candidate/live artifacts on an untouched time window."""
     from pathlib import Path
     from ganyan.predictor.ml.gate import evaluate_gate, load_named
     from ganyan.db import get_session
     with get_session() as session:
-        result = evaluate_gate(session, load_named("lightgbm_ranker"), load_named(candidate),
+        result = evaluate_gate(session, load_named(live), load_named(candidate),
             date.fromisoformat(from_date), date.fromisoformat(to_date),
             mode="retrospective" if retrospective else "forward")
     Path(output).parent.mkdir(parents=True, exist_ok=True)
     Path(output).write_text(json.dumps(result, indent=2) + "\n")
     typer.echo(f"Top-1 lift: {result['delta_pp']:+.2f}pp; promotion eligible: {result['swap']}")
+
+
+@app.command("ensemble-manifest")
+def ensemble_manifest_cmd(
+    root: str = typer.Option(..., "--root", help="Candidate directory holding trained heads."),
+):
+    """Write active.json for every head in a candidate directory."""
+    from ganyan.predictor.ml.gate import write_manifest
+    typer.echo(str(write_manifest(root)))
+
+
+@app.command("ensemble-gate")
+def ensemble_gate_cmd(
+    candidate_root: str = typer.Option(..., "--candidate-root", help="Directory with active.json (see ensemble-manifest)."),
+    from_date: str = typer.Option(..., "--from"),
+    to_date: str = typer.Option(..., "--to"),
+    output: str = typer.Option(..., "--output"),
+    live_root: str = typer.Option(None, "--live-root", help="Baseline head set (default: approved production heads)."),
+    retrospective: bool = typer.Option(False, "--retrospective"),
+):
+    """Paired forward top-1 test of two whole ensembles (diagnostic; never promotes)."""
+    from pathlib import Path
+    from ganyan.db import get_session
+    from ganyan.predictor.ml.ensemble import load_all_models
+    from ganyan.predictor.ml.gate import evaluate_ensemble_gate
+    with get_session() as session:
+        result = evaluate_ensemble_gate(
+            session, load_all_models(live_root), load_all_models(candidate_root),
+            date.fromisoformat(from_date), date.fromisoformat(to_date),
+            mode="retrospective" if retrospective else "forward")
+    Path(output).parent.mkdir(parents=True, exist_ok=True)
+    Path(output).write_text(json.dumps(result, indent=2) + "\n")
+    typer.echo(
+        f"n={result['n']} live top-1 {result['live_top1_pct']:.2f}% vs candidate "
+        f"{result['candidate_top1_pct']:.2f}% ({result['delta_pp']:+.2f}pp, "
+        f"McNemar p={result['mcnemar_p']:.4g})"
+    )
 
 
 @app.command("model-promote")

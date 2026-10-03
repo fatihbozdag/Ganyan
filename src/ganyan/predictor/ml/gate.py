@@ -48,18 +48,77 @@ def load_named(name):
     return load_latest_model(model_dir=model_root() / path.parent, model_name=path.name)
 
 
-def evaluate_gate(session, live_model, candidate_model, start, end, *, mode="forward"):
-    if candidate_model.metadata.get("pipeline_sha256") != pipeline_digest():
+def _check_candidate(metadata):
+    if metadata.get("pipeline_sha256") != pipeline_digest():
         raise ValueError("Candidate was trained with a different or unrecorded feature pipeline")
-    if candidate_model.metadata.get("feature_schema") != 2:
+    if metadata.get("feature_schema") != 2:
         raise ValueError("Candidate must use corrected feature schema 2")
+
+
+def evaluate_gate(session, live_model, candidate_model, start, end, *, mode="forward"):
+    _check_candidate(candidate_model.metadata)
     for model in (live_model, candidate_model):
         validate_window(model.metadata, start, end, mode)
     live, candidate = MLPredictor(session, live_model), MLPredictor(session, candidate_model)
+    result = paired_top1(session, live.predict, candidate.predict, start, end, mode=mode)
+    result.update(live_artifact=live_model.artifact,
+                  candidate_artifact=candidate_model.artifact)
+    return result
+
+
+def evaluate_ensemble_gate(session, live_models, candidate_models, start, end, *, mode="forward"):
+    """Same paired forward test as :func:`evaluate_gate`, for whole head sets.
+
+    Diagnostic for ensembles: promotion still goes head-by-head through
+    ``model-promote``.
+    """
+    from ganyan.predictor.ml.ensemble import EnsemblePredictor
+
+    for model in candidate_models:
+        _check_candidate(model.metadata)
+    for model in (*live_models, *candidate_models):
+        validate_window(model.metadata, start, end, mode)
+    live = EnsemblePredictor(session, models=list(live_models))
+    candidate = EnsemblePredictor(session, models=list(candidate_models))
+    result = paired_top1(session, live.predict, candidate.predict, start, end, mode=mode)
+    result.update(
+        live_artifact={m.metadata["approved_head"]: m.artifact for m in live_models},
+        candidate_artifact={m.metadata["approved_head"]: m.artifact for m in candidate_models},
+        swap=False,
+    )
+    return result
+
+
+def write_manifest(root):
+    """Write ``active.json`` listing every head trained into ``root``.
+
+    Used to assemble a candidate ensemble for :func:`evaluate_ensemble_gate`;
+    refuses the production model directory.
+    """
+    from ganyan.predictor.ml.artifacts import candidate_directory, digest
+
+    root = candidate_directory(root)
+    heads = {}
+    for meta in sorted(root.glob("*.meta.json")):
+        name = meta.name[: -len(".meta.json")]
+        weights = [p for p in (root / f"{name}.txt", root / f"{name}.npz") if p.exists()]
+        if len(weights) != 1:
+            raise ValueError(f"Expected exactly one weights file for head {name}")
+        heads[name] = {"model": weights[0].name, "metadata": meta.name,
+                       "model_sha256": digest(weights[0]), "metadata_sha256": digest(meta)}
+    if not heads:
+        raise ValueError(f"No trained heads in {root}")
+    path = root / "active.json"
+    path.write_text(json.dumps({"version": 1, "heads": heads}, indent=2) + "\n")
+    return path
+
+
+def paired_top1(session, live_predict, candidate_predict, start, end, *, mode="forward"):
     races = (session.query(Race).filter(Race.status == RaceStatus.resulted,
              Race.date >= start, Race.date <= end).order_by(Race.date, Race.id).all())
     scored, excluded = [], []
     b = c = live_hits = candidate_hits = agf_hits = agf_n = 0
+    live_top3 = candidate_top3 = 0
     for race in races:
         entries = [e for e in race.entries if not e.scratched]
         winners = {e.horse_id for e in entries if e.finish_position == 1}
@@ -67,15 +126,17 @@ def evaluate_gate(session, live_model, candidate_model, start, end, *, mode="for
             excluded.append({"race_id": race.id, "reason": "incomplete result field"})
             continue
         # Prediction failures fail the gate, never silently select an easier cohort.
-        lp, cp = live.predict(race.id), candidate.predict(race.id)
+        lp, cp = live_predict(race.id), candidate_predict(race.id)
         expected = {e.horse_id for e in entries}
         if {p.horse_id for p in lp} != expected or {p.horse_id for p in cp} != expected:
             raise ValueError(f"Incomplete predictions for race {race.id}")
-        if any(not math.isfinite(p.probability) for p in [*lp, *cp]):
+        if any(not math.isfinite(_probability(p)) for p in [*lp, *cp]):
             raise ValueError("Non-finite probabilities")
         lh, ch = lp[0].horse_id in winners, cp[0].horse_id in winners
         live_hits += lh
         candidate_hits += ch
+        live_top3 += any(p.horse_id in winners for p in lp[:3])
+        candidate_top3 += any(p.horse_id in winners for p in cp[:3])
         b += lh and not ch
         c += ch and not lh
         market = [e for e in entries if e.agf is not None]
@@ -97,12 +158,17 @@ def evaluate_gate(session, live_model, candidate_model, start, end, *, mode="for
             "race_ids": [rid for rid, _ in scored], "exclusions": excluded,
             "live_top1_pct": 100 * live_hits / len(scored),
             "candidate_top1_pct": 100 * candidate_hits / len(scored),
+            "live_top3_pct": 100 * live_top3 / len(scored),
+            "candidate_top3_pct": 100 * candidate_top3 / len(scored),
             "agf_baseline": {"n": agf_n, "hits": agf_hits},
             "delta_pp": delta, "mcnemar_p": p_value,
             "swap": mode == "forward" and delta >= 1.0 and p_value < 0.05,
-            "live_artifact": live_model.artifact,
-            "candidate_artifact": candidate_model.artifact,
             "pipeline_sha256": pipeline_digest()}
+
+
+def _probability(prediction):
+    value = getattr(prediction, "probability", None)
+    return prediction.mean_probability if value is None else value
 
 
 def main():
