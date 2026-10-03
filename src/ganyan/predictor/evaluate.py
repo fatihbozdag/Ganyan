@@ -9,7 +9,7 @@ from datetime import date as date_type
 from sqlalchemy.orm import Session
 
 from ganyan.predictor.records import recorded_entries
-from ganyan.db.models import Race, RaceEntry, RaceStatus
+from ganyan.db.models import Race, RaceStatus
 
 
 @dataclass

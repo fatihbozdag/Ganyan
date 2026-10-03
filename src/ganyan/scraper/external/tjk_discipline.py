@@ -33,7 +33,7 @@ from __future__ import annotations
 import logging
 from ganyan.time import utcnow
 import re
-from datetime import date as date_type, datetime
+from datetime import date as date_type
 from typing import ClassVar
 
 import httpx
@@ -75,12 +75,6 @@ def _make_cell_re(page_name: str) -> re.Pattern:
 
 _REPORTED_CELL = _make_cell_re("RaporluJokey")
 _PENALIZED_CELL = _make_cell_re("CezaliJokey")
-
-
-def _strip_tags(html: str) -> str:
-    """Reduce a cell's inner HTML to a single-line text."""
-    return re.sub(r"<[^>]+>", " ", html).strip().replace("\xa0", " ").split() and \
-        " ".join(re.sub(r"<[^>]+>", " ", html).split())
 
 
 def _parse_ddmmyyyy(s: str | None) -> date_type | None:

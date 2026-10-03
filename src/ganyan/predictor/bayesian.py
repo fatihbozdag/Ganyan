@@ -21,7 +21,7 @@ from dataclasses import dataclass, field
 
 from sqlalchemy.orm import Session
 
-from ganyan.db.models import Prediction as PredictionRow, Race, RaceEntry
+from ganyan.db.models import Race, RaceEntry
 from ganyan.predictor.features import extract_features, HorseFeatures
 from ganyan.scraper.parser import parse_eid_to_seconds, parse_last_six
 

@@ -401,11 +401,9 @@ def grade_race(session: Session, race_id: int) -> int:
         pick.graded_at = now
         if hit:
             # One winning ticket out of ``ticket_count``; rest lost.
-            # Pool figure is per-bilet at the pool's birim — divide by
-            # birim so that `value × stake_per_ticket / birim` gives the
-            # actual TL payout. (Pre-2026-04-30 this divisor was missing;
+            # Pool figure is per-bilet at the pool's birim; winning_payout
+            # divides by it. (Pre-2026-04-30 this divisor was missing;
             # üçlü hits were overstated 2×.)
-            birim = _birim_tl(pick.strategy)
             winning_ticket_payout = (
                 winning_payout(STRATEGY_POOL[pick.strategy], payout_per_tl, float(pick.stake_tl) / pick.ticket_count)
             )

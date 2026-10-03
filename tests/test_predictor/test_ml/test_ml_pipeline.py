@@ -165,10 +165,6 @@ def test_ml_predictor_round_trip(db_session, tmp_path: Path, monkeypatch):
         model_dir=tmp_path,
         model_name="test_ranker",
     )
-    # Point the loader at our temp dir.
-    monkeypatch.setattr(
-        "ganyan.predictor.ml.predictor.DEFAULT_MODEL_DIR", tmp_path,
-    )
     monkeypatch.setattr(
         "ganyan.predictor.ml.predictor.DEFAULT_MODEL_BASENAME", "test_ranker",
     )
@@ -198,9 +194,6 @@ def test_ml_predictor_persists_audit_row(db_session, tmp_path: Path, monkeypatch
         num_boost_round=30,
         model_dir=tmp_path,
         model_name="test_ranker",
-    )
-    monkeypatch.setattr(
-        "ganyan.predictor.ml.predictor.DEFAULT_MODEL_DIR", tmp_path,
     )
     monkeypatch.setattr(
         "ganyan.predictor.ml.predictor.DEFAULT_MODEL_BASENAME", "test_ranker",

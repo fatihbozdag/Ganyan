@@ -450,7 +450,7 @@ def predictions_cmd(
     the daemon's ensemble most recently wrote without disturbing the audit
     trail or running an in-process predictor.
     """
-    from datetime import date as _date, datetime as _dt
+    from datetime import datetime as _dt
     from sqlalchemy import select, func
     from ganyan.db import get_session, Race, RaceEntry
     from ganyan.db.models import Horse, Prediction, Track
@@ -2281,7 +2281,6 @@ def morning_cmd(
     settings = get_settings()
     logging.basicConfig(level=settings.log_level)
 
-    from datetime import date as _date
     import asyncio
     from sqlalchemy import func
 
@@ -2449,7 +2448,7 @@ def advice_cmd(
     settings = get_settings()
     logging.basicConfig(level=settings.log_level)
 
-    from datetime import date as _date, datetime as _dt
+    from datetime import datetime as _dt
     from pathlib import Path as _Path
     from ganyan.db import get_session
     from ganyan.db.models import Race, Pick, RaceStatus
@@ -3009,7 +3008,7 @@ def tune_thresholds_cmd(
     settings = get_settings()
     logging.basicConfig(level=settings.log_level)
 
-    from datetime import date as _date, timedelta
+    from datetime import timedelta
     from ganyan.db import get_session
     from ganyan.db.models import Pick, Race
 

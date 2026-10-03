@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import logging
-import os
 import threading
-from datetime import date, timedelta
+from datetime import timedelta
 
 from flask import Flask
 from sqlalchemy.orm import sessionmaker

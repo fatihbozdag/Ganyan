@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 
 from ganyan.time import today as race_today, utcnow, is_upcoming
 from flask import (
@@ -307,10 +307,6 @@ def predict_race(race_id: int):
 
         from ganyan.predictor.ml import MLPredictor
         from ganyan.predictor.ml.ensemble import EnsemblePredictor
-        from ganyan.predictor.exotics import (
-            ikili_probabilities, sirali_ikili_probabilities,
-            uclu_probabilities,
-        )
 
         predictor = MLPredictor(session)
         predictions = predictor.predict(race_id)
@@ -405,103 +401,6 @@ def predict_race(race_id: int):
         )
     finally:
         session.close()
-
-
-# Typical Turkish parimutuel takeouts (rough, varies by pool/track).
-_TAKEOUT = {
-    "ganyan": 0.18,
-    "ikili": 0.22,
-    "sirali_ikili": 0.22,
-    "uclu": 0.25,
-}
-
-
-def _build_bet_recommendations(
-    race, predictions, ikili_fn, sirali_fn, uclu_fn,
-) -> list[dict]:
-    """Build the per-race betting suggestions shown on /races/<id>/predict.
-
-    Only surfaces strategies that are **backtest-positive or plausibly
-    break-even** at our current signal quality:
-
-      - Üçlü top-1: the +150% edge we measured
-      - Üçlü box-6: +112% variance-smoothed alternative
-      - Sıralı İkili top-1: near-breakeven (-2.7% backtest, low stake)
-
-    We report the model's combination probability + the backtest's
-    long-run ROI rather than a per-race EV.  Per-race EV derived from
-    market-implied payouts is misleading for these strategies: the
-    whole reason Üçlü top-1 is profitable is that the market mis-prices
-    the favorite-ordered trifecta, so market-derived EV systematically
-    understates the real edge.
-    """
-    if not predictions:
-        return []
-    # Our model's win probabilities (0..1), normalised.
-    mp = {p.horse_id: max(p.probability, 0) / 100.0 for p in predictions}
-    total = sum(mp.values())
-    if total > 0:
-        mp = {h: v / total for h, v in mp.items()}
-
-    name_for = {p.horse_id: p.horse_name for p in predictions}
-
-    recs: list[dict] = []
-
-    # --- Üçlü top-1 (the edge) ---
-    our_uclu = uclu_fn(mp)[:1]
-    if our_uclu and len(predictions) >= 3:
-        our_top = our_uclu[0]
-        recs.append({
-            "title": "Üçlü — Top 1 (ana strateji)",
-            "subtitle": "Backtest: ~5% hit rate, +150% ROI long-run",
-            "horses": [name_for.get(h, "?") for h in our_top.horses],
-            "separator": "→",
-            "tickets": 1,
-            "stake_tl": 100.0,
-            "model_prob_pct": our_top.probability * 100.0,
-            "expected_long_run_roi_pct": 150.0,
-            "warning": (
-                "Yüksek varyans: ~%40 ihtimalle kart boyunca hiç vurmayabilir."
-            ),
-            "positive": True,
-        })
-
-        # --- Üçlü box-6 (same horses, all 6 orderings) ---
-        top3_set = set(our_top.horses)
-        prob_any_order = sum(
-            c.probability for c in uclu_fn(mp) if set(c.horses) == top3_set
-        )
-        recs.append({
-            "title": "Üçlü — Kutu 6 (düşük varyans)",
-            "subtitle": "Backtest: ~16% hit rate, +112% ROI long-run",
-            "horses": [name_for.get(h, "?") for h in our_top.horses],
-            "separator": "box",
-            "tickets": 6,
-            "stake_tl": 600.0,
-            "model_prob_pct": prob_any_order * 100.0,
-            "expected_long_run_roi_pct": 112.0,
-            "warning": "Hit oranı 3× daha yüksek ama bilet maliyeti de 6× daha fazla.",
-            "positive": True,
-        })
-
-    # --- Sıralı İkili top-1 (break-even indicator) ---
-    our_si = sirali_fn(mp)[:1] if len(predictions) >= 2 else []
-    if our_si:
-        top = our_si[0]
-        recs.append({
-            "title": "Sıralı İkili — Top 1",
-            "subtitle": "Backtest: -2.7% ROI (yaklaşık başabaş)",
-            "horses": [name_for.get(h, "?") for h in top.horses],
-            "separator": "→",
-            "tickets": 1,
-            "stake_tl": 100.0,
-            "model_prob_pct": top.probability * 100.0,
-            "expected_long_run_roi_pct": -2.7,
-            "warning": "Kâr beklentisi sıfır civarı — ısınma bahsi olarak düşünülebilir.",
-            "positive": False,
-        })
-
-    return recs
 
 
 # ---------------------------------------------------------------------------
@@ -874,12 +773,6 @@ def scrape_results():
 # Ops dashboard + health endpoint
 # ---------------------------------------------------------------------------
 
-_FRESHNESS_BUDGET = {
-    # Hours before a data-freshness signal turns "stale" on the dashboard.
-    "today_card": 24,        # today's race card should have been scraped
-    "last_results": 12,      # most recent result should be <12h old
-    "last_prediction": 24,   # at least one prediction written in 24h
-}
 
 
 @bp.route("/ops")
@@ -2051,7 +1944,7 @@ def bet_picks_page():
     """
     from ganyan.predictor.bet_recommendations import compute_bet_recommendations
     from ganyan.predictor.ml.ensemble import EnsemblePredictor
-    from ganyan.db.models import RaceEntry, Track
+    from ganyan.db.models import RaceEntry
 
     target_qs = request.args.get("date")
     target = (

@@ -316,37 +316,6 @@ def _fit_temperature(
             total += float(np.sum((p - y) ** 2))
         return total / len(race_blocks)
 
-    def ece_bucketed(t: float, n_bins: int = 10) -> float:
-        # Winner-only ECE: bucket the probability we assigned to the
-        # winner's horse in each race, compare to the observed win rate
-        # (which is 1.0 per race for the winner's row).  Equivalent to
-        # comparing |mean_pred_of_winners − 1| across bins.
-        weights = np.zeros(n_bins)
-        mean_p = np.zeros(n_bins)
-        hits = np.zeros(n_bins)
-        for scores, widx in race_blocks:
-            p = probs_for(t, scores)
-            pw = float(p[widx])
-            idx = min(int(pw * n_bins), n_bins - 1)
-            weights[idx] += 1
-            mean_p[idx] += pw
-            hits[idx] += 1.0  # always 1: bucket is winners by prob
-        # Reliability: for each bucket, compare mean_p/weights vs actual
-        # win rate.  But "actual" here needs a different slicing; use
-        # winner-prob reliability as an approximation.
-        total = weights.sum()
-        if total == 0:
-            return 0.0
-        e = 0.0
-        for i in range(n_bins):
-            if weights[i] == 0:
-                continue
-            mp = mean_p[i] / weights[i]
-            # "Actual" for this bucket = hit_rate_of_winners = 1.0, which
-            # trivialises the metric.  Use 1.0 as target, so ECE here
-            # measures average under-confidence on the winner row.
-            e += abs(mp - 1.0) * (weights[i] / total)
-        return e
 
     # Emit a human-readable sweep so operators can see the curve shape
     # and whether the fitted optimum is at a boundary.

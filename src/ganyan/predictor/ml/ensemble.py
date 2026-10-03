@@ -32,13 +32,12 @@ from pathlib import Path
 import numpy as np
 from sqlalchemy.orm import Session
 
-from ganyan.db.models import Prediction as PredictionRow, Race, RaceEntry
+from ganyan.db.models import Race
 from ganyan.predictor.bayesian import Prediction
 from ganyan.predictor.ml.features import build_race_frame
 from ganyan.predictor.ml.predictor import (
     LoadedModel, _softmax, load_latest_model, validated_features,
 )
-from ganyan.predictor.ml.trainer import DEFAULT_MODEL_DIR
 
 
 logger = logging.getLogger(__name__)

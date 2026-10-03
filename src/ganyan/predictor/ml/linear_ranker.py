@@ -37,7 +37,7 @@ from ganyan.predictor.ml.features import (
     TrainingFrame,
     build_training_frame,
 )
-from ganyan.predictor.ml.trainer import DEFAULT_MODEL_DIR, _temporal_split
+from ganyan.predictor.ml.trainer import _temporal_split
 
 
 logger = logging.getLogger(__name__)
@@ -224,7 +224,6 @@ def train_conditional_logit(
     )
 
     train_blocks = _iter_race_blocks(train_frame)
-    test_blocks = _iter_race_blocks(test_frame)
 
     beta = np.zeros(len(feature_cols))
     m_state = np.zeros_like(beta)

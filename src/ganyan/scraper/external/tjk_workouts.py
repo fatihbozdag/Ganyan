@@ -34,7 +34,7 @@ from __future__ import annotations
 import logging
 from ganyan.time import utcnow
 import re
-from datetime import date as date_type, datetime
+from datetime import date as date_type
 from typing import ClassVar
 
 import httpx

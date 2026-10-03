@@ -16,15 +16,12 @@ import lightgbm as lgb
 import numpy as np
 from sqlalchemy.orm import Session
 
-from ganyan.db.models import Prediction as PredictionRow, Race, RaceEntry
+from ganyan.db.models import Race
 from ganyan.predictor.bayesian import Prediction
 from ganyan.predictor.ml.features import FEATURE_COLUMNS, build_race_frame
 from ganyan.predictor.ml.trainer import (
-    DEFAULT_MODEL_BASENAME, DEFAULT_MODEL_DIR,
+    DEFAULT_MODEL_BASENAME,
 )
-
-
-ML_MODEL_VERSION_PREFIX = "lightgbm-lambdarank"
 
 
 @dataclass

@@ -85,8 +85,6 @@ async def _with_retry(
 # Full-page track tabs
 _SEL_TRACK_TABS = "ul.gunluk-tabs li a[data-sehir-id]"
 
-# Race pane containers (one per race within a track page)
-_SEL_RACE_PANES = "div.races-panes > div"
 
 # Race header elements inside each pane
 _SEL_RACE_NO = "h3.race-no"
@@ -160,7 +158,6 @@ _Q_AGE = f"td.{_Q}-BirinciAtAdiYas"
 _Q_TIME = f"td.{_Q}-BirinciAtDerece"
 _Q_HP = f"td.{_Q}-HandikapPuani"
 
-_QUERY_RESULTS_PER_PAGE = 50
 
 # Known Turkish domestic track SehirIds (from TJK website navigation)
 _DOMESTIC_SEHIR_IDS = {

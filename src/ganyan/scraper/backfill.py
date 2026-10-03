@@ -576,20 +576,6 @@ def get_scraped_dates(session: Session) -> set[date]:
     return {row[0] for row in rows}
 
 
-def get_successful_tracks_on(session: Session, scrape_date: date) -> set[str]:
-    """Return set of track names that succeeded on a given date."""
-    rows = (
-        session.query(ScrapeLog.track)
-        .filter(
-            ScrapeLog.date == scrape_date,
-            ScrapeLog.status == ScrapeStatus.success,
-        )
-        .distinct()
-        .all()
-    )
-    return {row[0] for row in rows if row[0] != _ALL_TRACKS_SENTINEL}
-
-
 def log_scrape(
     session: Session,
     scrape_date: date,
