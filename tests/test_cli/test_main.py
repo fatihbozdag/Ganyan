@@ -1,8 +1,17 @@
+import re
+
 from typer.testing import CliRunner
 
 from ganyan.cli.main import app
 
 runner = CliRunner()
+_ANSI = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def _plain(result):
+    # Rich colours help output when it detects CI (GITHUB_ACTIONS), which
+    # splits "--today" across escape codes; compare on plain text.
+    return _ANSI.sub("", result.output)
 
 
 def test_cli_help():
@@ -14,7 +23,7 @@ def test_cli_help():
 def test_scrape_help():
     result = runner.invoke(app, ["scrape", "--help"])
     assert result.exit_code == 0
-    assert "--today" in result.output
+    assert "--today" in _plain(result)
 
 
 def test_predict_help():
@@ -30,8 +39,8 @@ def test_races_help():
 def test_evaluate_help():
     result = runner.invoke(app, ["evaluate", "--help"])
     assert result.exit_code == 0
-    assert "--detail" in result.output
-    assert "--json" in result.output
+    assert "--detail" in _plain(result)
+    assert "--json" in _plain(result)
 
 
 def test_db_help():
