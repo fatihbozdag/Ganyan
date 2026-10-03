@@ -60,7 +60,7 @@ uv run ganyan predict --today --json
 # Read the daemon's stored ensemble predictions (the invariant #6 tool)
 uv run ganyan predictions
 
-# Full command list (~19 commands; only a subset is documented here)
+# Full command list (22 commands incl. model-gate / model-promote; only a subset is documented here)
 uv run ganyan --help
 
 # List races
@@ -101,7 +101,7 @@ uv run pytest tests/test_predictor/test_bayesian.py::test_probabilities_sum_to_1
 
 2. **The halt flag is authoritative.** `/tmp/ganyan-halt.flag` (or `$GANYAN_HALT_FLAG_PATH`) is set by canaries (rolling-PnL, uniformity guard, heartbeat, scrape integrity, regime monitor). When set, `/advice` and `ganyan advice` suppress Kelly stakes. Manually clear with `rm /tmp/ganyan-halt.flag` only after investigating the reason.
 
-3. **OOS bar: ≥365 days AND ≥1500 races.** Set by the V2 retraction (2026-05-02). Enforced in `logs/discordance_oos_backtest.py:assert_min_window`. Do not bypass.
+3. **OOS bar: ≥365 days AND ≥1500 races.** Set by the V2 retraction (2026-05-02). Enforced for model promotion in `src/ganyan/predictor/ml/gate.py` (`ganyan model-gate`: ≥1500 scored paired races spanning ≥365 days, ≥+1pp top-1 lift, paired McNemar p < .05) and re-checked by `ml/artifacts.py:promote` (`ganyan model-promote`); `logs/discordance_oos_backtest.py:assert_min_window` still enforces it for that ensemble backtest. Do not bypass.
 
 4. **Frame around winning horse and winning bet, not payout/ROI** — primary metric is top-1 hit rate. (Existing memory; reaffirmed here.)
 
@@ -113,30 +113,33 @@ uv run pytest tests/test_predictor/test_bayesian.py::test_probabilities_sum_to_1
    - Sırali İkili: −14%
    - Multi-race 6'lı/7'lı: mathematical paths to positive EV but **untested in ledger** (1 pick total)
 
-   Plase pool doesn't form on ~45% of races even at field≥8 (TJK rules + betting volume), so plase_top1 picks generated on those races can never pay. Picks generator now skips plase_top1 when fewer than 8 horses carry win probabilities — the gate is `len(win_probs) >= 8` at `src/ganyan/predictor/picks.py:218`, counting post-scratch runners, NOT a `field_size` column; the additional 45% "no pool" rate is structural and unfixable from our side.
+   Plase pool doesn't form on ~45% of races even at field≥8 (TJK rules + betting volume), so plase_top1 picks generated on those races can never pay. Picks generator now skips plase_top1 when fewer than 8 horses carry win probabilities — the gate is `len(win_probs) >= 8` at `src/ganyan/predictor/picks.py:216`, counting post-scratch runners, NOT a `field_size` column; the additional 45% "no pool" rate is structural and unfixable from our side.
 
-   **Single-race betting is bleed-only. Multi-race exotics require small-stake live validation before commitment.** The validation harness exists since 2026-05: `morning_card` generates a daily 6'lı paper-trade coupon per track (≤144 tickets, written to `multi_race_picks`), graded via `uv run ganyan multi-grade` — monitor it, don't rebuild it. Never recover losses with bigger exotics — recovery comes from the next clean signal.
+   **Single-race betting is bleed-only. Multi-race exotics require small-stake live validation before commitment.** The validation harness exists since 2026-05: `morning_card` generates a daily 6'lı paper-trade coupon (≤144 tickets, written to `multi_race_picks`) for each `multi_race_pools` 6'lı pool with a verified start/end race window — programs without a verified window are skipped (use `ganyan multi-picks` with an explicit window and pool index), graded via `uv run ganyan multi-grade` — monitor it, don't rebuild it. Never recover losses with bigger exotics — recovery comes from the next clean signal.
 
-6. **Pull live ensemble before any bet recommendation.** `ganyan predict --today` invokes the single-head MLPredictor by default; the daemon's scheduled inference runs the multi-head EnsemblePredictor (currently 11 heads — see Architecture) and writes to the `Prediction` table. These can disagree by 10pp. Read the stored rows with `uv run ganyan predictions` (read-only view of the latest `Prediction` rows), or force ensemble inference with `ganyan predict --today --model ensemble`. Re-pull within 30 minutes of post when stakes are >100 TL — and note the daemon's `repredict_upcoming` job stops at 20:35 while races run to ~23:00, so evening races ride stale predictions unless you re-pull manually.
+6. **Pull live ensemble before any bet recommendation.** `ganyan predict --today` invokes the single-head MLPredictor by default; the daemon's scheduled inference runs the multi-head EnsemblePredictor (currently 10 approved heads — see Architecture) and writes to the `Prediction` table. These can disagree by 10pp. Read the stored rows with `uv run ganyan predictions` (read-only view of the latest `Prediction` rows), or force ensemble inference with `ganyan predict --today --model ensemble`. Re-pull within 30 minutes of post when stakes are >100 TL (the daemon's `repredict_upcoming` job runs :05/:35 through 23:35, and only while the scheduler is enabled).
 
-7. **Never overwrite the live model file directly.** `ganyan train` (default invocation) writes to `models/lightgbm_ranker.{txt,meta.json}` — i.e. THE LIVE MODEL the daemon reads every 30 min. A bare `uv run ganyan train` will silently replace the in-production weights with whatever the random seed + this morning's data window produced, even when in-sample top-1 is 2-5pp WORSE than what's already deployed (observed: pedigree_v1 42.94% top-1 was overwritten by a routine retrain that landed at 40.25%). Same applies to any external tool, agent, or one-off script that writes under `models/`. The daemon itself is the worst offender: the `monthly_retrain` job (`src/ganyan/scheduler.py`, cron day 1 03:30) bare-trains straight onto `lightgbm_ranker.*` and `lightgbm_value.*` with no OOS gate — it fired 2026-06-01 and replaced the 42.94% top-1 weights with 40.92%. Remediated 2026-08-12: live files reverted to the HEAD weights (June output preserved in `models/_auto_retrain_20260601_backup/`) and the job registration commented out in `scheduler.py`. Re-enable only behind a candidate-name + OOS-gate flow. The discipline is:
+7. **Never overwrite the live model file directly.** History: before the 2026-09-18 repair, `ganyan train` (default invocation) wrote to `models/lightgbm_ranker.{txt,meta.json}` — the live model — so a bare retrain silently replaced in-production weights (observed, historical in-sample numbers not revalidated under feature schema 2: pedigree_v1 42.94% top-1 was overwritten by a routine retrain that landed at 40.25%). The daemon's `monthly_retrain` job (`src/ganyan/scheduler.py`, cron day 1 03:30) did the same to `lightgbm_ranker.*` and `lightgbm_value.*` with no OOS gate — it fired 2026-06-01 and replaced the 42.94% top-1 weights with 40.92% (historical). Remediated 2026-08-12 (June output preserved in `models/_auto_retrain_20260601_backup/`) and the job registration is still commented out in `scheduler.py`.
+
+   **Now:** training always writes to `models/candidates/` (`ml/artifacts.py:candidate_directory`; `--model-name` must be a bare filename stem). Inference loads only heads listed in `models/active.json` (falling back to `src/ganyan/predictor/ml/approved_models.json`) and verifies each artifact's SHA-256 — copying or `mv`-ing a file over `models/lightgbm_ranker.*` breaks live inference rather than swapping the model. Promotion installs the candidate into an immutable `models/releases/<hash>/` directory and atomically rewrites `models/active.json`. If `monthly_retrain` were re-enabled it would now only produce candidates, which still need gate + promote. The discipline is:
 
    ```bash
-   # 1. Train under a non-production name
-   uv run ganyan train --model-name lightgbm_ranker_test
+   # 1. Train a candidate (lands in models/candidates/)
+   uv run ganyan train --from YYYY-MM-DD --to YYYY-MM-DD --model-name lightgbm_ranker_test
 
-   # 2. OOS validate against the project's window bar (≥365d, ≥1500 races).
-   # Use the PER-MODEL gate. (discordance_oos_backtest.py IGNORES --model —
-   # it always scores the live ensemble; discovered 2026-08-13 when a
-   # candidate "gate" run returned bit-identical numbers to the live run.)
-   uv run python logs/oos_model_gate.py --candidate candidates/lightgbm_ranker_test
+   # 2. Forward gate on a disjoint, later window (≥365d, ≥1500 paired races,
+   #    ≥+1pp top-1, McNemar p < .05). (logs/oos_model_gate.py is now only a
+   #    thin wrapper over ml/gate.py; discordance_oos_backtest.py IGNORES
+   #    --model and always scores the live ensemble.)
+   uv run ganyan model-gate --candidate candidates/lightgbm_ranker_test \
+     --from YYYY-MM-DD --to YYYY-MM-DD --output models/candidates/lightgbm_ranker_test.gate.json
 
-   # 3. ONLY swap if OOS top-1 lift ≥ +1pp vs current production
-   mv models/lightgbm_ranker_test.txt models/lightgbm_ranker.txt
-   mv models/lightgbm_ranker_test.meta.json models/lightgbm_ranker.meta.json
+   # 3. Promote only on a passing forward gate for these exact artifacts
+   uv run ganyan model-promote --candidate candidates/lightgbm_ranker_test \
+     --gate models/candidates/lightgbm_ranker_test.gate.json
    ```
 
-   If the live model has been overwritten without OOS, revert via `git checkout HEAD -- models/lightgbm_ranker.{txt,meta.json}` before the next 30-min daemon tick reads it.
+   Rollback = restore the previous `models/active.json` (or remove it if none existed, which falls back to the bundled `approved_models.json`); release directories are immutable and kept. See `docs/audit-2026-09-18/ROLLOUT.md`.
 
 ## Architecture
 
@@ -144,7 +147,7 @@ Three-layer service-oriented monorepo sharing PostgreSQL:
 
 1. **Scraper** (`src/ganyan/scraper/`) — TJK website client using AJAX endpoints at `/TR/YarisSever/Info/Sehir/GunlukYarisProgrami`. `tjk_api.py` fetches race cards and results per city via `SehirId` parameters. `parser.py` normalizes raw HTML data into dataclasses. `backfill.py` handles idempotent storage and incremental historical loading. TJK serves an incomplete TLS chain, so `tjk_api.py` injects the OS trust store via `truststore`; without it scraping fails on macOS with `CERTIFICATE_VERIFY_FAILED`.
 
-2. **Predictor** (`src/ganyan/predictor/`) — two coexisting model families. The **production inference path** is the LightGBM stack in `ml/`: `ml/trainer.py` trains the ranker (`models/lightgbm_ranker.*`), `ml/predictor.py` is the single-head `MLPredictor` (used by `ganyan predict`), and `ml/ensemble.py` is the `EnsemblePredictor` the daemon runs on schedule and writes to the `Prediction` table (see invariants #6/#7). The ensemble's head count is NOT fixed: it loads every `*.meta.json` in the `models/` root (non-recursive glob), so dropping a model file there silently adds a voting head, while subdirectories (`plase_v1/`, `pedigree_v1/`, …) are quarantined. Currently 11 heads (the failed-OOS `lightgbm_ranker_wx_v1` head was quarantined to `models/_quarantine_wx_v1/` on 2026-08-12; it had been voting on 5 all-NaN weather features that `features.py` no longer produces — missing columns reindex silently instead of raising). Live ranker schema: 42 features. `features.py` builds the shared feature matrix (speed figure, form cycle, AGF edge, pedigree, etc.). The **Bayesian model** (`bayes/`, `bayesian.py`) powers the `/advice` skip-gate (v3 default) — prior (1/N) × feature likelihoods → normalized probabilities with confidence + contributing factors.
+2. **Predictor** (`src/ganyan/predictor/`) — two coexisting model families. The **production inference path** is the LightGBM stack in `ml/`: `ml/trainer.py` trains candidate models into `models/candidates/`, `ml/predictor.py` is the single-head `MLPredictor` (used by `ganyan predict`), and `ml/ensemble.py` is the `EnsemblePredictor` the daemon runs on schedule and writes to the `Prediction` table (see invariants #6/#7). Ensemble heads come from an explicit hashed manifest — `models/active.json` if present, else the bundled `src/ganyan/predictor/ml/approved_models.json` (`ml/artifacts.py:approved_manifest`) — NOT from globbing `models/`, so dropping a file there adds nothing, and a changed artifact fails its SHA-256 check. Currently 10 approved heads: `lightgbm_ranker`, `lightgbm_value`, `lightgbm_finish_time`, `lightgbm_spec_{handikap,kv,maiden,sartli,satis,stakes}`, `linear_conditional_logit`; `linear_plackett_luce` is excluded (its required weather features are absent). Earlier, the failed-OOS `lightgbm_ranker_wx_v1` head was quarantined to `models/_quarantine_wx_v1/` on 2026-08-12. Missing feature columns now RAISE in `ml/predictor.py:validated_features` (only the retired `apprentice_jockey` is tolerated). The live legacy ranker artifact has 42 features; current code builds 41 (`ml/features.py:FEATURE_COLUMNS`) and new candidates are stamped `feature_schema` 2 — legacy heads need refit + revalidation under schema 2. `features.py` builds the shared feature matrix (speed figure, form cycle, AGF edge, pedigree, etc.). The **Bayesian model** (`bayes/`, `bayesian.py`) powers the `/advice` skip-gate (v3 default) — prior (1/N) × feature likelihoods → normalized probabilities with confidence + contributing factors.
 
 3. **Web + CLI** (`src/ganyan/web/`, `src/ganyan/cli/`) — Flask app with HTMX (Bootstrap 5, Turkish UI). Typer CLI for terminal use. Both consume predictor and scraper directly.
 
@@ -169,17 +172,17 @@ CLI (ganyan predict) → predictor/ml/predictor.py (single-head)                
 
 ### Database
 
-PostgreSQL 15 via Homebrew (`brew services`; `docker-compose.yml` exists but is not the path used on this machine — it pins `postgres:16`, an unreconciled version skew, and `GanyanGUI/KULLANIM.md`'s "install Docker Desktop" instructions are likewise wrong for this machine). SQLAlchemy 2.0 ORM + Alembic migrations. Tables: `tracks`, `races` (unique on track+date+race_number), `horses` (unique on name), `race_entries` (pre-race + post-race fields in one row), `scrape_log`, plus `predictions`, `picks`, `multi_race_picks`, `multi_race_pools`, `agf_snapshots`, `external_signals`.
+PostgreSQL 15 via Homebrew (`brew services`; `docker-compose.yml` exists but is not the path used on this machine — it pins `postgres:16`, an unreconciled version skew, and `GanyanGUI/KULLANIM.md`'s "install Docker Desktop" instructions are likewise wrong for this machine). SQLAlchemy 2.0 ORM + Alembic migrations. Tables: `tracks`, `races` (unique on track+date+race_number), `horses` (identity is `tjk_at_id` via a partial unique index where non-null; `name` is NOT unique), `race_entries` (pre-race + post-race fields in one row), `scrape_log`, plus `predictions`, `picks`, `multi_race_picks`, `multi_race_pools`, `agf_snapshots`, `external_signals`, `job_runs` (scheduler run log), `regime_daily`.
 
 ### Config
 
-`pydantic-settings` reads from `.env` file or environment variables. See `.env.example`. Key: `DATABASE_URL`, `TJK_BASE_URL`, `SCRAPE_DELAY`, `FLASK_PORT`.
+`pydantic-settings` reads from `.env` file or environment variables. See `.env.example`. Key: `DATABASE_URL`, `TJK_BASE_URL`, `SCRAPE_DELAY`, `FLASK_PORT`, `SECRET_KEY`, `MUTATION_TOKEN`, optional `GANYAN_MODEL_DIR`. `GANYAN_SKIP_SCHEDULER` / `GANYAN_SKIP_LAUNCH_REFRESH` disable the in-process scheduler and launch refresh — `.env.example` sets both to 1, so enable deliberately in exactly one process.
 
 ### Repo layout traps
 
 - `.worktrees/premortem-fixes/` is a stale git worktree (May 2026) carrying its own OLDER CLAUDE.md — never take guidance from or edit files under it.
 - `claude-code-ask-gemini/` is a separately-cloned git repo nested inside this one; `git status` shows it as a single untracked directory and hides its contents.
-- `logs/discordance_oos_backtest.py` is tracked and load-bearing (it enforces invariant #3) amid ~20 disposable untracked `logs/*.py` experiment scripts — never bulk-clean `logs/`.
+- `logs/discordance_oos_backtest.py` is tracked and load-bearing (it enforces invariant #3 for the ensemble backtest; model promotion is gated by `ganyan model-gate`) amid ~20 disposable untracked `logs/*.py` experiment scripts — never bulk-clean `logs/`.
 
 ### Reporting Conventions
 
@@ -202,5 +205,5 @@ Payout reflects TJK pool dynamics (takeout, retail behavior, "devren" carryovers
 | Daily 23:30 | Regime monitor (takeout drift) | `launchctl list \| grep com.ganyan.regime` |
 | Weekly | Commit-ratio audit (ganyan vs linguistic) | `git log --since="7 days ago" --oneline \| wc -l` in each repo; if ganyan > 5× linguistic for 2 consecutive weeks, force a Ganyan freeze week |
 
-In-process APScheduler jobs inside `com.ganyan.web` (`src/ganyan/scheduler.py`, Europe/Istanbul): `morning_card` 08:30 (cards + picks + daily 6'lı coupons), `results_poll` every 20 min 13–23h, `external_signals` 09:15 + 18:15, `agf_snapshot` :00/:30 11–22h, `repredict_upcoming` :05/:35 11–20h, `pedigree_refresh` Sun 03:00. An eighth job, `monthly_retrain` (day 1 03:30), was DISARMED 2026-08-12 — registration commented out in `scheduler.py`; see invariant #7 before re-enabling.
+In-process APScheduler jobs inside `com.ganyan.web` (`src/ganyan/scheduler.py`, Europe/Istanbul; only registered when `GANYAN_SKIP_SCHEDULER` is unset/false — `.env.example` sets it to 1): `morning_card` 08:30 (cards + picks + 6'lı coupons for verified pool windows), `results_poll` every 20 min 13–23h, `external_signals` 09:15 + 18:15, `agf_snapshot` :00/:30 11–23h, `repredict_upcoming` :05/:35 11–23h, `pedigree_refresh` Sun 03:00. A seventh job, `monthly_retrain` (day 1 03:30), was DISARMED 2026-08-12 — registration commented out in `scheduler.py`; it would now train candidates only, which still need `model-gate` + `model-promote` (invariant #7).
 

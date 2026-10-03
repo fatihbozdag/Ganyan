@@ -14,7 +14,8 @@ probabilities ile egzotik bahis kombinasyonlarını puanlar ve günlük
 "hangi yarışta oyna, hangisini atla" tavsiyeleri çıkarır.
 
 **Birincil metrik — top-1 isabet oranı**, ROI değil. 1.841 graded
-pick'lik canlı defter üzerinde Ganyan top-1 hit %37.6, Sıralı İkili
+pick'lik canlı defter üzerinde (tarihsel; eski kod/veri — feature
+schema 2 altında doğrulanmadı) Ganyan top-1 hit %37.6, Sıralı İkili
 top-1 %12.4, Üçlü top-1 %3.9, Üçlü Kutu-6 %13.4. ROI rakamları havuz
 takeout dinamiklerini yansıtır — model kalitesinin doğrudan ölçüsü
 değildir.
@@ -45,7 +46,7 @@ aşağıda — lütfen önce "Dürüst Uyarılar" kısmını okuyun.
 ```
 TJK AJAX  →  scraper/        →  PostgreSQL
                                     │
-                          predictor/ (11-head ensemble)
+                          predictor/ (10-head ensemble)
                           ├─ LightGBM LambdaRank (top-1 ranker)
                           ├─ Hierarchical Bayesian PL (skip-gate)
                           ├─ Harville joint probabilities (egzotik)
@@ -65,8 +66,10 @@ TJK AJAX  →  scraper/        →  PostgreSQL
 - **predictor/** — `features.py` (speed figure, form cycle, weight delta,
   rest fitness, class, AGF, **s20 edge**, soy, ekipman değişikliği vb.),
   `ml/ensemble.py` + `ml/predictor.py` + `ml/trainer.py` (AGF-farkında
-  LightGBM LambdaRank ranker, AGF-kör value, ev, finish-time + 7
-  spec-class head, toplam 11-head ensemble), `bayes/` (Hierarchical
+  LightGBM LambdaRank ranker, AGF-kör value, finish-time, 6
+  spec-class head + linear conditional-logit; toplam 10 onaylı head —
+  `models/active.json`, yoksa `ml/approved_models.json` manifestinden
+  hash doğrulamalı yüklenir, `models/` glob'lanmaz), `bayes/` (Hierarchical
   Plackett-Luce, ADVI fit ile eğitilmiş; mean-field posterior'u skip-gate
   filtresi olarak çalışır), `exotics.py` (Harville joint probabilities),
   `picks.py` (strateji-bazlı öneri defteri + grading), `trip_wire.py`
@@ -99,7 +102,8 @@ Her özellik için bkz. `src/ganyan/predictor/features.py` ve
 > baskın, 11 özellik sıfır-üzeri gain** (önceden 4 özellik sıfır-üzeri,
 > geri kalan feature'lar NaN nedeniyle hiç split'e sokulmamıştı).
 
-> **Pedigree v1 — OOS-validated lift (2026-05-06).** İki yeni soy
+> **Pedigree v1 — OOS-validated lift (2026-05-06; tarihsel — feature
+> schema 2 altında yeniden doğrulanmadı, mevcut kod 41 feature üretir).** İki yeni soy
 > feature (`dam_win_rate`, `dam_surface_rate`) ve bir jokey×pist
 > etkileşim feature'ı (`jockey_track_win_rate`) eklendi (FEATURE_COLUMNS
 > 39 → 42). Live LightGBM ranker yeniden eğitildi.
@@ -121,12 +125,14 @@ Her özellik için bkz. `src/ganyan/predictor/features.py` ve
 > çıkarılamaz). Feature importance'ta `dam_surface_rate` #5,
 > `jockey_track_win_rate` #9 sırada (training holdout).
 
-> **Per-model OOS geçidi + ölçüm düzeltmesi (2026-08-14).**
+> **Per-model OOS geçidi + ölçüm düzeltmesi (2026-08-14; sayılar
+> tarihsel — feature schema 2 altında doğrulanmadı).**
 > `logs/discordance_oos_backtest.py` betiğinin `--model` bayrağını
 > sessizce YOK SAYDIĞI keşfedildi (argparse yok; her zaman canlı
 > ensemble'ı skorlar) — o yolla üretilmiş tekil-model "geçit" sayıları
 > aslında ensemble'ın kendisiyle karşılaştırmasıydı. Çalışan geçit
-> artık `logs/oos_model_gate.py`: aynı yarışlar üzerinde eşleştirilmiş
+> artık `uv run ganyan model-gate` (`src/ganyan/predictor/ml/gate.py`;
+> `logs/oos_model_gate.py` yalnızca ince bir sarmalayıcı): aynı yarışlar üzerinde eşleştirilmiş
 > canlı-vs-aday karşılaştırma + exact McNemar + AGF-favori baseline.
 > İlk gerçek koşu (6.939 OOS yarış, 2025-01-01 → 2026-01-30):
 >
@@ -166,7 +172,7 @@ Her özellik için bkz. `src/ganyan/predictor/features.py` ve
 ```bash
 uv run ganyan races --today                     # bugünün kartı
 uv run ganyan predict <race_id>                 # tek yarış (varsayılan: ml single-head)
-uv run ganyan predict --today --model ensemble  # günün tamamı, 11-head ensemble ile
+uv run ganyan predict --today --model ensemble  # günün tamamı, 10-head ensemble ile
 uv run ganyan predict --today --json            # tüm günün tahminleri
 uv run ganyan predictions                       # daemon'ın kaydettiği ensemble tahminleri (read-only)
 uv run ganyan advice                            # bugünün Bayes-geçit + Kelly tavsiyeleri
@@ -184,10 +190,14 @@ uv run ganyan scrape --today                    # bugünün programı
 uv run ganyan scrape --results                  # sonuçlar
 uv run ganyan scrape --backfill --rescrape \    # geçmiş veriyi (re-)scrape et
     --from 2026-01-22 --to 2026-04-18
-# DİKKAT: çıplak `ganyan train` CANLI modelin üzerine yazar. Aday isme
-# eğitin, OOS geçidini (≥ +1pp top-1) geçmeden swap etmeyin:
-uv run ganyan train --model-name candidates/lightgbm_ranker_aday
-uv run python logs/oos_model_gate.py --candidate candidates/lightgbm_ranker_aday
+# `ganyan train` her zaman models/candidates/ altına yazar (--model-name
+# yalın dosya adı olmalı). Canlıya alma yalnızca forward geçit
+# (≥365 gün, ≥1500 yarış, ≥ +1pp top-1, McNemar p < .05) + promote ile:
+uv run ganyan train --from YYYY-MM-DD --to YYYY-MM-DD --model-name lightgbm_ranker_aday
+uv run ganyan model-gate --candidate candidates/lightgbm_ranker_aday \
+    --from YYYY-MM-DD --to YYYY-MM-DD --output models/candidates/lightgbm_ranker_aday.gate.json
+uv run ganyan model-promote --candidate candidates/lightgbm_ranker_aday \
+    --gate models/candidates/lightgbm_ranker_aday.gate.json   # models/active.json'u atomik değiştirir
 uv run ganyan crawl horses                      # incremental pedigree crawl
 uv run ganyan daemon                            # scheduler'ı foreground'da çalıştır
 ```
@@ -231,8 +241,13 @@ uv run python -c "from ganyan.web.app import run; run()"
 Env vars (`.env` veya shell):
 - `DATABASE_URL` — Postgres connection string
 - `FLASK_PORT` (default 5003)
+- `SECRET_KEY` — kalıcı rastgele değer (CSRF / browser oturumları)
+- `MUTATION_TOKEN` — uzaktan yazma istekleri için `Authorization: Bearer <değer>`
 - `GANYAN_SKIP_LAUNCH_REFRESH=1` — Flask startup'taki 14-day refresh'i atla
 - `GANYAN_SKIP_SCHEDULER=1` — Flask içine gömülü APScheduler'ı devre dışı bırak
+
+`.env.example` her iki `GANYAN_SKIP_*` bayrağını 1 olarak ayarlar; zamanlanmış
+işler için bunları bilinçli olarak tek bir süreçte kapatın (0 / silin).
 
 ---
 
@@ -257,13 +272,15 @@ Detaylar ve headless varyant için bkz. [`ops/README.md`](ops/README.md).
 
 | ID | Zaman | Ne yapar |
 |---|---|---|
-| `morning_card` | 08:30 | Günün programını kazır, tahmin + pick üretir, pist başına günlük 6'lı paper-trade kuponu yazar |
+| `morning_card` | 08:30 | Günün programını kazır, tahmin + pick üretir, doğrulanmış pencereli her 6'lı havuz için paper-trade kuponu yazar (penceresiz programlar atlanır) |
 | `external_signals` | 09:15 + 18:15 | Tipster + ceza + workout + pist + komiser plugin'lerini çalıştırır |
-| `agf_snapshot` | 11:00–22:30, :00/:30 | AGF zaman serisini kaydeder (late-drift feature'ının ham verisi) |
-| `repredict_upcoming` | 11:05–20:35, :05/:35 | Başlamamış yarışları güncel AGF ile yeniden tahmin eder; başlamış yarışların pick'i frozen |
+| `agf_snapshot` | 11:00–23:30, :00/:30 | AGF zaman serisini kaydeder (late-drift feature'ının ham verisi) |
+| `repredict_upcoming` | 11:05–23:35, :05/:35 | Başlamamış yarışları güncel AGF ile yeniden tahmin eder; başlamış yarışların pick'i frozen |
 | `results_poll` | 13:00–23:40, her 20 dk | Sonuçları çeker, bekleyen pick'leri ve çoklu-yarış kuponlarını grade eder |
 | `pedigree_refresh` | Pazar 03:00 | Yeni atlar için soy verisi çeker |
-| `monthly_retrain` | — | **DEVRE DIŞI (2026-08-12).** OOS geçidi olmadan canlı modelin üzerine yazıyordu; 2026-06-01'de fire edip top-1'i 42.9% → 40.9% düşürdü. Aday-isim + `logs/oos_model_gate.py` akışı kurulmadan yeniden açmayın |
+| `monthly_retrain` | — | **DEVRE DIŞI (2026-08-12).** OOS geçidi olmadan canlı modelin üzerine yazıyordu; 2026-06-01'de fire edip top-1'i 42.9% → 40.9% düşürdü (tarihsel). Yeniden açılsa artık yalnızca `models/candidates/` altına yazar; canlıya alma yine `ganyan model-gate` + `ganyan model-promote` ister |
+
+İşler yalnızca `GANYAN_SKIP_SCHEDULER` ayarlı değilken kaydedilir.
 
 Hata yakalama: her job hata verirse / kaçırılırsa `job_runs` tablosuna
 yazılır ve macOS bildirim balonu çıkar (`osascript`).
@@ -276,7 +293,8 @@ Her yarış için 4 strateji kaydedilir. **Birincil metrik top-1 isabet
 oranıdır**, ROI değil — payout TJK havuz dinamiklerini (takeout,
 "devren" carry-over, retail davranış) yansıtır, model kalitesini değil.
 
-**Canlı defter (1.841 graded pick, post-birim-fix):**
+**Canlı defter (1.841 graded pick, post-birim-fix; tarihsel — eski
+kod/veri, feature schema 2 altında doğrulanmadı):**
 
 | Strateji | Stake/bilet | Ne | Hit% (top-1) | ROI |
 |---|---|---|---|---|
@@ -331,9 +349,10 @@ açılmamış demektir.
 1. **Pozitif edge yok (2026-04-30 retraction sonrası).** Önceki
    "+583% Üçlü ROI" rakamı per-bilet birim hatasıydı; düzeltilmiş
    defterde tüm 4 stratejinin ROI'ı negatif. Sistem **model
-   doğruluğu** (top-1 hit %37.6) için kullanışlıdır; **gerçek bahis**
+   doğruluğu** (tarihsel top-1 hit %37.6) için kullanışlıdır; **gerçek bahis**
    için değil. Model halka açık verilerden ulaşılabilen tüm sinyalleri
-   sömürmüş durumda; yapısal tavan ~%43 top-1 olarak görünüyor.
+   sömürmüş durumda; yapısal tavan ~%43 top-1 olarak görünüyordu
+   (tarihsel; feature schema 2 altında doğrulanmadı).
 
 2. **Varyans gerçek.** Üçlü Top-1 ~%4 hit oranıyla yaşar. 18 yarışlık
    bir günde sıfır vurma olasılığı ~%48; 34 yarışlık bir günde ~%24.
@@ -388,7 +407,9 @@ src/ganyan/
 │   │   ├── features.py     # LightGBM feature matrisi
 │   │   ├── trainer.py      # eğitim + temporal holdout
 │   │   ├── predictor.py    # MLPredictor (single-head)
-│   │   ├── ensemble.py     # 11-head ensemble (varsayılan tahminci)
+│   │   ├── ensemble.py     # 10-head ensemble (onaylı manifestten)
+│   │   ├── artifacts.py    # aday dizini, hash'li manifest, promote
+│   │   ├── gate.py         # forward OOS geçidi (model-gate)
 │   │   └── linear_ranker.py# Plackett-Luce + conditional-logit baselines
 │   ├── bayes/              # Hierarchical Bayesian PL (skip-gate)
 │   │   ├── trainer.py      # ADVI fit + posterior persist

@@ -4,8 +4,9 @@ Two ways to keep the system running 24/7.  Pick **one**, not both.
 
 ## Option 1 — Web app + scheduler in one process (recommended)
 
-Serves the Flask dashboard on port 5003 *and* runs all four scheduled
-jobs in the same Python process.
+Serves the Flask dashboard on port 5003 *and* runs all six scheduled
+jobs in the same Python process (unless `GANYAN_SKIP_SCHEDULER=1` — see
+Environment flags; `.env.example` sets it).
 
 ```bash
 cp ops/com.ganyan.web.plist ~/Library/LaunchAgents/
@@ -43,10 +44,17 @@ Defined in `src/ganyan/scheduler.py`, times in **Europe/Istanbul**:
 
 | ID | When | What |
 |----|------|------|
-| `morning_card` | 08:30 daily | Scrape today's program, pre-predict every race |
-| `results_poll` | Every 20 min, 13:00–23:59 | Refresh today's finish positions + payouts |
+| `morning_card` | 08:30 daily | Scrape today's program, pre-predict every race, write picks + 6'lı coupons for pools with verified windows |
+| `external_signals` | 09:15 + 18:15 | Run external-data plugins (tipsters, etc.) |
+| `agf_snapshot` | :00/:30, 11:00–23:30 | Record AGF snapshots for the late-drift signal |
+| `repredict_upcoming` | :05/:35, 11:05–23:35 | Re-predict still-upcoming races with current AGF |
+| `results_poll` | Every 20 min, 13:00–23:40 | Refresh today's finish positions + payouts |
 | `pedigree_refresh` | Sun 03:00 | Crawl new horses that gained a tjk_at_id |
-| `monthly_retrain` | 1st of month 03:30 | Retrain main + value models on 90-day window |
+
+`monthly_retrain` (1st of month 03:30) is **disabled** — its registration is
+commented out in `_add_jobs`. If re-enabled it would only write candidates
+under `models/candidates/`; activation still requires `ganyan model-gate` +
+`ganyan model-promote` (see `CLAUDE.md` invariant #7).
 
 All schedules are cron-expressible; edit `_add_jobs` in
 `scheduler.py` to change them.
@@ -57,6 +65,9 @@ All schedules are cron-expressible; edit `_add_jobs` in
   that runs at Flask startup.
 - `GANYAN_SKIP_SCHEDULER=1` — skip the APScheduler embedded in the
   Flask app (useful during dev work).
+
+`.env.example` sets both flags to `1`; enable background work deliberately
+in exactly one process.
 
 Set them in the plist's `EnvironmentVariables` dict if you ever need
 to disable a feature without editing code.
@@ -69,7 +80,7 @@ its own DB session and completes quickly:
 ```bash
 uv run ganyan uclu-picks --date today
 uv run ganyan exotics-backtest --from 2026-01-01 --model ml
-uv run ganyan train              # rolling 90-day window by default
+uv run ganyan train              # rolling 90-day window by default; writes models/candidates/ only
 uv run ganyan crawl horses       # incremental pedigree update
 ```
 

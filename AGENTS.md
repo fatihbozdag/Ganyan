@@ -8,7 +8,7 @@ Ganyan is a Python 3.12+ Turkish horse-racing prediction system. Source lives in
 - `uv build`: build the package using Hatchling.
 - `uv run alembic upgrade head`: apply migrations to the configured database.
 - `uv run ganyan --help`: inspect available CLI commands.
-- `uv run python -c "from ganyan.web.app import run; run()"`: start the dashboard on port 5003; normal startup also runs background work.
+- `uv run python -c "from ganyan.web.app import run; run()"`: start the dashboard on port 5003; startup also runs background work (scheduler, launch refresh) unless disabled via `GANYAN_SKIP_SCHEDULER` / `GANYAN_SKIP_LAUNCH_REFRESH` in `.env` (`.env.example` sets both to 1).
 - `uv run pytest tests/ -v`: run the full test suite.
 - `uv run pytest tests/test_predictor/ -v`: run predictor tests only.
 
