@@ -11,6 +11,7 @@ from flask import Flask
 from sqlalchemy.orm import sessionmaker
 
 from ganyan.config import Settings, get_settings
+from ganyan.time import today as race_today
 from ganyan.db.session import get_session_factory
 
 
@@ -49,7 +50,10 @@ def create_app(
     app = Flask(__name__)
 
     settings = get_settings()
-    app.config["SECRET_KEY"] = "dev"
+    import secrets
+    app.config["SECRET_KEY"] = settings.secret_key or secrets.token_hex(32)
+    from ganyan.web.security import install_write_protection
+    install_write_protection(app, settings)
 
     if session_factory is None:
         session_factory = get_session_factory()
@@ -57,7 +61,7 @@ def create_app(
 
     @app.context_processor
     def inject_today():
-        return {"today": date.today().isoformat()}
+        return {"today": race_today().isoformat()}
 
     # TJK-aligned display names for strategy identifiers
     from ganyan.predictor.terminology import (
@@ -75,16 +79,14 @@ def create_app(
 
     if refresh_on_launch is None:
         refresh_on_launch = (
-            os.environ.get("GANYAN_SKIP_LAUNCH_REFRESH", "").lower()
-            not in {"1", "true", "yes"}
+            not settings.ganyan_skip_launch_refresh
         )
     if refresh_on_launch:
         _start_launch_refresh(settings, refresh_lookback_days)
 
     if enable_scheduler is None:
         enable_scheduler = (
-            os.environ.get("GANYAN_SKIP_SCHEDULER", "").lower()
-            not in {"1", "true", "yes"}
+            not settings.ganyan_skip_scheduler
         )
     if enable_scheduler:
         _start_scheduler(settings)
@@ -129,7 +131,7 @@ def _start_launch_refresh(settings: Settings, lookback_days: int) -> None:
         from ganyan.scraper import TJKClient
         from ganyan.scraper.backfill import BackfillManager
 
-        today = date.today()
+        today = race_today()
         start = today - timedelta(days=lookback_days)
 
         async def _refresh() -> None:
@@ -170,4 +172,4 @@ def run() -> None:
     settings = get_settings()
     logging.basicConfig(level=settings.log_level)
     app = create_app()
-    app.run(host="0.0.0.0", port=settings.flask_port, debug=settings.flask_debug)
+    app.run(host=settings.flask_host, port=settings.flask_port, debug=settings.flask_debug)

@@ -418,7 +418,7 @@ def compute_trainer_win_rate(
         .join(Horse, Horse.id == RaceEntry.horse_id)
         .join(Race, Race.id == RaceEntry.race_id)
         .filter(
-            Horse.trainer == trainer,
+            RaceEntry.trainer_at_race == trainer,
             Race.status == RaceStatus.resulted,
             RaceEntry.finish_position.isnot(None),
         )
@@ -767,9 +767,9 @@ def precompute_agf_reliability_table(
                    r.race_type,
                    r.surface,
                    (SELECT COUNT(*) FROM race_entries e
-                    WHERE e.race_id = r.id) AS n_entries,
+                    WHERE e.race_id = r.id AND NOT e.scratched) AS n_entries,
                    (SELECT e.finish_position FROM race_entries e
-                    WHERE e.race_id = r.id AND e.agf IS NOT NULL
+                    WHERE e.race_id = r.id AND NOT e.scratched AND e.agf IS NOT NULL
                     ORDER BY e.agf DESC NULLS LAST, e.id
                     LIMIT 1) AS agf_top1_finish
             FROM races r
@@ -809,8 +809,18 @@ def lookup_agf_reliability(
     return table.get((race_type, bucket, surface))
 
 
+def _signal_cutoff(session, entry_id, race_id, as_of):
+    from datetime import datetime
+    from ganyan.time import prediction_cutoff
+    if race_id is None and entry_id is not None:
+        entry = session.get(RaceEntry, entry_id)
+        race_id = entry.race_id if entry else None
+    race = session.get(Race, race_id) if race_id is not None else None
+    return prediction_cutoff(race, as_of) if race else datetime.min
+
+
 def compute_steward_report_flag(
-    session: Session, race_id: int | None,
+    session: Session, race_id: int | None, *, as_of=None,
 ) -> float | None:
     """1 when a steward report exists for this race's date+track, else 0.
 
@@ -819,12 +829,14 @@ def compute_steward_report_flag(
     weather disruptions).  Useful as a yes/no without text mining.
     """
     from ganyan.db.models import ExternalSignal
+    as_of = _signal_cutoff(session, None, race_id, as_of)
 
     if race_id is None:
         return None
     found = (
         session.query(ExternalSignal.id)
         .filter(
+            ExternalSignal.captured_at <= as_of,
             ExternalSignal.race_id == race_id,
             ExternalSignal.signal_type == "steward_report",
         )
@@ -846,6 +858,7 @@ def compute_steward_report_flag(
         session.query(ExternalSignal.id)
         .join(Race, ExternalSignal.race_id == Race.id)
         .filter(
+            ExternalSignal.captured_at <= as_of,
             ExternalSignal.source_name == "tjk_steward_reports",
             Race.date == race_date,
         )
@@ -857,15 +870,14 @@ def compute_steward_report_flag(
 def compute_workout_signals(
     session: Session, race_entry_id: int | None,
     race_distance_m: int | None = None,
-    race_date: date_type | None = None,
+    race_date: date_type | None = None, *, as_of=None,
 ) -> tuple[float | None, float | None, float | None]:
     """Three workout-derived features for the entry's horse:
 
     1. ``days_since_workout`` — days between the most recent workout
        and the race date.  Lower = recently trained.  ``None`` until a
        workout is captured, or until ``race_date`` is supplied (the
-       feature requires a temporal anchor — falls back to today when
-       race_date is None for back-compat with live predict callers).
+       feature requires the entry's race date as a temporal anchor).
     2. ``workout_speed_ms`` — meters-per-second on the most recent
        timed split.  Higher = sharper recent work.  Picks the split
        closest to ``race_distance_m`` when provided, else the longest
@@ -878,12 +890,18 @@ def compute_workout_signals(
     'workout_split'`` and the row resolves to this entry.
     """
     from ganyan.db.models import ExternalSignal
+    as_of = _signal_cutoff(session, race_entry_id, None, as_of)
 
     if race_entry_id is None:
         return None, None, None
+    if race_date is None:
+        entry = session.get(RaceEntry, race_entry_id)
+        race = session.get(Race, entry.race_id) if entry else None
+        race_date = race.date if race else None
     rows = (
         session.query(ExternalSignal.value, ExternalSignal.payload)
         .filter(
+            ExternalSignal.captured_at <= as_of,
             ExternalSignal.race_entry_id == race_entry_id,
             ExternalSignal.signal_type == "workout_split",
         )
@@ -907,6 +925,8 @@ def compute_workout_signals(
             wd = None
         if wd is None:
             continue
+        if race_date is not None and wd >= race_date:
+            continue
         workout_dates.add(wd)
         if most_recent_date is None or wd > most_recent_date:
             most_recent_date = wd
@@ -921,10 +941,10 @@ def compute_workout_signals(
             best_split = (dist, float(value))
             best_date = wd
         else:
-            # Prefer smaller distance gap; on tie prefer fresher date.
+            # Prefer the newest workout, then the closest split distance.
             curr_dist, _ = best_split
             curr_gap = abs(curr_dist - target_distance)
-            if gap < curr_gap or (gap == curr_gap and wd > best_date):
+            if wd > best_date or (wd == best_date and gap < curr_gap):
                 best_split = (dist, float(value))
                 best_date = wd
 
@@ -945,7 +965,7 @@ def compute_workout_signals(
 
 
 def compute_jockey_discipline_flag(
-    session: Session, race_entry_id: int | None,
+    session: Session, race_entry_id: int | None, *, as_of=None,
 ) -> float | None:
     """1 when this entry's listed jockey is on TJK's reported or penalized
     list with an active discipline window covering the race date; else 0.
@@ -959,6 +979,7 @@ def compute_jockey_discipline_flag(
     "I don't know" distinguishable from "I know there's no flag".
     """
     from ganyan.db.models import ExternalSignal
+    as_of = _signal_cutoff(session, race_entry_id, None, as_of)
 
     if race_entry_id is None:
         return None
@@ -968,6 +989,7 @@ def compute_jockey_discipline_flag(
     q = (
         session.query(ExternalSignal.id)
         .filter(
+            ExternalSignal.captured_at <= as_of,
             ExternalSignal.race_entry_id == race_entry_id,
             ExternalSignal.source_name == "tjk_discipline",
         )
@@ -994,6 +1016,7 @@ def compute_jockey_discipline_flag(
         .join(RaceEntry, ExternalSignal.race_entry_id == RaceEntry.id)
         .join(Race, RaceEntry.race_id == Race.id)
         .filter(
+            ExternalSignal.captured_at <= as_of,
             ExternalSignal.source_name == "tjk_discipline",
             Race.date == entry_race_date,
         )
@@ -1005,7 +1028,7 @@ def compute_jockey_discipline_flag(
 
 
 def compute_tipster_consensus(
-    session: Session, race_entry_id: int | None,
+    session: Session, race_entry_id: int | None, *, as_of=None,
 ) -> float | None:
     """Count distinct tipster tickets that picked this entry.
 
@@ -1019,12 +1042,14 @@ def compute_tipster_consensus(
     handling at the model level.
     """
     from ganyan.db.models import ExternalSignal
+    as_of = _signal_cutoff(session, race_entry_id, None, as_of)
 
     if race_entry_id is None:
         return None
     rows = (
         session.query(ExternalSignal.payload)
         .filter(
+            ExternalSignal.captured_at <= as_of,
             ExternalSignal.race_entry_id == race_entry_id,
             ExternalSignal.signal_type == "tipster_pick",
         )
@@ -1044,7 +1069,7 @@ def compute_tipster_consensus(
 
 
 def compute_late_program_changes(
-    session: Session, race_entry_id: int | None,
+    session: Session, race_entry_id: int | None, *, as_of=None,
 ) -> tuple[float | None, float | None, float | None]:
     """Detect late jockey / equipment / gate changes for an entry.
 
@@ -1067,15 +1092,16 @@ def compute_late_program_changes(
     per entry; until then all three return ``None``.
     """
     from ganyan.db.models import AgfSnapshot
+    as_of = _signal_cutoff(session, race_entry_id, None, as_of)
 
     if race_entry_id is None:
         return None, None, None
     rows = (
         session.query(
             AgfSnapshot.jockey, AgfSnapshot.equipment,
-            AgfSnapshot.gate_number, AgfSnapshot.taken_at,
+            AgfSnapshot.start_gate, AgfSnapshot.taken_at,
         )
-        .filter(AgfSnapshot.race_entry_id == race_entry_id)
+        .filter(AgfSnapshot.race_entry_id == race_entry_id, AgfSnapshot.taken_at <= as_of)
         .order_by(AgfSnapshot.taken_at.asc())
         .all()
     )
@@ -1103,7 +1129,7 @@ def compute_late_program_changes(
 
 
 def compute_late_agf_drift(
-    session: Session, race_entry_id: int | None,
+    session: Session, race_entry_id: int | None, *, as_of=None,
 ) -> float | None:
     """AGF drift between the earliest and latest snapshot for an entry.
 
@@ -1115,12 +1141,13 @@ def compute_late_agf_drift(
     race over the course of a day.
     """
     from ganyan.db.models import AgfSnapshot
+    as_of = _signal_cutoff(session, race_entry_id, None, as_of)
 
     if race_entry_id is None:
         return None
     rows = (
         session.query(AgfSnapshot.agf, AgfSnapshot.taken_at)
-        .filter(AgfSnapshot.race_entry_id == race_entry_id)
+        .filter(AgfSnapshot.race_entry_id == race_entry_id, AgfSnapshot.taken_at <= as_of)
         .order_by(AgfSnapshot.taken_at.asc())
         .all()
     )
@@ -1248,6 +1275,7 @@ def extract_features(
     agf_reliability: float | None = None,
     race_entry_id: int | None = None,
     race_id_for_signals: int | None = None,
+    as_of=None,
 ) -> HorseFeatures:
     features = HorseFeatures(
         speed_figure=compute_speed_figure(eid_seconds, distance_meters),
@@ -1263,27 +1291,27 @@ def extract_features(
         agf_reliability=agf_reliability,
     )
     if session is not None:
-        features.late_agf_drift = compute_late_agf_drift(session, race_entry_id)
+        features.late_agf_drift = compute_late_agf_drift(session, race_entry_id, as_of=as_of)
         (
             features.late_jockey_change,
             features.late_equipment_change,
             features.late_gate_change,
-        ) = compute_late_program_changes(session, race_entry_id)
+        ) = compute_late_program_changes(session, race_entry_id, as_of=as_of)
         features.tipster_consensus = compute_tipster_consensus(
-            session, race_entry_id,
+            session, race_entry_id, as_of=as_of,
         )
         features.jockey_discipline_flag = compute_jockey_discipline_flag(
-            session, race_entry_id,
+            session, race_entry_id, as_of=as_of,
         )
         (
             features.days_since_workout,
             features.workout_speed_ms,
             features.n_workouts_recent,
         ) = compute_workout_signals(
-            session, race_entry_id, distance_meters, race_date=race_date,
+            session, race_entry_id, distance_meters, race_date=race_date, as_of=as_of,
         )
         features.steward_report_flag = compute_steward_report_flag(
-            session, race_id_for_signals,
+            session, race_id_for_signals, as_of=as_of,
         )
         features.jockey_win_rate = compute_jockey_win_rate(
             session, jockey, before_date=race_date,

@@ -22,6 +22,7 @@ from typing import Callable, Iterable
 from sqlalchemy.orm import Session
 
 from ganyan.db.models import Race, RaceEntry, RaceStatus
+from ganyan.predictor.settlement import winning_payout
 from ganyan.predictor.bayesian import BayesianPredictor
 from ganyan.predictor.exotics import (
     Combo, dortlu_probabilities, ganyan_probabilities,
@@ -147,9 +148,13 @@ def evaluate_pool(
         ticket_stake_tl``; only races where the pool published a payout
         participate in the stake total.
     """
+    if top_n < 1:
+        raise ValueError("top_n must be positive")
     if pool not in _COMBO_FUNCS:
         raise ValueError(f"unknown pool: {pool!r}")
 
+    if ticket_stake_tl <= 0:
+        raise ValueError("ticket_stake_tl must be positive")
     predictor_factory = predictor_factory or (lambda s: BayesianPredictor(s))
     predictor = predictor_factory(session)
 
@@ -183,10 +188,10 @@ def evaluate_pool(
             continue
 
         hit = any(_combo_matches(c, actual, pool) for c in combos)
-        stake = ticket_stake_tl * top_n
+        stake = ticket_stake_tl * len(combos)
         payout = getattr(race, payout_col)
 
-        if hit and payout is None:
+        if payout is None:
             # We "won" but TJK didn't publish a payout for this pool —
             # means our data is incomplete, so skip rather than inflate.
             result.misses_without_payout += 1
@@ -198,7 +203,7 @@ def evaluate_pool(
             result.hits += 1
             # Payout column is TL per 1 TL ticket on the winning combo.
             # We bought one winning ticket out of our top_n.
-            result.total_payout_tl += float(payout) * ticket_stake_tl
+            result.total_payout_tl += winning_payout(pool, float(payout), ticket_stake_tl)
 
         if detail:
             result.per_race.append({
@@ -232,6 +237,10 @@ def evaluate_all_pools(
     """
     pools = list(pools)
     top_ns = sorted(set(top_ns))
+    if not top_ns or min(top_ns) < 1 or any(p not in _COMBO_FUNCS for p in pools):
+        raise ValueError("Valid pools and positive top_ns are required")
+    if ticket_stake_tl <= 0:
+        raise ValueError("ticket_stake_tl must be positive")
     predictor_factory = predictor_factory or (lambda s: BayesianPredictor(s))
     predictor = predictor_factory(session)
 
@@ -280,15 +289,15 @@ def evaluate_all_pools(
                 hit = any(_combo_matches(c, actual, pool) for c in combos)
                 result = results[(pool, top_n)]
 
-                if hit and payout is None:
+                if payout is None:
                     result.misses_without_payout += 1
                     continue
 
                 result.races += 1
-                stake = ticket_stake_tl * top_n
+                stake = ticket_stake_tl * len(combos)
                 result.total_stake_tl += stake
                 if hit:
                     result.hits += 1
-                    result.total_payout_tl += float(payout) * ticket_stake_tl
+                    result.total_payout_tl += winning_payout(pool, float(payout), ticket_stake_tl)
 
     return [results[(p, n)] for p in pools for n in top_ns]

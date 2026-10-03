@@ -20,6 +20,7 @@ from ganyan.db.models import (
     Track,
 )
 from ganyan.scraper.parser import ParsedRaceCard
+from ganyan.time import utcnow, race_cutoff
 
 
 def _record_agf_snapshot(
@@ -39,12 +40,17 @@ def _record_agf_snapshot(
     equipment changes that the static program field misses.
     """
     agf = getattr(h, "agf", None)
+    race = session.get(Race, entry.race_id)
+    if race is None or utcnow() >= race_cutoff(race):
+        return
     if agf is None or entry.id is None:
         return
     session.add(
         AgfSnapshot(
             race_entry_id=entry.id,
             agf=float(agf),
+            taken_at=utcnow(),
+            start_gate=getattr(h, "start_gate", None),
             jockey=getattr(h, "jockey", None),
             equipment=getattr(h, "equipment", None),
             gate_number=getattr(h, "gate_number", None),
@@ -116,7 +122,7 @@ def get_or_create_horse(session: Session, name: str, **kwargs) -> Horse:
 
 
 _ENTRY_REFRESH_FIELDS = (
-    "gate_number", "jockey", "weight_kg", "hp", "kgs",
+    "gate_number", "start_gate", "jockey", "weight_kg", "hp", "kgs",
     "s20", "eid", "gny", "agf", "last_six", "equipment",
     "plase_payout_tl",
 )
@@ -129,6 +135,10 @@ def _refresh_entry_fields(existing: RaceEntry, h) -> None:
     result data so callers that pass result-enriched cards through this path
     (rather than ``update_race_results``) don't silently lose the results.
     """
+    if h.age is not None:
+        existing.age_at_race = h.age
+    if h.trainer is not None:
+        existing.trainer_at_race = h.trainer
     for field in _ENTRY_REFRESH_FIELDS:
         value = getattr(h, field, None)
         if value is not None:
@@ -167,6 +177,19 @@ def _fetch_horses_by_names(session: Session, names: list[str]) -> dict[str, Hors
         cache.pop(name, None)
     return cache
 
+
+
+def _refresh_race_conditions(race, parsed):
+    changes = {}
+    for field in ("post_time", "distance_meters", "surface", "race_type", "horse_type", "weight_rule"):
+        value = getattr(parsed, field, None)
+        old = getattr(race, field)
+        if value is not None and value != old:
+            changes[field] = {"before": old, "after": value}
+            setattr(race, field, value)
+    if changes:
+        race.conditions_history = [*(race.conditions_history or []),
+                                   {"observed_at": utcnow().isoformat(), "changes": changes}]
 
 def store_race_card(session: Session, parsed: ParsedRaceCard) -> Race:
     """Persist a ParsedRaceCard to the database.
@@ -212,10 +235,7 @@ def store_race_card(session: Session, parsed: ParsedRaceCard) -> Race:
         session.add(race)
         session.flush()
     else:
-        # Backfill race-level fields that weren't available on a prior scrape
-        # (e.g. older scrape that didn't capture post_time).
-        if parsed.post_time is not None and not race.post_time:
-            race.post_time = parsed.post_time
+        _refresh_race_conditions(race, parsed)
 
     # Batch-load all existing entries for this race to avoid per-horse queries.
     existing_entries = {
@@ -228,6 +248,8 @@ def store_race_card(session: Session, parsed: ParsedRaceCard) -> Race:
 
     for h in parsed.horses:
         horse = horse_cache.get(h.name)
+        if h.tjk_at_id is not None and (horse is None or horse.tjk_at_id != h.tjk_at_id):
+            horse = None
         if horse is None:
             horse = get_or_create_horse(
                 session,
@@ -257,6 +279,9 @@ def store_race_card(session: Session, parsed: ParsedRaceCard) -> Race:
             race_id=race.id,
             horse_id=horse.id,
             gate_number=h.gate_number,
+            start_gate=h.start_gate,
+            age_at_race=h.age,
+            trainer_at_race=h.trainer,
             jockey=h.jockey,
             weight_kg=h.weight_kg,
             hp=h.hp,
@@ -360,6 +385,7 @@ def store_historical_race(session: Session, parsed: ParsedRaceCard) -> Race:
         session.add(race)
         session.flush()
     else:
+        _refresh_race_conditions(race, parsed)
         # Upgrade status if the race already existed as scheduled
         if race.status != RaceStatus.resulted:
             race.status = RaceStatus.resulted
@@ -388,6 +414,8 @@ def store_historical_race(session: Session, parsed: ParsedRaceCard) -> Race:
 
     for h in parsed.horses:
         horse = horse_cache.get(h.name)
+        if h.tjk_at_id is not None and (horse is None or horse.tjk_at_id != h.tjk_at_id):
+            horse = None
         if horse is None:
             horse = get_or_create_horse(
                 session,
@@ -417,6 +445,9 @@ def store_historical_race(session: Session, parsed: ParsedRaceCard) -> Race:
             race_id=race.id,
             horse_id=horse.id,
             gate_number=h.gate_number,
+            start_gate=h.start_gate,
+            age_at_race=h.age,
+            trainer_at_race=h.trainer,
             jockey=h.jockey,
             weight_kg=h.weight_kg,
             hp=h.hp,
@@ -490,6 +521,10 @@ def update_race_results(session: Session, parsed: ParsedRaceCard) -> Race | None
 
     for h in parsed.horses:
         horse = horse_cache.get(h.name)
+        if h.tjk_at_id is not None and (horse is None or horse.tjk_at_id != h.tjk_at_id):
+            horse = None
+        if horse is None and h.tjk_at_id is not None:
+            horse = session.query(Horse).filter(Horse.tjk_at_id == h.tjk_at_id).first()
         if horse is None:
             continue
         entry = entries_by_horse.get(horse.id)

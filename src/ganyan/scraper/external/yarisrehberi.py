@@ -28,6 +28,7 @@ data-quality caveat tracked in the feature pipeline.
 from __future__ import annotations
 
 import logging
+from ganyan.time import utcnow
 import re
 from datetime import date as date_type, datetime
 from typing import ClassVar
@@ -74,7 +75,7 @@ class YarisRehberiTipsterSource(ExternalSource):
                 resp.raise_for_status()
         except (httpx.HTTPError, httpx.TimeoutException) as exc:
             logger.warning("yarisrehberi fetch failed: %s", exc)
-            return []
+            raise
 
         return self._parse(resp.text, target_date)
 
@@ -103,7 +104,7 @@ class YarisRehberiTipsterSource(ExternalSource):
             return []
 
         rows: list[ExternalSignalRow] = []
-        captured_at = datetime.now()
+        captured_at = utcnow()
 
         # Tickets group into parent containers; the simplest heuristic
         # that survives markup churn is: find every ``Koşu`` heading,

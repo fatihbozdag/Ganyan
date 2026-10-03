@@ -43,7 +43,7 @@ def _seed_minimal_race(s):
     race = Race(
         track_id=track.id,
         date=date(2026, 5, 2),
-        race_number=1,
+        race_number=1, post_time="14:00",
         distance_meters=1400,
         surface="çim",
         status=RaceStatus.scheduled,

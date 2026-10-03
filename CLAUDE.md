@@ -1,5 +1,21 @@
 # CLAUDE.md
 
+## Current operational rules (2026-09-18; supersede older examples below)
+
+Read `docs/audit-2026-09-18/ROLLOUT.md` and `REPAIR_STATUS.md` before training or deployment.
+Apply migration `f3a4b5c6d7e8` before running this checkout. Historical accuracy claims below
+need revalidation under feature schema 2. Do not fabricate missing training provenance.
+Training defaults to `models/candidates/`; inference uses an explicit hashed manifest,
+not directory globbing. `ganyan model-gate` checks a forward window of at least 365 observed
+days / 1500 paired races, +1 percentage point top-1 lift and paired McNemar p < .05.
+`ganyan model-promote` verifies exact artifacts and code before atomic activation.
+Do not copy candidate files over production. GUI feature exclusions use the supported CLI
+option, and GUI startup no longer installs dependencies; use `uv sync --all-extras`.
+Unknown physical draw, historical trainer/age and unavailable pre-race signals stay missing.
+Remote mutations require `MUTATION_TOKEN`; local browser writes require CSRF. Background
+jobs are disabled in `.env.example` until the operator deliberately enables one scheduler.
+
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
@@ -64,8 +80,7 @@ launchctl kickstart -k gui/$(id -u)/com.ganyan.web
 # from a terminal shell inside the repo.
 
 # Launch the desktop GUI (CustomTkinter, GanyanGUI/ — untracked)
-# GOTCHA: GanyanGUI/main.py auto-pip-installs missing deps via a Tk dialog, including
-# psycopg2-binary which conflicts with the project's psycopg3 — it can mutate the venv.
+# GUI startup checks dependencies; it does not install packages.
 # Proper GUI deps live in the `gui` extra (customtkinter, matplotlib, openpyxl).
 bash run_gui.sh
 

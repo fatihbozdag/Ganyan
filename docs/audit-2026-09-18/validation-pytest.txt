@@ -1,0 +1,20 @@
+s....................................................................... [ 23%]
+........................................................................ [ 47%]
+........................................................................ [ 71%]
+........................................................................ [ 95%]
+..............                                                           [100%]
+=============================== warnings summary ===============================
+tests/test_audit_regressions.py: 5 warnings
+tests/test_predictor/test_ml/test_external_signals_at_predict.py: 1 warning
+tests/test_predictor/test_ml/test_leakage.py: 3 warnings
+tests/test_predictor/test_ml/test_ml_pipeline.py: 100 warnings
+tests/test_web/test_routes.py: 4 warnings
+  /Users/fatihbozdag/Downloads/Cursor-Projects/ganyan/.venv/lib/python3.14/site-packages/sqlalchemy/engine/default.py:952: DeprecationWarning: The default date adapter is deprecated as of Python 3.12; see the sqlite3 documentation for suggested replacement recipes
+    cursor.execute(statement, parameters)
+
+tests/test_scraper/test_horse_crawler.py::test_crawl_skips_already_profiled
+  /Users/fatihbozdag/Downloads/Cursor-Projects/ganyan/tests/test_scraper/test_horse_crawler.py:112: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    profile_crawled_at=dt.utcnow(),
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+301 passed, 1 skipped, 114 warnings in 19.78s

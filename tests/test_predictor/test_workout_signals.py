@@ -90,7 +90,7 @@ def test_days_since_workout_anchored_to_race_date(session):
     )
 
 
-def test_days_since_workout_falls_back_to_today_when_race_date_missing(session):
+def test_same_day_unverified_workout_is_excluded(session):
     """Live predict callers that don't yet pass race_date keep working."""
     today = date.today()
     entry = _seed_entry_with_workout(
@@ -106,4 +106,4 @@ def test_days_since_workout_falls_back_to_today_when_race_date_missing(session):
         session, entry.id, race_distance_m=1400,
     )
 
-    assert days_since_explicit == days_since_default == 0.0
+    assert days_since_explicit is None and days_since_default is None

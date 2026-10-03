@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 
+from ganyan.time import today as race_today, utcnow, is_upcoming
 from flask import (
     Blueprint,
     abort,
@@ -125,7 +126,7 @@ def index():
 
     settings = get_settings()
     session = _get_session()
-    today = date.today()
+    today = race_today()
     try:
         today_races = (
             session.query(Race)
@@ -320,7 +321,7 @@ def predict_race(race_id: int):
         try:
             ens_predictor = EnsemblePredictor(session)
             ens_preds = ens_predictor.predict(race_id)
-            n_heads = len(ens_predictor.models)
+            n_heads = len(ens_preds[0].by_model) if ens_preds else 0
             for ep in ens_preds:
                 ensemble_by_horse[ep.horse_id] = {
                     "convergence_top1": ep.convergence_top1,
@@ -604,7 +605,7 @@ def scrape_today():
             async with TJKClient(
                 base_url=settings.tjk_base_url, delay=settings.scrape_delay
             ) as client:
-                raw_cards = await client.get_race_card(date.today())
+                raw_cards = await client.get_race_card(race_today())
                 return raw_cards
 
         raw_cards = asyncio.run(_do_scrape())
@@ -618,7 +619,7 @@ def scrape_today():
         for raw in raw_cards:
             parsed = parse_race_card(raw)
             store_race_card(session, parsed)
-            log_scrape(session, date.today(), parsed.track_name, ScrapeStatus.success)
+            log_scrape(session, race_today(), parsed.track_name, ScrapeStatus.success)
         session.commit()
 
         msg = f"{len(raw_cards)} yarış kartı kaydedildi."
@@ -628,7 +629,7 @@ def scrape_today():
         # Reload today's races for the template
         today_races = (
             session.query(Race)
-            .filter(Race.date == date.today())
+            .filter(Race.date == race_today())
             .order_by(Race.race_number)
             .all()
         )
@@ -661,13 +662,14 @@ def scrape_today():
 
 @bp.route("/predict/today", methods=["POST"])
 def predict_today():
-    from ganyan.predictor.ml import MLPredictor
+    from ganyan.predictor.ml.ensemble import EnsemblePredictor
+    from ganyan.predictor.picks import generate_picks_for_race
 
     session = _get_session()
     try:
         today_races = (
             session.query(Race)
-            .filter(Race.date == date.today())
+            .filter(Race.date == race_today())
             .order_by(Race.race_number)
             .all()
         )
@@ -680,10 +682,13 @@ def predict_today():
                 "index.html", today_races=[], recent_races=[], message=msg,
             )
 
-        predictor = MLPredictor(session)
+        predictor = EnsemblePredictor(session)
         count = 0
         for race in today_races:
+            if not is_upcoming(race, margin_minutes=5):
+                continue
             predictor.predict_and_save(race.id)
+            generate_picks_for_race(session, race.id, refresh=True)
             count += 1
         session.commit()
 
@@ -694,7 +699,7 @@ def predict_today():
         # Reload for template
         today_races = (
             session.query(Race)
-            .filter(Race.date == date.today())
+            .filter(Race.date == race_today())
             .order_by(Race.race_number)
             .all()
         )
@@ -775,7 +780,7 @@ def scrape_history():
 
         today_races = (
             session.query(Race)
-            .filter(Race.date == date.today())
+            .filter(Race.date == race_today())
             .order_by(Race.race_number)
             .all()
         )
@@ -827,7 +832,7 @@ def scrape_results():
             async with TJKClient(
                 base_url=settings.tjk_base_url, delay=settings.scrape_delay
             ) as client:
-                return await client.get_race_results(date.today())
+                return await client.get_race_results(race_today())
 
         raw_results = asyncio.run(_do_scrape())
 
@@ -987,12 +992,12 @@ def ops_health():
         failures = (
             session.query(func.count(JobRun.id))
             .filter(JobRun.status == "failed")
-            .filter(JobRun.started_at >= datetime.utcnow().replace(
-                hour=0, minute=0, second=0, microsecond=0,
-            ))
+            .filter(JobRun.started_at >= utcnow() - timedelta(hours=24))
             .scalar()
         ) or 0
-        health = _compute_health(last_scrape, last_result, None, failures)
+        from ganyan.db.models import Prediction
+        last_prediction = session.query(func.max(Prediction.predicted_at)).scalar()
+        health = _compute_health(last_scrape, last_result, last_prediction, failures)
         status_code = 200 if health["status"] == "ok" else 503
         return jsonify({
             "status": health["status"],
@@ -1009,13 +1014,20 @@ def _compute_health(
     last_scrape, last_result_date, last_prediction_at, failure_count_24h,
 ) -> dict:
     """Build a small status payload: ok / warn / fail + reasons."""
-    today = date.today()
+    today = race_today()
     reasons: list[str] = []
 
     if last_scrape is None or (today - last_scrape).days > 1:
         reasons.append("no race scraped today or yesterday")
-    if last_result_date is not None and (today - last_result_date).days > 1:
+    if last_result_date is None or (today - last_result_date).days > 1:
         reasons.append("no race results pulled in 48h")
+    if last_prediction_at is None:
+        reasons.append("no recorded predictions")
+    else:
+        from ganyan.time import local_now
+        max_age_minutes = 60 if 11 <= local_now().hour <= 23 else 24 * 60
+        if (utcnow() - last_prediction_at).total_seconds() > max_age_minutes * 60:
+            reasons.append("recorded predictions are stale")
     if failure_count_24h > 0:
         reasons.append(f"{failure_count_24h} scheduled-job failure(s) today")
 
@@ -1051,10 +1063,10 @@ def live_sheet():
     try:
         target = (
             datetime.strptime(target_str, "%Y-%m-%d").date()
-            if target_str else date.today()
+            if target_str else race_today()
         )
     except ValueError:
-        target = date.today()
+        target = race_today()
 
     session = _get_session()
     try:
@@ -1327,10 +1339,10 @@ def advice_dashboard():
     trip_wire_bypass = request.args.get("bypass", "0") in ("1", "true")
     try:
         target_date = (
-            _dt.strptime(date_str, "%Y-%m-%d").date() if date_str else date.today()
+            _dt.strptime(date_str, "%Y-%m-%d").date() if date_str else race_today()
         )
     except ValueError:
-        target_date = date.today()
+        target_date = race_today()
 
     def _cohort_skip_reason(race) -> str | None:
         rt = (race.race_type or "")
@@ -1383,16 +1395,16 @@ def advice_dashboard():
                 from ganyan.predictor.pace import (
                     build_horse_pace_history, compute_pace_baseline,
                 )
-                variants = compute_track_variants(session, to_date=target_date)
+                variants = compute_track_variants(session, to_date=target_date - timedelta(days=1))
                 bayes_speed_history = build_horse_speed_history(
-                    session, variants, to_date=target_date,
+                    session, variants, to_date=target_date - timedelta(days=1),
                 )
                 bayes_workout_history = build_horse_workout_history(
                     session, to_date=target_date,
                 )
-                pace_baseline = compute_pace_baseline(session, to_date=target_date)
+                pace_baseline = compute_pace_baseline(session, to_date=target_date - timedelta(days=1))
                 bayes_pace_history = build_horse_pace_history(
-                    session, pace_baseline, to_date=target_date,
+                    session, pace_baseline, to_date=target_date - timedelta(days=1),
                 )
             except Exception as e:  # noqa: BLE001
                 bayes_load_error = f"history build failed: {e}"
@@ -1405,9 +1417,10 @@ def advice_dashboard():
         from ganyan.predictor.speed_figures import horse_speed_score
         from ganyan.predictor.workouts import horse_workout_score
         from ganyan.predictor.pace import horse_pace_score
-        entries = list(race.entries)
+        entries = [e for e in race.entries if not e.scratched]
         if len(entries) < 3:
             return None
+        from ganyan.time import prediction_cutoff
         race_in = {
             "horse_ids": [e.horse_id for e in entries],
             "horse_names": [
@@ -1420,25 +1433,25 @@ def advice_dashboard():
             "track_id": race.track_id,
             "distance_meters": race.distance_meters or 0,
             "agfs": [
-                float(e.agf) if e.agf is not None else 0.0 for e in entries
+                float(e.agf) if e.agf is not None else None for e in entries
             ],
             "kgss": [
-                float(e.kgs) if e.kgs is not None else 0.0 for e in entries
+                float(e.kgs) if e.kgs is not None else None for e in entries
             ],
             "s20s": [
-                float(e.s20) if e.s20 is not None else 0.0 for e in entries
+                float(e.s20) if e.s20 is not None else None for e in entries
             ],
             "last_sixes": [e.last_six or "" for e in entries],
             "speeds": [
-                horse_speed_score(bayes_speed_history, e.horse_id, race.date) or 0.0
+                horse_speed_score(bayes_speed_history, e.horse_id, race.date)
                 for e in entries
             ],
             "workouts": [
-                horse_workout_score(bayes_workout_history, e.horse_id, race.date) or 0.0
+                horse_workout_score(bayes_workout_history, e.horse_id, race.date, as_of=prediction_cutoff(race))
                 for e in entries
             ],
             "paces": [
-                horse_pace_score(bayes_pace_history, e.horse_id, race.date) or 0.0
+                horse_pace_score(bayes_pace_history, e.horse_id, race.date)
                 for e in entries
             ],
         }
@@ -1758,6 +1771,13 @@ def advice_dashboard():
             "n_with_hit": n_with_hit,
         }
 
+        halt_state = halt_flag.is_halted()
+        if halt_state:
+            for row in races_with_picks:
+                for pick_row in row["picks"]:
+                    pick_row["stake_tl"] = None
+                    pick_row["kelly_tl"] = None
+
         if _wants_json():
             return jsonify({
                 "date": str(target_date),
@@ -1854,7 +1874,7 @@ def multi_picks_page():
     target_qs = request.args.get("date")
     target = (
         datetime.strptime(target_qs, "%Y-%m-%d").date()
-        if target_qs else date.today()
+        if target_qs else race_today()
     )
 
     try:
@@ -2036,7 +2056,7 @@ def bet_picks_page():
     target_qs = request.args.get("date")
     target = (
         datetime.strptime(target_qs, "%Y-%m-%d").date()
-        if target_qs else date.today()
+        if target_qs else race_today()
     )
 
     session = _get_session()

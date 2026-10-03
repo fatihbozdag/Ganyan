@@ -29,6 +29,7 @@ from ganyan.predictor.features import (
     compute_field_pace_density, extract_features,
     lookup_agf_reliability, precompute_agf_reliability_table,
 )
+from ganyan.time import prediction_cutoff, race_cutoff
 from ganyan.scraper.parser import parse_eid_to_seconds, parse_last_six
 
 
@@ -204,176 +205,28 @@ def build_training_frame(
         q = q.filter(Race.race_type.like(f"{race_type_prefix}%"))
 
     candidate_races = q.order_by(Race.date.asc(), Race.race_number.asc()).all()
-    # AGF-reliability regime tables, one per race DATE (cached), each
-    # with before_date = that date.  Mirrors the inference path exactly
-    # (build_race_frame uses before_date=race.date).  The old single
-    # snapshot at the window's earliest date was leak-free but
-    # systematically STALER than what the model sees at serve time — a
-    # train/serve distribution shift on a top-importance feature.
-    reliability_tables_by_date: dict = {}
-
     rows: list[dict] = []
     for race in candidate_races:
-        entries = [
-            e for e in race.entries
-            if e.finish_position is not None
-        ]
-        if len(entries) < min_field_size:
+        entries = [e for e in race.entries if not e.scratched]
+        # Never train on a partial result field or label the best remaining
+        # finisher as the winner when the actual winner is absent.
+        if len(entries) < min_field_size or any(e.finish_position is None for e in entries):
+            continue
+        if not any(e.finish_position == 1 for e in entries):
             continue
         if require_agf and not any(e.agf is not None for e in entries):
             continue
-
-        weights = [float(e.weight_kg) for e in entries if e.weight_kg is not None]
-        hps = [float(e.hp) for e in entries if e.hp is not None]
-        s20s = [float(e.s20) for e in entries if e.s20 is not None]
-        # Match the bayesian predictor: relative features (class_indicator,
-        # s20_edge, weight_delta) need at least half the field covered or
-        # the "average" is a 1–2 horse fluke.
-        cov = max(2, int(len(entries) * 0.5))
-        field_avg_weight = sum(weights) / len(weights) if len(weights) >= cov else None
-        field_avg_hp = sum(hps) / len(hps) if len(hps) >= cov else None
-        field_avg_s20 = sum(s20s) / len(s20s) if len(s20s) >= cov else None
-        field_size = len(entries)
-        # Compute race-level pace density once per race from every
-        # horse's last_six string — same for every row in this race.
-        pace_density = compute_field_pace_density(
-            [parse_last_six(e.last_six) for e in entries]
-        )
-        reliability_table = reliability_tables_by_date.get(race.date)
-        if reliability_table is None:
-            reliability_table = precompute_agf_reliability_table(
-                session, before_date=race.date,
-            )
-            reliability_tables_by_date[race.date] = reliability_table
-        agf_reliability = lookup_agf_reliability(
-            reliability_table, race.race_type, field_size, race.surface,
-        )
-
-        for entry in entries:
-            # Skip obvious sentinel finish values (DNF / scratched rows that
-            # TJK marks with positions way outside the real field size).
-            # LightGBM LambdaRank rejects negative labels, so any horse
-            # whose recorded finish_position exceeds the field size would
-            # otherwise produce rank_score < 0 and kill the train job.
-            if entry.finish_position > field_size:
-                continue
-            trainer_name = entry.horse.trainer if entry.horse else None
-            sire_name = entry.horse.sire if entry.horse else None
-            dam_name = entry.horse.dam if entry.horse else None
-            features = extract_features(
-                eid_seconds=parse_eid_to_seconds(entry.eid),
-                distance_meters=race.distance_meters,
-                last_six_parsed=parse_last_six(entry.last_six),
-                weight_kg=float(entry.weight_kg) if entry.weight_kg is not None else None,
-                field_avg_weight=field_avg_weight,
-                kgs=int(entry.kgs) if entry.kgs is not None else None,
-                hp=float(entry.hp) if entry.hp is not None else None,
-                field_avg_hp=field_avg_hp,
-                s20=float(entry.s20) if entry.s20 is not None else None,
-                field_avg_s20=field_avg_s20,
-                session=session,
-                jockey=entry.jockey,
-                trainer=trainer_name,
-                horse_id=entry.horse_id,
-                gate_number=entry.gate_number,
-                surface=race.surface,
-                race_date=race.date,
-                agf=float(entry.agf) if entry.agf is not None else None,
-                field_size=field_size,
-                sire=sire_name,
-                dam=dam_name,
-                track_id=race.track_id,
-                equipment=entry.equipment,
-                field_pace_density=pace_density,
-                agf_reliability=agf_reliability,
-                race_entry_id=entry.id,
-                race_id_for_signals=race.id,
-            )
-            # Finish-time target: this horse's actual recorded time in
-            # seconds.  Same TJK string format as EID — minutes.seconds.
-            # hundredths.  None when the entry has no finish_time row
-            # (DNF / scratched / missing data); regression head drops
-            # those rows at training.
+        frame = build_race_frame(session, race.id, as_of=race_cutoff(race))
+        by_horse = {e.horse_id: e for e in entries}
+        for record in frame.to_dict("records"):
+            entry = by_horse[record.pop("horse_id")]
             finish_seconds = parse_eid_to_seconds(entry.finish_time)
-
-            # EV target: realised return per 1-TL flat bet on this horse.
-            # For the winner of a parimutuel ganyan pool, the payout per 1
-            # TL bet is ``race.ganyan_payout_tl`` (already net of takeout
-            # at TJK).  Net return is therefore ``payout - 1``.  Losers
-            # forfeit the stake → return = -1.  When the actual payout
-            # row is missing, fall back to the AGF-implied payout
-            # ``100 / agf`` so we still get a usable (if noisier) target
-            # for early-window races where TJK didn't publish the pool.
-            if entry.finish_position == 1:
-                if race.ganyan_payout_tl is not None:
-                    ev_value = float(race.ganyan_payout_tl) - 1.0
-                elif entry.agf is not None and float(entry.agf) > 0:
-                    ev_value = (100.0 / float(entry.agf)) - 1.0
-                else:
-                    ev_value = np.nan
-            else:
-                ev_value = -1.0
-
-            rows.append({
-                GROUP_COLUMN: race.id,
-                "race_date": race.date,
-                "finish_position": entry.finish_position,
-                "rank_score": field_size - entry.finish_position,
-                EV_TARGET_COLUMN: ev_value,
-                FINISH_TIME_TARGET_COLUMN: (
-                    finish_seconds if finish_seconds is not None else np.nan
-                ),
-                # Engineered
-                "speed_figure": features.speed_figure,
-                "form_cycle": features.form_cycle,
-                "weight_delta": features.weight_delta,
-                "rest_fitness": features.rest_fitness,
-                "class_indicator": features.class_indicator,
-                "jockey_win_rate": features.jockey_win_rate,
-                "trainer_win_rate": features.trainer_win_rate,
-                "gate_bias": features.gate_bias,
-                "surface_affinity": features.surface_affinity,
-                "agf_edge": features.agf_edge,
-                "sire_win_rate": features.sire_win_rate,
-                "sire_surface_rate": features.sire_surface_rate,
-                "dam_win_rate": features.dam_win_rate,
-                "dam_surface_rate": features.dam_surface_rate,
-                "jockey_track_win_rate": features.jockey_track_win_rate,
-                "surface_switch": features.surface_switch,
-                "distance_delta_m": features.distance_delta_m,
-                "equipment_changed": features.equipment_changed,
-                "field_pace_density": features.field_pace_density,
-                "s20_edge": features.s20_edge,
-                "agf_reliability": features.agf_reliability,
-                "late_agf_drift": features.late_agf_drift,
-                "late_jockey_change": features.late_jockey_change,
-                "late_equipment_change": features.late_equipment_change,
-                "late_gate_change": features.late_gate_change,
-                "tipster_consensus": features.tipster_consensus,
-                "jockey_discipline_flag": features.jockey_discipline_flag,
-                "days_since_workout": features.days_since_workout,
-                "workout_speed_ms": features.workout_speed_ms,
-                "n_workouts_recent": features.n_workouts_recent,
-                "steward_report_flag": features.steward_report_flag,
-                # Raw
-                "agf_raw": float(entry.agf) if entry.agf is not None else np.nan,
-                "hp_raw": float(entry.hp) if entry.hp is not None else np.nan,
-                "weight_kg_raw": (
-                    float(entry.weight_kg) if entry.weight_kg is not None else np.nan
-                ),
-                "kgs_raw": int(entry.kgs) if entry.kgs is not None else np.nan,
-                "s20_raw": float(entry.s20) if entry.s20 is not None else np.nan,
-                "gate_number": (
-                    int(entry.gate_number) if entry.gate_number is not None else np.nan
-                ),
-                "age": int(entry.horse.age) if entry.horse and entry.horse.age else np.nan,
-                # Race-level
-                "distance_meters": (
-                    int(race.distance_meters) if race.distance_meters else np.nan
-                ),
-                "field_size": field_size,
-                "surface_is_kum": _surface_encode(race.surface),
-            })
+            ev_value = (float(race.ganyan_payout_tl) - 1 if entry.finish_position == 1 else -1.0) if race.ganyan_payout_tl is not None else np.nan
+            rows.append({**record, GROUP_COLUMN: race.id, "race_date": race.date,
+                         "horse_id": entry.horse_id,
+                         "rank_score": max(0, len(entries) - entry.finish_position),
+                         EV_TARGET_COLUMN: ev_value,
+                         FINISH_TIME_TARGET_COLUMN: finish_seconds})
 
     df = pd.DataFrame(rows)
     if df.empty:
@@ -386,8 +239,8 @@ def build_training_frame(
             race_dates=pd.Series(dtype="object"),
         )
 
-    # Stable ordering by (race_id, finish_position) so groups are contiguous.
-    df = df.sort_values([GROUP_COLUMN, "finish_position"]).reset_index(drop=True)
+    # Stable ordering by (race_id, horse_id) so groups are contiguous.
+    df = df.sort_values([GROUP_COLUMN, "horse_id"]).reset_index(drop=True)
 
     return TrainingFrame(
         features=df[FEATURE_COLUMNS].astype("float64"),
@@ -399,7 +252,7 @@ def build_training_frame(
     )
 
 
-def build_race_frame(session: Session, race_id: int) -> pd.DataFrame:
+def build_race_frame(session: Session, race_id: int, *, as_of=None) -> pd.DataFrame:
     """Build an inference-time feature matrix for a single race.
 
     Returns a DataFrame with FEATURE_COLUMNS + ``horse_id`` so callers
@@ -409,13 +262,17 @@ def build_race_frame(session: Session, race_id: int) -> pd.DataFrame:
     if race is None or not race.entries:
         return pd.DataFrame(columns=FEATURE_COLUMNS + ["horse_id"])
 
-    entries = list(race.entries)
+    as_of = prediction_cutoff(race, as_of)
+    entries = [e for e in race.entries if not e.scratched]
+    if not entries:
+        return pd.DataFrame(columns=FEATURE_COLUMNS + ["horse_id"])
     weights = [float(e.weight_kg) for e in entries if e.weight_kg is not None]
     hps = [float(e.hp) for e in entries if e.hp is not None]
     s20s = [float(e.s20) for e in entries if e.s20 is not None]
-    field_avg_weight = sum(weights) / len(weights) if weights else None
-    field_avg_hp = sum(hps) / len(hps) if hps else None
-    field_avg_s20 = sum(s20s) / len(s20s) if s20s else None
+    cov = max(2, int(len(entries) * 0.5))
+    field_avg_weight = sum(weights) / len(weights) if len(weights) >= cov else None
+    field_avg_hp = sum(hps) / len(hps) if len(hps) >= cov else None
+    field_avg_s20 = sum(s20s) / len(s20s) if len(s20s) >= cov else None
     field_size = len(entries)
     pace_density = compute_field_pace_density(
         [parse_last_six(e.last_six) for e in entries]
@@ -431,7 +288,7 @@ def build_race_frame(session: Session, race_id: int) -> pd.DataFrame:
 
     rows: list[dict] = []
     for entry in entries:
-        trainer_name = entry.horse.trainer if entry.horse else None
+        trainer_name = entry.trainer_at_race
         sire_name = entry.horse.sire if entry.horse else None
         dam_name = entry.horse.dam if entry.horse else None
         features = extract_features(
@@ -449,7 +306,7 @@ def build_race_frame(session: Session, race_id: int) -> pd.DataFrame:
             jockey=entry.jockey,
             trainer=trainer_name,
             horse_id=entry.horse_id,
-            gate_number=entry.gate_number,
+            gate_number=entry.start_gate,
             surface=race.surface,
             race_date=race.date,
             agf=float(entry.agf) if entry.agf is not None else None,
@@ -462,6 +319,7 @@ def build_race_frame(session: Session, race_id: int) -> pd.DataFrame:
             agf_reliability=agf_reliability,
             race_entry_id=entry.id,
             race_id_for_signals=race.id,
+            as_of=as_of,
         )
         rows.append({
             "horse_id": entry.horse_id,
@@ -504,9 +362,9 @@ def build_race_frame(session: Session, race_id: int) -> pd.DataFrame:
             "kgs_raw": int(entry.kgs) if entry.kgs is not None else np.nan,
             "s20_raw": float(entry.s20) if entry.s20 is not None else np.nan,
             "gate_number": (
-                int(entry.gate_number) if entry.gate_number is not None else np.nan
+                int(entry.start_gate) if entry.start_gate is not None else np.nan
             ),
-            "age": int(entry.horse.age) if entry.horse and entry.horse.age else np.nan,
+            "age": int(entry.age_at_race) if entry.age_at_race is not None else np.nan,
             "distance_meters": (
                 int(race.distance_meters) if race.distance_meters else np.nan
             ),

@@ -257,37 +257,20 @@ def test_generate_coupon_missing_races_raises(db_session):
 # ---------------------------------------------------------------------------
 
 
-def test_persist_coupon_inserts_then_updates(db_session):
-    target = date(2026, 5, 3)
-    track = Track(name="Kocaeli", city="Kocaeli", surface_types=["kum"])
-    db_session.add(track)
-    db_session.flush()
-
-    draft = CouponDraft(
-        kept_horses_per_leg=[[1], [2, 3], [4, 5, 6], [7], [8, 9], [10]],
-        conviction_per_leg=[0.55, 0.40, 0.30, 0.55, 0.30, 0.55],
-        total_tickets=12,
-    )
-    pick = persist_coupon(db_session, target, "Kocaeli", 1, draft)
-    db_session.commit()
-    assert pick.id is not None
-    assert pick.start_race_no == 1
-    assert pick.end_race_no == 6
-    assert pick.total_tickets == 12
-    assert pick.stake_tl == pytest.approx(12.0)
-    assert pick.kept_horses_per_leg == [[1], [2, 3], [4, 5, 6], [7], [8, 9], [10]]
-
-    # Re-persist with a wider draft → same row, updated in place.
-    draft2 = CouponDraft(
-        kept_horses_per_leg=[[1, 2], [2, 3], [4, 5, 6], [7], [8, 9], [10]],
-        conviction_per_leg=[0.40, 0.40, 0.30, 0.55, 0.30, 0.55],
-        total_tickets=24,
-    )
-    pick2 = persist_coupon(db_session, target, "Kocaeli", 1, draft2)
-    db_session.commit()
-    assert pick2.id == pick.id  # same row
-    assert pick2.total_tickets == 24
-    assert pick2.kept_horses_per_leg[0] == [1, 2]
+def test_persist_coupon_is_immutable(db_session):
+    from datetime import timedelta
+    target = date.today() + timedelta(days=1)
+    track, races, horses = _build_program(db_session, target, "Kocaeli", 6, 10)
+    for race in races:
+        race.post_time = "14:00"
+    draft = CouponDraft([[1]] * 6, [0.6] * 6, 1)
+    pick = persist_coupon(db_session, target, "Kocaeli", 1, draft, pool_index=1)
+    assert persist_coupon(db_session, target, "Kocaeli", 1, draft, pool_index=1).id == pick.id
+    pick.graded, pick.hit, pick.payout_tl = True, True, 100
+    with pytest.raises(ValueError, match="immutable"):
+        persist_coupon(db_session, target, "Kocaeli", 1,
+                       CouponDraft([[2]] * 6, [0.6] * 6, 1), pool_index=1)
+    assert pick.graded and pick.payout_tl == 100
 
 
 # ---------------------------------------------------------------------------
@@ -324,7 +307,7 @@ def test_grade_pick_all_legs_hit(db_session):
     db_session.flush()
 
     pool = MultiRacePool(
-        date=target, track_id=track.id, pool_type="6li", pool_index=1,
+        date=target, track_id=track.id, pool_type="6li", pool_index=1, start_race_no=1, end_race_no=6,
         winning_combo="1/4/2/1/3/7", payout_tl=1000.0,
     )
     db_session.add(pool)
@@ -350,7 +333,7 @@ def test_grade_pick_one_leg_missed(db_session):
     db_session.flush()
 
     pool = MultiRacePool(
-        date=target, track_id=track.id, pool_type="6li", pool_index=1,
+        date=target, track_id=track.id, pool_type="6li", pool_index=1, start_race_no=1, end_race_no=6,
         winning_combo="1/4/2/1/3/7", payout_tl=1000.0,
     )
     db_session.add(pool)
@@ -376,7 +359,7 @@ def test_grade_pick_dead_heat_doubles_payout(db_session):
 
     # Leg 5 has FOUR dead-heat winners; leg 6 has TWO.
     pool = MultiRacePool(
-        date=target, track_id=track.id, pool_type="6li", pool_index=1,
+        date=target, track_id=track.id, pool_type="6li", pool_index=1, start_race_no=1, end_race_no=6,
         winning_combo="1/4/2/1/3,6,7,10/4,11", payout_tl=52842.87,
     )
     db_session.add(pool)
@@ -411,7 +394,7 @@ def test_grade_pick_unresulted_pool_returns_none(db_session):
     db_session.add(track)
     db_session.flush()
     pool = MultiRacePool(
-        date=target, track_id=track.id, pool_type="6li", pool_index=1,
+        date=target, track_id=track.id, pool_type="6li", pool_index=1, start_race_no=1, end_race_no=6,
         winning_combo=None, payout_tl=None,
     )
     db_session.add(pool)
@@ -431,7 +414,7 @@ def test_grade_pick_ticket_unit_scales_payout(db_session):
     db_session.add(track)
     db_session.flush()
     pool = MultiRacePool(
-        date=target, track_id=track.id, pool_type="6li", pool_index=1,
+        date=target, track_id=track.id, pool_type="6li", pool_index=1, start_race_no=1, end_race_no=6,
         winning_combo="1/2/3/4/5/6", payout_tl=100.0,
     )
     db_session.add(pool)
@@ -459,7 +442,7 @@ def test_grade_all_pending_multi_only_grades_resulted_pools(db_session):
 
     # Pool A: resulted.
     db_session.add(MultiRacePool(
-        date=target, track_id=track.id, pool_type="6li", pool_index=1,
+        date=target, track_id=track.id, pool_type="6li", pool_index=1, start_race_no=1, end_race_no=6,
         winning_combo="1/2/3/4/5/6", payout_tl=500.0,
     ))
     # Pool B: same date but pool_index=2, NOT resulted.

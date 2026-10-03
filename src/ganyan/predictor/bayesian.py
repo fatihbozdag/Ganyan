@@ -102,29 +102,9 @@ class BayesianPredictor:
         """Predict and persist to both the ``race_entries`` slot (for quick
         lookup) and the ``predictions`` audit table (keeps every run).
         """
+        from ganyan.predictor.records import save_predictions
         predictions = self.predict(race_id)
-        entries = {
-            (e.race_id, e.horse_id): e
-            for e in self.session.query(RaceEntry)
-            .filter(RaceEntry.race_id == race_id)
-            .all()
-        }
-        for p in predictions:
-            entry = entries.get((race_id, p.horse_id))
-            if entry is None:
-                continue
-            entry.predicted_probability = p.probability
-            # Append audit row (never overwrites prior predictions).
-            self.session.add(
-                PredictionRow(
-                    race_entry_id=entry.id,
-                    model_version=MODEL_VERSION,
-                    probability=p.probability,
-                    confidence=p.confidence,
-                    factors=p.contributing_factors,
-                )
-            )
-        return predictions
+        return save_predictions(self.session, race_id, predictions, MODEL_VERSION)
 
     def predict(self, race_id: int) -> list[Prediction]:
         """Predict win probabilities for all entries in a race.
@@ -135,7 +115,7 @@ class BayesianPredictor:
         if race is None:
             return []
 
-        entries: list[RaceEntry] = race.entries
+        entries: list[RaceEntry] = [e for e in race.entries if not e.scratched]
         if not entries:
             return []
 
@@ -169,7 +149,7 @@ class BayesianPredictor:
         for entry in entries:
             eid_seconds = parse_eid_to_seconds(entry.eid)
             last_six_parsed = parse_last_six(entry.last_six)
-            trainer_name = entry.horse.trainer if entry.horse else None
+            trainer_name = entry.trainer_at_race
             features = extract_features(
                 eid_seconds=eid_seconds,
                 distance_meters=distance,
@@ -185,7 +165,7 @@ class BayesianPredictor:
                 jockey=entry.jockey,
                 trainer=trainer_name,
                 horse_id=entry.horse_id,
-                gate_number=entry.gate_number,
+                gate_number=entry.start_gate,
                 surface=race.surface,
                 race_date=race.date,
                 agf=float(entry.agf) if entry.agf is not None else None,

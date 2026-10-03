@@ -555,7 +555,7 @@ def fetch_and_resolve(
             results[name] = n
         except Exception:  # noqa: BLE001
             logger.exception("external: %s fetch failed", name)
-            results[name] = 0
+            raise
     # Tipster-bundle resolver (yarisrehberi + future altılı sources).
     resolve_unbound_signals(session, target_date)
     # Discipline name-match resolver (TJK reported/penalized jockeys).

@@ -108,6 +108,7 @@ _P_JOCKEY = f"td.{_P}-JokeAdi"
 _P_OWNER = f"td.{_P}-SahipAdi"
 _P_TRAINER = f"td.{_P}-AntronorAdi"
 _P_GATE = f"td.{_P}-SiraId"  # program NO (bet-slip number), NOT StartId (physical gate)
+_P_START = f"td.{_P}-StartId"
 _P_HP = f"td.{_P}-Hc"
 _P_LAST6 = f"td.{_P}-Son6Yaris"
 _P_KGS = f"td.{_P}-KGS"
@@ -129,7 +130,7 @@ _R_TRAINER = f"td.{_R}-AntronorAdi"
 _R_TIME = f"td.{_R}-Derece"
 _R_GNY = f"td.{_R}-Gny"
 _R_AGF = f"td.{_R}-AGFORAN"
-_R_GATE = f"td.{_R}-StartId"  # physical start gate (NOT used; we extract program NO from the name cell via _extract_program_no_from_name)
+_R_GATE = f"td.{_R}-StartId"  # physical start gate; program number remains separate
 _R_HP = f"td.{_R}-Hc"
 
 # Endpoints (relative to base_url)
@@ -509,9 +510,11 @@ def _parse_multi_race_pools(block_text: str) -> list[dict]:
         index = 0
         for m in re.finditer(pattern, block_text):
             index += 1
+            prefix = re.search(r"(\d+)\.\s*$", block_text[:m.start()])
+            actual_index = int(prefix.group(1)) if prefix else index
             out.append({
                 "pool_type": pool_type,
-                "pool_index": index,
+                "pool_index": actual_index,
                 "winning_combo": m.group(1),
                 "payout_tl": _parse_payout_amount(m.group(2)),
             })
@@ -1250,6 +1253,7 @@ class TJKClient:
             owner=_extract_link_text(row.select_one(_P_OWNER)) or None,
             trainer=_extract_link_text(row.select_one(_P_TRAINER)) or None,
             gate_number=_safe_int(_extract_text(row.select_one(_P_GATE))),
+            start_gate=_safe_int(_extract_text(row.select_one(_P_START))),
             jockey=_extract_link_text(row.select_one(_P_JOCKEY)) or None,
             weight_kg=_safe_float(_extract_text(row.select_one(_P_WEIGHT))),
             hp=_safe_float(_extract_text(row.select_one(_P_HP))),
@@ -1283,6 +1287,7 @@ class TJKClient:
             # Previously used _R_GATE (-StartId) which is the physical start gate,
             # a different numbering system from the bet-slip / grading reference.
             gate_number=_extract_program_no_from_results_name(name_cell),
+            start_gate=_safe_int(_extract_text(row.select_one(_R_GATE))),
             jockey=_extract_link_text(row.select_one(_R_JOCKEY)) or None,
             weight_kg=_safe_float(_extract_text(row.select_one(_R_WEIGHT))),
             hp=_safe_float(_extract_text(row.select_one(_R_HP))),

@@ -1,5 +1,12 @@
 # 🏇 Ganyan — TJK Yarış Tahmin Sistemi
 
+> **2026-09-18 audit repair:** See [repair status and validation](docs/audit-2026-09-18/REPAIR_STATUS.md)
+> and [rollout / accuracy protocol](docs/audit-2026-09-18/ROLLOUT.md).
+> Older accuracy/ROI numbers below describe previous code and data; they do not validate
+> the corrected pipeline. Apply the new migration before using this checkout. Training
+> now writes candidates, and production inference loads only hash-verified approved heads.
+
+
 Türkiye Jokey Kulübü (TJK) yarış verilerini kazır, LightGBM
 LambdaRank ranker'ı + hiyerarşik Bayesian Plackett-Luce modelden
 oluşan iki katmanlı bir tahminciyle olasılık üretir, Harville joint

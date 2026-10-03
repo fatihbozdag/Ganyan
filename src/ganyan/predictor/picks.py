@@ -37,6 +37,7 @@ from typing import Iterable
 from sqlalchemy.orm import Session
 
 from ganyan.db.models import Pick, Race, RaceEntry, RaceStatus
+from ganyan.predictor.settlement import POOL_UNIT_TL, STRATEGY_POOL, winning_payout, plase_pool_confirmed
 from ganyan.predictor.exotics import (
     ganyan_probabilities, plase_probabilities,
     sirali_ikili_probabilities, uclu_probabilities,
@@ -73,13 +74,7 @@ STRATEGIES = (
 #   Tutar 192 ₺, pool figure 92.50, real payout 370 ₺.
 #   Reconciles only as `92.50 × Misli=4` — i.e. 92.50 is per-bilet at
 #   2 ₺ birim, not per-TL.  Per-TL rate was 46.25.
-BIRIM_TL_BY_STRATEGY = {
-    "ganyan_top1": 1.0,
-    "sirali_ikili_top1": 1.0,  # tentative — to verify with a real bilet
-    "uclu_top1": 2.0,           # verified
-    "uclu_box6": 2.0,           # verified
-    "plase_top1": 1.0,          # min stake; payout pool not scraped (2026-05-06)
-}
+BIRIM_TL_BY_STRATEGY = {s: POOL_UNIT_TL[p] for s, p in STRATEGY_POOL.items()}
 
 
 def _birim_tl(strategy: str) -> float:
@@ -107,6 +102,9 @@ def generate_picks_for_race(
     """
     race = session.get(Race, race_id)
     if race is None:
+        return []
+    from ganyan.time import is_upcoming
+    if not is_upcoming(race):
         return []
     entries = list(race.entries)
     if not entries:
@@ -372,11 +370,11 @@ def grade_race(session: Session, race_id: int) -> int:
             )
             if hit and plase_value is not None:
                 winning_ticket_payout = (
-                    plase_value * STAKE_PER_TICKET_TL / _birim_tl(pick.strategy)
+                    winning_payout("plase", plase_value, float(pick.stake_tl) / pick.ticket_count)
                 )
                 pick.payout_tl = round(winning_ticket_payout, 2)
                 pick.net_tl = round(winning_ticket_payout - float(pick.stake_tl), 2)
-            elif not hit and plase_value is not None:
+            elif not hit and plase_pool_confirmed(entries):
                 # We have payout-pool confirmation that the bet failed
                 # → record the loss in TL (mirrors other strategies'
                 # miss path).
@@ -409,7 +407,7 @@ def grade_race(session: Session, race_id: int) -> int:
             # üçlü hits were overstated 2×.)
             birim = _birim_tl(pick.strategy)
             winning_ticket_payout = (
-                payout_per_tl * STAKE_PER_TICKET_TL / birim
+                winning_payout(STRATEGY_POOL[pick.strategy], payout_per_tl, float(pick.stake_tl) / pick.ticket_count)
             )
             pick.payout_tl = round(winning_ticket_payout, 2)
             pick.net_tl = round(winning_ticket_payout - float(pick.stake_tl), 2)
@@ -454,13 +452,14 @@ def resettle_plase_picks(session: Session) -> int:
             )
             .first()
         )
-        if entry is None or entry.plase_payout_tl is None:
+        if entry is None:
+            continue
+        entries = session.query(RaceEntry).filter(RaceEntry.race_id == pick.race_id).all()
+        if not plase_pool_confirmed(entries) or (pick.hit and entry.plase_payout_tl is None):
             continue
         if pick.hit:
             winning_ticket_payout = (
-                float(entry.plase_payout_tl)
-                * STAKE_PER_TICKET_TL
-                / _birim_tl(pick.strategy)
+                winning_payout("plase", float(entry.plase_payout_tl), float(pick.stake_tl) / pick.ticket_count)
             )
             pick.payout_tl = round(winning_ticket_payout, 2)
             pick.net_tl = round(winning_ticket_payout - float(pick.stake_tl), 2)

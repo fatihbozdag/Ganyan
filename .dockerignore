@@ -1,0 +1,9 @@
+.git
+.venv
+.env
+.worktrees
+models
+models.bak*
+logs
+data
+*.db

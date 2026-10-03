@@ -12,7 +12,7 @@ from typing import Dict, List, Tuple
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ganyan.db.models import Race
+from ganyan.db.models import Race, RaceStatus
 from ganyan.scraper.parser import parse_last_six
 
 
@@ -28,6 +28,7 @@ def distance_bucket_for(meters: int) -> int:
 
 @dataclass
 class TrainingFrame:
+    feature_schema: int = 2
     orderings: Dict[int, List[int]] = field(default_factory=dict)
     horse_index: Dict[int, int] = field(default_factory=dict)
     jockey_index: Dict[str, int] = field(default_factory=dict)
@@ -41,29 +42,29 @@ class TrainingFrame:
     s20_of_horse_in_race: List[float] = field(default_factory=list)
     last6_of_horse_in_race: List[float] = field(default_factory=list)
     # Track-variant-adjusted seconds-per-meter, recency-mean over last N
-    # prior runs (lower = faster).  0.0 = no prior history (within-race
+    # prior runs (lower = faster).  NaN = no prior history (within-race
     # mean after z-score, so contributes 0 to PL score).
     speed_of_horse_in_race: List[float] = field(default_factory=list)
     # Workout sec-per-meter, recency-mean of last N prior workouts.
-    # 0.0 = horse has no recorded workouts (cold-start).
+    # NaN = horse has no recorded workouts (cold-start).
     workout_of_horse_in_race: List[float] = field(default_factory=list)
     # Pace preference: mean pace-z-score across the horse's prior top-3
     # finishes (negative = closer type, positive = front-runner type).
-    # 0.0 = no qualifying history.
+    # NaN = no qualifying history.
     pace_of_horse_in_race: List[float] = field(default_factory=list)
 
 
 def summarize_last_six(s: str | None) -> float:
     """Mean finish position over recorded races (lower=better).
 
-    Returns 0.0 when no data — caller z-scores within race so 0.0 acts
+    Returns NaN when no data — missing-aware within-race scaling acts
     as the within-race mean (no-op contribution to the PL score).
     """
     if not s:
-        return 0.0
+        return float("nan")
     parsed = [p for p in parse_last_six(s) if p is not None]
     if not parsed:
-        return 0.0
+        return float("nan")
     return float(sum(parsed)) / len(parsed)
 
 
@@ -107,11 +108,7 @@ def matrices_for_pymc(frame: TrainingFrame):
     has_workout = len(frame.workout_of_horse_in_race) > 0
     has_pace = len(frame.pace_of_horse_in_race) > 0
 
-    def _zscore(slice_arr: np.ndarray) -> np.ndarray:
-        std = slice_arr.std()
-        if std > 1e-9:
-            return (slice_arr - slice_arr.mean()) / std
-        return np.zeros_like(slice_arr)
+    from ganyan.predictor.bayes.standardize import zscore_missing as _zscore
 
     flat_idx = 0
     for r, rid in enumerate(race_ids):
@@ -210,51 +207,40 @@ def build_training_frame(
 
     When ``include_workouts`` is True, pre-computes recent-workouts
     sec-per-meter per horse from the ``tjk_workouts`` external_signals.
-    Returns 0.0 (within-race mean after z-score) for horses without
+    Returns NaN (mapped to within-race mean after scaling) for horses without
     prior recorded workouts — useful since workout coverage was tiny
     as of 2026-04-30 (only 4 days of ingestion).
     """
     frame = TrainingFrame()
     _intern(frame.sire_index, "")
 
-    speed_history = None
-    if include_speed:
-        from ganyan.predictor.speed_figures import (
-            build_horse_speed_history, compute_track_variants,
-        )
-        variants = compute_track_variants(session, to_date=to_date)
-        speed_history = build_horse_speed_history(
-            session, variants, to_date=to_date,
-        )
-
-    workout_history = None
-    if include_workouts:
-        from ganyan.predictor.workouts import build_horse_workout_history
-        workout_history = build_horse_workout_history(session, to_date=to_date)
-
-    pace_history = None
-    if include_pace:
-        from ganyan.predictor.pace import (
-            build_horse_pace_history, compute_pace_baseline,
-        )
-        pace_baseline = compute_pace_baseline(session, to_date=to_date)
-        pace_history = build_horse_pace_history(
-            session, pace_baseline, to_date=to_date,
-        )
+    from datetime import timedelta
+    from ganyan.predictor.speed_figures import build_horse_speed_history, compute_track_variants
+    from ganyan.predictor.pace import build_horse_pace_history, compute_pace_baseline
+    from ganyan.predictor.workouts import build_horse_workout_history
+    from ganyan.time import race_cutoff
+    history_cache = {}
 
     races = session.execute(
         select(Race).where(
+            Race.status == RaceStatus.resulted,
             Race.date >= from_date,
             Race.date <= to_date,
         ).order_by(Race.date, Race.race_number)
     ).scalars().all()
 
     for r in races:
-        finishers = [
-            e for e in r.entries
-            if e.finish_position is not None and e.jockey is not None
-        ]
-        if len(finishers) < min_field_size:
+        prior_day = r.date - timedelta(days=1)
+        if prior_day not in history_cache:
+            speeds = build_horse_speed_history(session, compute_track_variants(session, to_date=prior_day), to_date=prior_day) if include_speed else None
+            paces = build_horse_pace_history(session, compute_pace_baseline(session, to_date=prior_day), to_date=prior_day) if include_pace else None
+            history_cache[prior_day] = speeds, paces
+        speed_history, pace_history = history_cache[prior_day]
+        workout_history = build_horse_workout_history(session, to_date=r.date, as_of=race_cutoff(r)) if include_workouts else None
+        finishers = [e for e in r.entries if not e.scratched]
+        if (len(finishers) < min_field_size
+                or any(e.finish_position is None for e in finishers)
+                or not any(e.finish_position == 1 for e in finishers)):
             continue
         finishers.sort(key=lambda e: e.finish_position)
         horse_ids: List[int] = []
@@ -269,31 +255,31 @@ def build_training_frame(
         paces: List[float] = []
         for e in finishers:
             horse_ids.append(_intern(frame.horse_index, e.horse_id))
-            jockey_ids.append(_intern(frame.jockey_index, e.jockey))
+            jockey_ids.append(_intern(frame.jockey_index, e.jockey or ""))
             sire_name = (e.horse.sire or "") if e.horse else ""
             sire_ids.append(_intern(frame.sire_index, sire_name))
-            agfs.append(float(e.agf) if e.agf is not None else 0.0)
-            kgss.append(float(e.kgs) if e.kgs is not None else 0.0)
-            s20s.append(float(e.s20) if e.s20 is not None else 0.0)
+            agfs.append(float(e.agf) if e.agf is not None else float("nan"))
+            kgss.append(float(e.kgs) if e.kgs is not None else float("nan"))
+            s20s.append(float(e.s20) if e.s20 is not None else float("nan"))
             last6s.append(summarize_last_six(e.last_six))
             if speed_history is not None:
                 from ganyan.predictor.speed_figures import horse_speed_score
                 spm = horse_speed_score(speed_history, e.horse_id, r.date)
-                speeds.append(spm if spm is not None else 0.0)
+                speeds.append(spm if spm is not None else float("nan"))
             else:
-                speeds.append(0.0)
+                speeds.append(float("nan"))
             if workout_history is not None:
                 from ganyan.predictor.workouts import horse_workout_score
-                w = horse_workout_score(workout_history, e.horse_id, r.date)
-                workouts.append(w if w is not None else 0.0)
+                w = horse_workout_score(workout_history, e.horse_id, r.date, as_of=race_cutoff(r))
+                workouts.append(w if w is not None else float("nan"))
             else:
-                workouts.append(0.0)
+                workouts.append(float("nan"))
             if pace_history is not None:
                 from ganyan.predictor.pace import horse_pace_score
                 p = horse_pace_score(pace_history, e.horse_id, r.date)
-                paces.append(p if p is not None else 0.0)
+                paces.append(p if p is not None else float("nan"))
             else:
-                paces.append(0.0)
+                paces.append(float("nan"))
         track_dist = (r.track_id, distance_bucket_for(r.distance_meters or 0))
         frame.track_dist_of_race[r.id] = _intern(frame.track_dist_index, track_dist)
         frame.orderings[r.id] = horse_ids

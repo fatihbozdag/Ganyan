@@ -14,7 +14,8 @@ class RawHorseEntry:
     origin: str | None = None
     owner: str | None = None
     trainer: str | None = None
-    gate_number: int | None = None
+    gate_number: int | None = None  # betting program number
+    start_gate: int | None = None  # physical draw
     jockey: str | None = None
     weight_kg: float | None = None
     hp: float | None = None
@@ -92,7 +93,8 @@ class ParsedHorseEntry:
     origin: str | None = None
     owner: str | None = None
     trainer: str | None = None
-    gate_number: int | None = None
+    gate_number: int | None = None  # betting program number
+    start_gate: int | None = None  # physical draw
     jockey: str | None = None
     weight_kg: float | None = None
     hp: float | None = None
@@ -269,6 +271,7 @@ def parse_race_card(raw: RawRaceCard) -> ParsedRaceCard:
             owner=h.owner,
             trainer=h.trainer,
             gate_number=h.gate_number,
+            start_gate=h.start_gate,
             jockey=h.jockey,
             weight_kg=h.weight_kg,
             hp=h.hp,

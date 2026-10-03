@@ -32,6 +32,7 @@ captured on subsequent runs.  Override ``max_pages`` to backfill.
 from __future__ import annotations
 
 import logging
+from ganyan.time import utcnow
 import re
 from datetime import date as date_type, datetime
 from typing import ClassVar
@@ -146,7 +147,7 @@ class TjkWorkoutSource(ExternalSource):
         self, session: Session, target_date: date_type,
     ) -> list[ExternalSignalRow]:
         del session
-        captured_at = datetime.now()
+        captured_at = utcnow()
         all_rows: list[dict[str, str]] = []
         try:
             with httpx.Client(timeout=_TIMEOUT, headers=_HEADERS) as client:
@@ -163,7 +164,7 @@ class TjkWorkoutSource(ExternalSource):
                         break  # last page
         except httpx.HTTPError as exc:
             logger.warning("tjk_workouts fetch failed: %s", exc)
-            return []
+            raise
 
         signals: list[ExternalSignalRow] = []
         for row in all_rows:

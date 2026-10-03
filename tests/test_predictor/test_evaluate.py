@@ -3,7 +3,8 @@
 import math
 
 import pytest
-from datetime import date
+from datetime import date, timedelta
+from tests.helpers import record_fixture_predictions
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
@@ -35,7 +36,8 @@ def _create_track(session, name="Istanbul"):
 def _create_race(session, track, *, race_number=1, status=RaceStatus.resulted):
     race = Race(
         track_id=track.id,
-        date=date(2026, 4, 5),
+        date=(date.today() + timedelta(days=1)) if status == RaceStatus.scheduled else date(2026, 4, 5),
+        post_time="14:00",
         race_number=race_number,
         distance_meters=1400,
         surface="cim",
@@ -84,10 +86,12 @@ class TestPredictAndSave:
         _add_entry(db_session, race, "Horse A", hp=90.0)
         _add_entry(db_session, race, "Horse B", hp=80.0)
         _add_entry(db_session, race, "Horse C", hp=70.0)
+        record_fixture_predictions(db_session)
         db_session.commit()
 
         predictor = BayesianPredictor(db_session)
         predictions = predictor.predict_and_save(race.id)
+        record_fixture_predictions(db_session)
         db_session.commit()
 
         assert len(predictions) == 3
@@ -105,10 +109,12 @@ class TestPredictAndSave:
         race = _create_race(db_session, track, status=RaceStatus.scheduled)
         e1 = _add_entry(db_session, race, "Horse X", hp=95.0)
         e2 = _add_entry(db_session, race, "Horse Y", hp=75.0)
+        record_fixture_predictions(db_session)
         db_session.commit()
 
         predictor = BayesianPredictor(db_session)
         predictions = predictor.predict_and_save(race.id)
+        record_fixture_predictions(db_session)
         db_session.commit()
 
         pred_map = {p.horse_id: p.probability for p in predictions}
@@ -119,6 +125,7 @@ class TestPredictAndSave:
     def test_no_entries_returns_empty(self, db_session):
         track = _create_track(db_session)
         race = _create_race(db_session, track, status=RaceStatus.scheduled)
+        record_fixture_predictions(db_session)
         db_session.commit()
 
         predictor = BayesianPredictor(db_session)
@@ -147,6 +154,7 @@ class TestEvaluateRace:
             db_session, race, "Third",
             finish_position=3, predicted_probability=25.0,
         )
+        record_fixture_predictions(db_session)
         db_session.commit()
 
         ev = evaluate_race(db_session, race.id)
@@ -175,6 +183,7 @@ class TestEvaluateRace:
             db_session, race, "Contender",
             finish_position=2, predicted_probability=40.0,
         )
+        record_fixture_predictions(db_session)
         db_session.commit()
 
         ev = evaluate_race(db_session, race.id)
@@ -191,6 +200,7 @@ class TestEvaluateRace:
         _add_entry(db_session, race, "H3", finish_position=3, predicted_probability=30.0)
         _add_entry(db_session, race, "H4", finish_position=4, predicted_probability=20.0)
         _add_entry(db_session, race, "H5", finish_position=5, predicted_probability=10.0)
+        record_fixture_predictions(db_session)
         db_session.commit()
 
         ev = evaluate_race(db_session, race.id)
@@ -203,6 +213,7 @@ class TestEvaluateRace:
         track = _create_track(db_session)
         race = _create_race(db_session, track)
         _add_entry(db_session, race, "NoPredict", finish_position=1)
+        record_fixture_predictions(db_session)
         db_session.commit()
 
         ev = evaluate_race(db_session, race.id)
@@ -212,6 +223,7 @@ class TestEvaluateRace:
         track = _create_track(db_session)
         race = _create_race(db_session, track, status=RaceStatus.scheduled)
         _add_entry(db_session, race, "Pending", predicted_probability=50.0)
+        record_fixture_predictions(db_session)
         db_session.commit()
 
         ev = evaluate_race(db_session, race.id)
@@ -225,6 +237,7 @@ class TestEvaluateRace:
             db_session, race, "DNF",
             finish_position=None, predicted_probability=50.0,
         )
+        record_fixture_predictions(db_session)
         db_session.commit()
 
         ev = evaluate_race(db_session, race.id)
@@ -246,14 +259,11 @@ class TestEvaluateRace:
             db_session, race, "Predicted",
             finish_position=2, predicted_probability=60.0,
         )
+        record_fixture_predictions(db_session)
         db_session.commit()
 
         ev = evaluate_race(db_session, race.id)
-        assert ev is not None
-        assert ev.winner_predicted_prob is None
-        assert ev.winner_predicted_rank is None
-        assert ev.top1_correct is False
-        assert ev.top3_correct is False
+        assert ev is None  # Incomplete fields cannot enter accuracy denominators.
 
 
 # -----------------------------------------------------------------------
@@ -275,6 +285,7 @@ class TestEvaluateAll:
         _add_entry(db_session, race2, "R2H1", finish_position=1, predicted_probability=20.0)
         _add_entry(db_session, race2, "R2H2", finish_position=2, predicted_probability=50.0)
         _add_entry(db_session, race2, "R2H3", finish_position=3, predicted_probability=30.0)
+        record_fixture_predictions(db_session)
         db_session.commit()
 
         summary, evaluations = evaluate_all(db_session)
@@ -286,6 +297,7 @@ class TestEvaluateAll:
     def test_no_resulted_races(self, db_session):
         track = _create_track(db_session)
         _create_race(db_session, track, status=RaceStatus.scheduled)
+        record_fixture_predictions(db_session)
         db_session.commit()
 
         summary, evaluations = evaluate_all(db_session)
@@ -305,6 +317,7 @@ class TestEvaluateAll:
         race = _create_race(db_session, track, race_number=1)
         _add_entry(db_session, race, "H1", finish_position=1, predicted_probability=40.0)
         _add_entry(db_session, race, "H2", finish_position=2, predicted_probability=60.0)
+        record_fixture_predictions(db_session)
         db_session.commit()
 
         summary, _ = evaluate_all(db_session)
@@ -316,10 +329,12 @@ class TestEvaluateAll:
         race = _create_race(db_session, track, race_number=1)
         _add_entry(db_session, race, "Fav", finish_position=1, predicted_probability=50.0)
         _add_entry(db_session, race, "Other", finish_position=2, predicted_probability=50.0)
+        race.ganyan_payout_tl = 2.0
+        record_fixture_predictions(db_session)
         db_session.commit()
 
         summary, _ = evaluate_all(db_session)
-        # Bet 100, payout = 10000/50 = 200, ROI = (200-100)/100 = 1.0
+        # Published dividend 2 TL per 1 TL: ROI = 1.0.
         assert abs(summary.roi_simulation - 1.0) < 0.01
 
     def test_roi_top_pick_loses(self, db_session):
@@ -327,6 +342,8 @@ class TestEvaluateAll:
         race = _create_race(db_session, track, race_number=1)
         _add_entry(db_session, race, "Upset", finish_position=1, predicted_probability=10.0)
         _add_entry(db_session, race, "Fav", finish_position=2, predicted_probability=90.0)
+        race.ganyan_payout_tl = 2.0
+        record_fixture_predictions(db_session)
         db_session.commit()
 
         summary, _ = evaluate_all(db_session)
@@ -345,6 +362,7 @@ class TestEvaluateAll:
         _add_entry(db_session, race2, "W2", finish_position=1, predicted_probability=10.0)
         _add_entry(db_session, race2, "X2", finish_position=2, predicted_probability=50.0)
         _add_entry(db_session, race2, "Y2", finish_position=3, predicted_probability=40.0)
+        record_fixture_predictions(db_session)
         db_session.commit()
 
         summary, _ = evaluate_all(db_session)
@@ -361,6 +379,7 @@ class TestEvaluateAll:
         race2 = _create_race(db_session, track, race_number=2)
         _add_entry(db_session, race2, "NPH1", finish_position=1)
         _add_entry(db_session, race2, "NPH2", finish_position=2)
+        record_fixture_predictions(db_session)
         db_session.commit()
 
         summary, evaluations = evaluate_all(db_session)
@@ -390,6 +409,7 @@ class TestNewMetrics:
         _add_entry(db_session, old, "OldLoser", finish_position=2, predicted_probability=40.0)
         _add_entry(db_session, new, "NewWinner", finish_position=1, predicted_probability=55.0)
         _add_entry(db_session, new, "NewLoser", finish_position=2, predicted_probability=45.0)
+        record_fixture_predictions(db_session)
         db_session.commit()
 
         summary, evaluations = evaluate_all(db_session, cutoff_date=date(2026, 3, 1))
@@ -405,6 +425,7 @@ class TestNewMetrics:
         _add_entry(db_session, race, "B", finish_position=2, predicted_probability=25.0)
         _add_entry(db_session, race, "C", finish_position=3, predicted_probability=25.0)
         _add_entry(db_session, race, "D", finish_position=4, predicted_probability=25.0)
+        record_fixture_predictions(db_session)
         db_session.commit()
 
         summary, _ = evaluate_all(db_session)
@@ -416,6 +437,7 @@ class TestNewMetrics:
         race = _create_race(db_session, track, race_number=1)
         _add_entry(db_session, race, "A", finish_position=1, predicted_probability=100.0)
         _add_entry(db_session, race, "B", finish_position=2, predicted_probability=0.0)
+        record_fixture_predictions(db_session)
         db_session.commit()
 
         summary, _ = evaluate_all(db_session)
@@ -428,6 +450,7 @@ class TestNewMetrics:
         _add_entry(db_session, race, "A", finish_position=1, predicted_probability=70.0)
         _add_entry(db_session, race, "B", finish_position=2, predicted_probability=20.0)
         _add_entry(db_session, race, "C", finish_position=3, predicted_probability=10.0)
+        record_fixture_predictions(db_session)
         db_session.commit()
 
         summary, _ = evaluate_all(db_session, num_calibration_bins=10)

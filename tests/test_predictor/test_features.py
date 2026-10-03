@@ -155,7 +155,7 @@ def _seed_resulted_race(session, track_name, race_date, horses, surface="Kum",
         session.flush()
         session.add(RaceEntry(
             race_id=race.id, horse_id=horse.id,
-            jockey=jockey, finish_position=finish_pos,
+            jockey=jockey, trainer_at_race=trainer, finish_position=finish_pos,
         ))
     session.flush()
 

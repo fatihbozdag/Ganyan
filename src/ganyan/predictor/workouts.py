@@ -19,7 +19,7 @@ feature contributes nothing.  See `project_bayes_predictor.md`.
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import date
+from datetime import date, datetime
 from typing import Dict, List, Tuple
 
 from sqlalchemy import select
@@ -28,12 +28,12 @@ from sqlalchemy.orm import Session
 from ganyan.db.models import ExternalSignal, Race, RaceEntry
 
 
-WorkoutEntry = Tuple[date, float]   # (workout_date, sec_per_meter)
+WorkoutEntry = Tuple[date, float, datetime]  # workout date, seconds/meter, captured UTC
 
 
 def build_horse_workout_history(
     session: Session,
-    to_date: date | None = None,
+    to_date: date | None = None, *, as_of=None,
 ) -> Dict[int, List[WorkoutEntry]]:
     """For each horse_id, sorted list of (workout_date, sec_per_meter).
 
@@ -48,7 +48,7 @@ def build_horse_workout_history(
         select(
             RaceEntry.horse_id,
             ExternalSignal.value,
-            ExternalSignal.payload,
+            ExternalSignal.payload, ExternalSignal.captured_at,
         )
         .join(RaceEntry, RaceEntry.id == ExternalSignal.race_entry_id)
         .join(Race, Race.id == RaceEntry.race_id)
@@ -59,8 +59,10 @@ def build_horse_workout_history(
     if to_date is not None:
         q = q.where(Race.date <= to_date)
 
+    if as_of is not None:
+        q = q.where(ExternalSignal.captured_at <= as_of)
     history: Dict[int, List[WorkoutEntry]] = defaultdict(list)
-    for horse_id, secs, payload in session.execute(q):
+    for horse_id, secs, payload, captured_at in session.execute(q):
         if not payload:
             continue
         distance_m = payload.get("distance_m")
@@ -74,7 +76,7 @@ def build_horse_workout_history(
         if wdate is None:
             continue
         spm = float(secs) / float(distance_m)
-        history[horse_id].append((wdate, spm))
+        history[horse_id].append((wdate, spm, captured_at))
 
     for hid in history:
         history[hid].sort(key=lambda t: t[0])
@@ -85,7 +87,7 @@ def horse_workout_score(
     history: Dict[int, List[WorkoutEntry]],
     horse_id: int,
     as_of_date: date,
-    n_recent: int = 3,
+    n_recent: int = 3, *, as_of=None,
 ) -> float | None:
     """Mean sec/m over the last ``n_recent`` workouts strictly before
     ``as_of_date``.  None when no prior workouts.  Lower = faster.
@@ -93,7 +95,12 @@ def horse_workout_score(
     runs = history.get(horse_id)
     if not runs:
         return None
-    prior = [spm for d, spm in runs if d < as_of_date]
+    from datetime import date, datetimetime, time
+    from ganyan.time import ISTANBUL
+    from datetime import timezone
+    cutoff = as_of or datetime.combine(as_of_date, time.min, ISTANBUL).astimezone(timezone.utc).replace(tzinfo=None)
+    prior = [row[1] for row in runs if row[0] < as_of_date
+             and len(row) >= 3 and row[2] <= cutoff]
     if not prior:
         return None
     take = prior[-n_recent:]

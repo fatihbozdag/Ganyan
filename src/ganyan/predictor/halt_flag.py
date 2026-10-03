@@ -36,12 +36,14 @@ def is_halted() -> Optional[HaltState]:
         return None
     try:
         data = json.loads(p.read_text())
+        if not isinstance(data, dict):
+            raise ValueError("Invalid halt state")
         return {
             "reason": data.get("reason", "unspecified"),
             "source": data.get("source", "unknown"),
             "timestamp": data.get("timestamp", ""),
         }
-    except (json.JSONDecodeError, OSError):
+    except (ValueError, OSError):
         return {"reason": "halt flag present but unreadable", "source": "unknown", "timestamp": ""}
 
 
@@ -61,7 +63,11 @@ def set_halt(reason: str, source: str) -> None:
         "source": source,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
-    p.write_text(json.dumps(payload, indent=2))
+    try:
+        with p.open("x") as stream:
+            json.dump(payload, stream, indent=2)
+    except FileExistsError:
+        pass
 
 
 def clear_halt() -> None:

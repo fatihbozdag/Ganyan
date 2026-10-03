@@ -1,0 +1,29 @@
+name: tests
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ganyan
+          POSTGRES_PASSWORD: test_only
+          POSTGRES_DB: ganyan_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U ganyan -d ganyan_test"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      GANYAN_TEST_DATABASE_URL: postgresql+psycopg://ganyan:test_only@localhost:5432/ganyan_test
+      GANYAN_SKIP_LAUNCH_REFRESH: '1'
+      GANYAN_SKIP_SCHEDULER: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: '3.12'
+      - run: uv sync --frozen --extra dev --extra bayes
+      - run: uv run pytest -q
+      - run: uv build
+      - run: uv run ganyan --help

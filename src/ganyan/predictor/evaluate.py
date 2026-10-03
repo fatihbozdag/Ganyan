@@ -8,6 +8,7 @@ from datetime import date as date_type
 
 from sqlalchemy.orm import Session
 
+from ganyan.predictor.records import recorded_entries
 from ganyan.db.models import Race, RaceEntry, RaceStatus
 
 
@@ -74,11 +75,7 @@ def evaluate_race(session: Session, race_id: int) -> RaceEvaluation | None:
     if race is None or race.status != RaceStatus.resulted:
         return None
 
-    entries = (
-        session.query(RaceEntry)
-        .filter(RaceEntry.race_id == race_id)
-        .all()
-    )
+    entries = recorded_entries(session, race_id)
     if not entries:
         return None
 
@@ -98,8 +95,7 @@ def evaluate_race(session: Session, race_id: int) -> RaceEvaluation | None:
     # Sort predicted entries by predicted_probability descending to get ranks.
     ranked = sorted(
         predicted_entries,
-        key=lambda e: float(e.predicted_probability),
-        reverse=True,
+        key=lambda e: e.predicted_rank,
     )
 
     # Find rank for the winner (1-based).
@@ -229,8 +225,8 @@ def evaluate_all(
     # Log loss: -mean(log(predicted_prob_of_winner / 100)).
     log_losses: list[float] = []
     for ev in evaluations:
-        if ev.winner_predicted_prob is not None and ev.winner_predicted_prob > 0:
-            log_losses.append(-math.log(ev.winner_predicted_prob / 100.0))
+        if ev.winner_predicted_prob is not None:
+            log_losses.append(-math.log(max(ev.winner_predicted_prob / 100.0, 1e-15)))
     log_loss = sum(log_losses) / len(log_losses) if log_losses else 0.0
 
     # Brier score (multi-class): mean over races of sum_i (p_i - y_i)^2,
@@ -335,9 +331,7 @@ def _compute_brier_score(
     total = 0.0
     count = 0
     for ev in evaluations:
-        entries = (
-            session.query(RaceEntry).filter(RaceEntry.race_id == ev.race_id).all()
-        )
+        entries = recorded_entries(session, ev.race_id)
         predicted = [
             (float(e.predicted_probability) / 100.0, e.finish_position == 1)
             for e in entries if e.predicted_probability is not None
@@ -358,34 +352,16 @@ def _simulate_roi(
     and falls back to model-implied odds.  Result is fractional ROI:
     0.0 = break-even, 0.15 = +15%, -0.20 = -20%.
     """
-    total_bet = 0.0
-    total_payout = 0.0
+    from ganyan.predictor.settlement import winning_payout
+    total_bet = total_payout = 0.0
     for ev in evaluations:
-        bet = 100.0
-        total_bet += bet
-        if not ev.top1_correct:
+        race = session.get(Race, ev.race_id)
+        if race.ganyan_payout_tl is None:
             continue
-
-        entries = (
-            session.query(RaceEntry).filter(RaceEntry.race_id == ev.race_id).all()
-        )
-        top_pick = max(
-            (e for e in entries if e.predicted_probability is not None),
-            key=lambda e: float(e.predicted_probability),
-            default=None,
-        )
-        if top_pick is None:
-            continue
-        # Prefer AGF-implied payout.
-        if top_pick.agf is not None and float(top_pick.agf) > 0:
-            implied_prob = float(top_pick.agf) / 100.0
-        elif top_pick.predicted_probability is not None and float(top_pick.predicted_probability) > 0:
-            implied_prob = float(top_pick.predicted_probability) / 100.0
-        else:
-            continue
-        total_payout += bet / implied_prob
-
-    return (total_payout - total_bet) / total_bet if total_bet > 0 else 0.0
+        total_bet += 100.0
+        if ev.top1_correct:
+            total_payout += winning_payout("ganyan", float(race.ganyan_payout_tl), 100.0)
+    return (total_payout - total_bet) / total_bet if total_bet else 0.0
 
 
 def _compute_calibration(
@@ -398,14 +374,7 @@ def _compute_calibration(
     if not race_ids:
         return []
 
-    entries = (
-        session.query(RaceEntry)
-        .filter(
-            RaceEntry.race_id.in_(race_ids),
-            RaceEntry.predicted_probability.isnot(None),
-        )
-        .all()
-    )
+    entries = [e for rid in race_ids for e in recorded_entries(session, rid)]
 
     bin_width = 100.0 / num_bins
     bins: list[list[tuple[float, bool]]] = [[] for _ in range(num_bins)]

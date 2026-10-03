@@ -20,7 +20,9 @@ from __future__ import annotations
 import pytest
 from sqlalchemy.orm import Session
 
-from ganyan.db import get_session
+from sqlalchemy import create_engine
+from ganyan.db.models import Base
+from tests.test_predictor.test_ml.test_ml_pipeline import _seed_many
 from ganyan.db.models import Race, RaceEntry, RaceStatus
 
 
@@ -53,13 +55,14 @@ def test_feature_columns_exclude_post_race_fields() -> None:
     )
 
 
-@pytest.fixture(scope="module")
-def db_session() -> Session:
-    """A module-scoped DB session.  Rolls back at teardown."""
-    s = get_session()
-    yield s
-    s.rollback()
-    s.close()
+@pytest.fixture
+def db_session():
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    with Session(engine) as session:
+        _seed_many(session, n_races=5)
+        yield session
+    engine.dispose()
 
 
 @pytest.fixture
@@ -115,15 +118,13 @@ def test_predict_invariant_to_target_race_finish_data(
     except ImportError:
         pytest.skip("ML predictor not available — skipping leakage check.")
 
-    try:
-        load_latest_model()
-    except FileNotFoundError:
-        pytest.skip(
-            "No trained LightGBM model on disk — skipping leakage check. "
-            "Run `ganyan train` to enable.",
-        )
-
-    predictor = MLPredictor(db_session)
+    from types import SimpleNamespace
+    import numpy as np
+    from ganyan.predictor.ml.predictor import LoadedModel
+    from ganyan.predictor.ml.features import FEATURE_COLUMNS
+    # A deterministic feature-sensitive scorer, independent of production files.
+    booster = SimpleNamespace(predict=lambda x: np.nan_to_num(x.to_numpy()).sum(axis=1))
+    predictor = MLPredictor(db_session, LoadedModel(booster, FEATURE_COLUMNS, "test"))
 
     # Baseline — with finish data in place.
     preds_a = predictor.predict(resulted_race_id)

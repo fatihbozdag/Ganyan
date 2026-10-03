@@ -11,9 +11,8 @@ itself without human intervention:
    for the web dashboard.
 3. **Weekly pedigree refresh** — Sunday 03:00: crawl horses that
    picked up a ``tjk_at_id`` in the past week but still lack pedigree.
-4. **Monthly model retrain** — first of the month 03:30: run
-   ``train_ranker`` on the rolling 90-day window for both the main and
-   value models.
+4. **Intraday refresh** — capture program changes and refresh upcoming races.
+   Automatic model retraining remains disabled; manual fits create candidates.
 
 The scheduler runs in the same process as the Flask app by default
 (:class:`BackgroundScheduler`) — one process, one lifecycle.  Can be
@@ -35,6 +34,7 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from ganyan.config import Settings
+from ganyan.time import today as race_today, utcnow, is_upcoming
 
 
 logger = logging.getLogger(__name__)
@@ -63,17 +63,19 @@ def _job_morning_card(settings: Settings) -> None:
     from ganyan.predictor.ml.ensemble import EnsemblePredictor
     from sqlalchemy import func
 
-    today = date.today()
+    today = race_today()
     logger.info("scheduler: morning-card starting for %s", today)
 
     async def _scrape() -> int:
-        session = get_session()
+        session = get_session(settings.database_url)
         stored = 0
         try:
             async with TJKClient(
                 base_url=settings.tjk_base_url, delay=settings.scrape_delay,
             ) as client:
-                raw = await client.get_race_card(today)
+                raw, failures = await client.get_race_card_with_failures(today)
+                if failures:
+                    raise RuntimeError(f"Incomplete race card scrape: {failures}")
                 for card in raw:
                     parsed = parse_race_card(card)
                     store_race_card(session, parsed)
@@ -91,11 +93,11 @@ def _job_morning_card(settings: Settings) -> None:
         count = asyncio.run(_scrape())
     except Exception:  # noqa: BLE001
         logger.exception("scheduler: morning-card scrape failed")
-        return
+        raise
 
     # Predict all of today's races that have enough entries, then write
     # strategy-level Pick rows so we track real-world ROI over time.
-    session = get_session()
+    session = get_session(settings.database_url)
     picks_created = 0
     try:
         from ganyan.predictor.picks import generate_picks_for_race
@@ -109,6 +111,8 @@ def _job_morning_card(settings: Settings) -> None:
             .all()
         )
         for race in races:
+            if not is_upcoming(race):
+                continue
             try:
                 predictor.predict_and_save(race.id)
                 # refresh=True so intraday re-runs rewrite ungraded picks
@@ -120,6 +124,7 @@ def _job_morning_card(settings: Settings) -> None:
                 session.commit()
             except Exception:  # noqa: BLE001
                 session.rollback()
+                raise
     finally:
         session.close()
 
@@ -128,14 +133,8 @@ def _job_morning_card(settings: Settings) -> None:
         count, picks_created,
     )
 
-    # Multi-race 6'lı paper-trade coupon — per project_pivot_steps_2026_05_11.
-    # All single-race structures are negative-EV; multi-race exotics are
-    # the only remaining path with mathematical EV. Daily paper trade
-    # records what we WOULD have bet to validate Step 2's EV math.
-    # 6'lı pool = last 6 races by TJK convention (16/16 days verified
-    # 2026-05-11 across all tracks). Max 144 tickets per coupon = 144 TL
-    # nominal stake.
-    session = get_session()
+    # Only explicit, verified pool windows authorize automatic coupons.
+    session = get_session(settings.database_url)
     multi_coupons = 0
     try:
         from sqlalchemy import func
@@ -144,17 +143,13 @@ def _job_morning_card(settings: Settings) -> None:
         )
         from ganyan.db.models import Track
 
-        track_max_race = (
-            session.query(Track.name, func.max(Race.race_number))
-            .join(Race, Race.track_id == Track.id)
-            .filter(Race.date == today)
-            .group_by(Track.name)
-            .all()
-        )
-        for track_name, max_race in track_max_race:
-            if max_race is None or max_race < 6:
-                continue
-            start_race = max_race - 5  # 6 legs ending at max_race
+        from ganyan.db.models import MultiRacePool
+        windows = session.query(MultiRacePool).filter(
+            MultiRacePool.date == today, MultiRacePool.pool_type == "6li",
+            MultiRacePool.start_race_no.isnot(None), MultiRacePool.end_race_no.isnot(None)).all()
+        for pool in windows:
+            track_name = session.get(Track, pool.track_id).name
+            start_race, max_race = pool.start_race_no, pool.end_race_no
             try:
                 draft = generate_coupon(
                     session, today, track_name, start_race,
@@ -162,7 +157,7 @@ def _job_morning_card(settings: Settings) -> None:
                 )
                 persist_coupon(
                     session, today, track_name, start_race, draft,
-                    pool_type="6li",
+                    pool_type="6li", pool_index=pool.pool_index,
                 )
                 session.commit()
                 multi_coupons += 1
@@ -172,6 +167,7 @@ def _job_morning_card(settings: Settings) -> None:
                     "%s R%d-R%d", track_name, start_race, max_race,
                 )
                 session.rollback()
+                raise
     finally:
         session.close()
     logger.info("scheduler: morning-card generated %d multi-race coupon(s)", multi_coupons)
@@ -203,8 +199,8 @@ def _job_repredict_upcoming(settings: Settings) -> None:
     from ganyan.predictor.ml.ensemble import EnsemblePredictor
     from ganyan.predictor.picks import generate_picks_for_race
 
-    today = date.today()
-    now_local = datetime.now()
+    today = race_today()
+    now_local = datetime.now(_TZ)
     # Cut-off: don't re-predict races whose post_time is within the next
     # 5 minutes or already past.  Operator may have placed bets based on
     # the previous prediction; gates close at post_time.
@@ -214,7 +210,7 @@ def _job_repredict_upcoming(settings: Settings) -> None:
         today, cutoff,
     )
 
-    session = get_session()
+    session = get_session(settings.database_url)
     n_repredicted = n_picks = n_skipped_late = 0
     try:
         predictor = EnsemblePredictor(session)
@@ -230,7 +226,7 @@ def _job_repredict_upcoming(settings: Settings) -> None:
         )
         races_kept = []
         for race in races:
-            if race.post_time and race.post_time <= cutoff:
+            if not is_upcoming(race, margin_minutes=5):
                 n_skipped_late += 1
                 continue
             races_kept.append(race)
@@ -246,6 +242,7 @@ def _job_repredict_upcoming(settings: Settings) -> None:
                 session.commit()
             except Exception:  # noqa: BLE001
                 session.rollback()
+                raise
                 logger.exception(
                     "scheduler: repredict failed for race %s", race.id,
                 )
@@ -272,17 +269,19 @@ def _job_agf_snapshot(settings: Settings) -> None:
     from ganyan.scraper import TJKClient, parse_race_card
     from ganyan.scraper.backfill import log_scrape, store_race_card
 
-    today = date.today()
+    today = race_today()
     logger.info("scheduler: agf-snapshot starting for %s", today)
 
     async def _scrape() -> int:
-        session = get_session()
+        session = get_session(settings.database_url)
         n = 0
         try:
             async with TJKClient(
                 base_url=settings.tjk_base_url, delay=settings.scrape_delay,
             ) as client:
-                raw = await client.get_race_card(today)
+                raw, failures = await client.get_race_card_with_failures(today)
+                if failures:
+                    raise RuntimeError(f"Incomplete race card scrape: {failures}")
                 for card in raw:
                     parsed = parse_race_card(card)
                     store_race_card(session, parsed)
@@ -300,7 +299,7 @@ def _job_agf_snapshot(settings: Settings) -> None:
         cards = asyncio.run(_scrape())
     except Exception:  # noqa: BLE001
         logger.exception("scheduler: agf-snapshot failed")
-        return
+        raise
     logger.info(
         "scheduler: agf-snapshot done (%d cards re-fetched)", cards,
     )
@@ -316,21 +315,20 @@ def _job_external_signals(settings: Settings) -> None:
     Intentional ordering: fires AFTER the morning_card job so the
     resolver has TJK's program available to bind against.
     """
-    del settings  # plugins manage their own HTTP clients
     from ganyan.db import get_session
     from ganyan.scraper.external.resolver import fetch_and_resolve
 
-    today = date.today()
+    today = race_today()
     logger.info("scheduler: external-signals starting for %s", today)
 
-    session = get_session()
+    session = get_session(settings.database_url)
     try:
         results = fetch_and_resolve(session, today)
         session.commit()
     except Exception:  # noqa: BLE001
         logger.exception("scheduler: external-signals failed")
         session.rollback()
-        return
+        raise
     finally:
         session.close()
 
@@ -344,17 +342,19 @@ def _job_results_poll(settings: Settings) -> None:
     from ganyan.scraper import TJKClient, parse_race_card
     from ganyan.scraper.backfill import update_race_results
 
-    today = date.today()
+    today = race_today()
     logger.info("scheduler: results-poll starting for %s", today)
 
     async def _scrape() -> int:
-        session = get_session()
+        session = get_session(settings.database_url)
         updated = 0
         try:
             async with TJKClient(
                 base_url=settings.tjk_base_url, delay=settings.scrape_delay,
             ) as client:
-                raw_cards = await client.get_race_results(today)
+                raw_cards, failures = await client.get_race_results_with_failures(today)
+                if failures:
+                    raise RuntimeError(f"Incomplete results scrape: {failures}")
                 for raw in raw_cards:
                     parsed = parse_race_card(raw)
                     race = update_race_results(session, parsed)
@@ -369,11 +369,11 @@ def _job_results_poll(settings: Settings) -> None:
         n = asyncio.run(_scrape())
     except Exception:  # noqa: BLE001
         logger.exception("scheduler: results-poll failed")
-        return
+        raise
 
     # Grade any picks whose races just resulted.  Cheap no-op when
     # nothing new finished since the last poll.
-    session = get_session()
+    session = get_session(settings.database_url)
     try:
         from ganyan.predictor.picks import grade_all_pending, resettle_plase_picks
 
@@ -391,11 +391,11 @@ def _job_results_poll(settings: Settings) -> None:
     except Exception:  # noqa: BLE001
         logger.exception("scheduler: pick grading failed")
         session.rollback()
-        graded = 0
+        raise
     finally:
         session.close()
 
-    session = get_session()
+    session = get_session(settings.database_url)
     try:
         from ganyan.predictor.multi_race_picks import grade_all_pending_multi
 
@@ -404,7 +404,7 @@ def _job_results_poll(settings: Settings) -> None:
     except Exception:  # noqa: BLE001
         logger.exception("scheduler: multi-race pick grading failed")
         session.rollback()
-        multi_graded = 0
+        raise
     finally:
         session.close()
 
@@ -423,7 +423,7 @@ def _job_pedigree_refresh(settings: Settings) -> None:
     logger.info("scheduler: pedigree-refresh starting")
 
     async def _run() -> int:
-        session = get_session()
+        session = get_session(settings.database_url)
         try:
             async with HorseCrawler(
                 session,
@@ -438,7 +438,7 @@ def _job_pedigree_refresh(settings: Settings) -> None:
         n = asyncio.run(_run())
     except Exception:  # noqa: BLE001
         logger.exception("scheduler: pedigree-refresh failed")
-        return
+        raise
     logger.info("scheduler: pedigree-refresh done (%d horses updated)", n)
 
 
@@ -447,10 +447,10 @@ def _job_monthly_retrain(settings: Settings) -> None:
     from ganyan.db import get_session
     from ganyan.predictor.ml import train_ranker
 
-    start = date.today() - timedelta(days=90)
+    start = race_today() - timedelta(days=90)
     logger.info("scheduler: monthly-retrain starting (window from %s)", start)
 
-    session = get_session()
+    session = get_session(settings.database_url)
     try:
         # Main (AGF-aware)
         try:
@@ -459,6 +459,7 @@ def _job_monthly_retrain(settings: Settings) -> None:
             )
         except Exception:  # noqa: BLE001
             logger.exception("scheduler: main retrain failed")
+            raise
         # Value (no AGF)
         try:
             train_ranker(
@@ -468,6 +469,7 @@ def _job_monthly_retrain(settings: Settings) -> None:
             )
         except Exception:  # noqa: BLE001
             logger.exception("scheduler: value retrain failed")
+            raise
     finally:
         session.close()
 
@@ -534,7 +536,7 @@ def _add_jobs(scheduler, settings: Settings) -> None:
         # builds the time-series the late-drift feature needs.
         CronTrigger(
             minute="0,30",
-            hour="11-22",
+            hour="11-23",
             timezone=_TZ,
         ),
         args=[settings],
@@ -551,7 +553,7 @@ def _add_jobs(scheduler, settings: Settings) -> None:
         # longer ride a uniform 1/N fallback.
         CronTrigger(
             minute="5,35",
-            hour="11-20",
+            hour="11-23",
             timezone=_TZ,
         ),
         args=[settings],
@@ -643,8 +645,9 @@ def _on_job_event(event) -> None:
 
         # APScheduler's event.scheduled_run_time is tz-aware; strip tzinfo
         # to match our DB column (DateTime without timezone).
-        started_at = event.scheduled_run_time.replace(tzinfo=None)
-        finished_at = datetime.now()
+        from datetime import timezone
+        started_at = event.scheduled_run_time.astimezone(timezone.utc).replace(tzinfo=None)
+        finished_at = utcnow()
         duration_ms = int((finished_at - started_at).total_seconds() * 1000)
 
         run = JobRun(

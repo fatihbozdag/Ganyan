@@ -41,6 +41,9 @@ def predict_from_posterior(
     `race` keys (optional, used only if posterior has the matching coef):
       kgss, s20s, last_sixes (str list), horse_names
     """
+    from ganyan.predictor.bayes.standardize import zscore_missing
+    standardize = zscore_missing if frame.feature_schema >= 2 else lambda x: _zscore(np.nan_to_num(x))
+    missing = float("nan") if frame.feature_schema >= 2 else 0.0
     post = idata.posterior
     theta = post["theta"].stack(sample=("chain", "draw")).values
     alpha = post["alpha_jockey"].stack(sample=("chain", "draw")).values
@@ -93,38 +96,38 @@ def predict_from_posterior(
             score[k] += gamma[td_idx, :]
 
     agfs = np.asarray(race["agfs"], dtype=float)
-    score += np.outer(_zscore(agfs), delta)
+    score += np.outer(standardize(agfs), delta)
 
     if delta_kgs is not None and "kgss" in race:
         kgs_arr = np.asarray(
-            [k if k is not None else 0.0 for k in race["kgss"]], dtype=float,
+            [k if k is not None else missing for k in race["kgss"]], dtype=float,
         )
-        score += np.outer(_zscore(kgs_arr), delta_kgs)
+        score += np.outer(standardize(kgs_arr), delta_kgs)
     if delta_s20 is not None and "s20s" in race:
         s20_arr = np.asarray(
-            [s if s is not None else 0.0 for s in race["s20s"]], dtype=float,
+            [s if s is not None else missing for s in race["s20s"]], dtype=float,
         )
-        score += np.outer(_zscore(s20_arr), delta_s20)
+        score += np.outer(standardize(s20_arr), delta_s20)
     if delta_last6 is not None and "last_sixes" in race:
         last6_arr = np.asarray(
             [summarize_last_six(s) for s in race["last_sixes"]], dtype=float,
         )
-        score += np.outer(_zscore(last6_arr), delta_last6)
+        score += np.outer(standardize(last6_arr), delta_last6)
     if delta_speed is not None and "speeds" in race:
         speed_arr = np.asarray(
-            [s if s is not None else 0.0 for s in race["speeds"]], dtype=float,
+            [s if s is not None else missing for s in race["speeds"]], dtype=float,
         )
-        score += np.outer(_zscore(speed_arr), delta_speed)
+        score += np.outer(standardize(speed_arr), delta_speed)
     if delta_workouts is not None and "workouts" in race:
         workout_arr = np.asarray(
-            [w if w is not None else 0.0 for w in race["workouts"]], dtype=float,
+            [w if w is not None else missing for w in race["workouts"]], dtype=float,
         )
-        score += np.outer(_zscore(workout_arr), delta_workouts)
+        score += np.outer(standardize(workout_arr), delta_workouts)
     if delta_pace is not None and "paces" in race:
         pace_arr = np.asarray(
-            [p if p is not None else 0.0 for p in race["paces"]], dtype=float,
+            [p if p is not None else missing for p in race["paces"]], dtype=float,
         )
-        score += np.outer(_zscore(pace_arr), delta_pace)
+        score += np.outer(standardize(pace_arr), delta_pace)
 
     score -= score.max(axis=0, keepdims=True)
     exps = np.exp(score)

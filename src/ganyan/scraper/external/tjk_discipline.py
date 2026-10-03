@@ -31,6 +31,7 @@ scraper can extract.
 from __future__ import annotations
 
 import logging
+from ganyan.time import utcnow
 import re
 from datetime import date as date_type, datetime
 from typing import ClassVar
@@ -106,7 +107,7 @@ def _fetch_rows(
             resp.raise_for_status()
     except httpx.HTTPError as exc:
         logger.warning("TJK %s fetch failed: %s", page_name, exc)
-        return []
+        raise
 
     rows: list[dict[str, str]] = []
     for tr_match in _ROW_RE.finditer(resp.text):
@@ -133,7 +134,7 @@ class TjkDisciplineSource(ExternalSource):
         self, session: Session, target_date: date_type,
     ) -> list[ExternalSignalRow]:
         del session  # binding happens in the resolver
-        captured_at = datetime.now()
+        captured_at = utcnow()
         out: list[ExternalSignalRow] = []
 
         # Reported (medical) jockeys.

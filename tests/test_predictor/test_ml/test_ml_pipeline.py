@@ -173,7 +173,7 @@ def test_ml_predictor_round_trip(db_session, tmp_path: Path, monkeypatch):
         "ganyan.predictor.ml.predictor.DEFAULT_MODEL_BASENAME", "test_ranker",
     )
 
-    loaded = load_latest_model()
+    loaded = load_latest_model(model_dir=tmp_path, model_name="test_ranker")
     assert loaded.feature_columns == FEATURE_COLUMNS
     assert loaded.booster.num_feature() == len(FEATURE_COLUMNS)
 
@@ -206,8 +206,12 @@ def test_ml_predictor_persists_audit_row(db_session, tmp_path: Path, monkeypatch
         "ganyan.predictor.ml.predictor.DEFAULT_MODEL_BASENAME", "test_ranker",
     )
 
-    predictor = MLPredictor(db_session)
+    predictor = MLPredictor(db_session, model=load_latest_model(model_dir=tmp_path, model_name="test_ranker"))
     race = db_session.query(Race).first()
+    from datetime import timedelta
+    race.date = date.today() + timedelta(days=1)
+    race.post_time = "14:00"
+    race.status = RaceStatus.scheduled
     before = db_session.query(PredictionRow).count()
     predictor.predict_and_save(race.id)
     db_session.commit()

@@ -26,6 +26,7 @@ deferred for later.
 from __future__ import annotations
 
 import logging
+from ganyan.time import utcnow
 import re
 from datetime import date as date_type, datetime
 from typing import ClassVar
@@ -71,7 +72,7 @@ def _fetch_table(page_name: str) -> list[dict[str, str]]:
             resp.raise_for_status()
     except httpx.HTTPError as exc:
         logger.warning("TJK %s fetch failed: %s", page_name, exc)
-        return []
+        raise
 
     cell_re = _make_cell_re(page_name)
     out: list[dict[str, str]] = []
@@ -149,7 +150,7 @@ class TjkTrackConditionsSource(ExternalSource):
         self, session: Session, target_date: date_type,
     ) -> list[ExternalSignalRow]:
         del session
-        captured_at = datetime.now()
+        captured_at = utcnow()
         rows = _fetch_table("PistBilgileri")
         out: list[ExternalSignalRow] = []
         for cells in rows:
@@ -203,7 +204,7 @@ class TjkStewardReportsSource(ExternalSource):
         self, session: Session, target_date: date_type,
     ) -> list[ExternalSignalRow]:
         del session
-        captured_at = datetime.now()
+        captured_at = utcnow()
         rows = _fetch_table("KomiserRaporlari")
         out: list[ExternalSignalRow] = []
         for cells in rows:

@@ -1,6 +1,6 @@
 """Multi-model ensemble predictor.
 
-Loads every trained model in ``models/`` and runs them all against the
+Loads explicitly approved, hash-verified model heads and runs them against the
 same race.  Convergence — multiple independent models agreeing on a
 horse — is treated as a stronger signal than any single model's pick.
 
@@ -36,7 +36,7 @@ from ganyan.db.models import Prediction as PredictionRow, Race, RaceEntry
 from ganyan.predictor.bayesian import Prediction
 from ganyan.predictor.ml.features import build_race_frame
 from ganyan.predictor.ml.predictor import (
-    LoadedModel, _softmax, load_latest_model,
+    LoadedModel, _softmax, load_latest_model, validated_features,
 )
 from ganyan.predictor.ml.trainer import DEFAULT_MODEL_DIR
 
@@ -62,6 +62,7 @@ class LoadedLinearModel:
     model_family: str  # "conditional_logit" or "plackett_luce"
     metadata: dict = field(default_factory=dict)
     softmax_temperature: float = 1.0  # MLE-fitted softmax already; T=1
+    artifact: dict = field(default_factory=dict)
 
     @property
     def model_version(self) -> str:
@@ -115,48 +116,36 @@ class EnsemblePrediction:
     by_model: dict[str, dict] = field(default_factory=dict)
 
 
-def _list_model_names(model_dir: Path) -> list[str]:
-    """All ``<name>.meta.json`` stems present in the directory."""
-    return sorted(p.stem.removesuffix(".meta") for p in model_dir.glob("*.meta.json"))
+def _list_model_names(model_dir):
+    from ganyan.predictor.ml.artifacts import approved_manifest
+    return sorted(approved_manifest(model_dir)["heads"])
 
 
-def load_all_models(
-    model_dir: Path | None = None,
-) -> list[LoadedModel | LoadedLinearModel]:
-    """Load every saved rank-or-finish-time head under ``model_dir``.
-
-    Skips models whose objective is ``ev`` — those output regression EV
-    values that aren't directly comparable to within-race probabilities.
-    Rank, finish-time, and linear-MLE heads all reduce naturally to
-    "who wins this race", so they're admissible ensemble members.
-    Each loaded head carries its training-time metadata so
-    ``EnsemblePredictor`` knows how to score it and whether it's a
-    race-type specialist that should be filtered on race.race_type.
-    """
-    model_dir = model_dir or DEFAULT_MODEL_DIR
-    names = _list_model_names(model_dir)
-    out: list[LoadedModel | LoadedLinearModel] = []
-    for name in names:
-        meta_path = model_dir / f"{name}.meta.json"
-        try:
-            metadata = json.loads(meta_path.read_text())
-        except (OSError, json.JSONDecodeError):
-            continue
+def load_all_models(model_dir=None):
+    from ganyan.predictor.ml.artifacts import approved_paths, model_root
+    model_dir = Path(model_dir or model_root())
+    out = []
+    for name in _list_model_names(model_dir):
+        paths = approved_paths(name, model_dir)
+        metadata = json.loads(paths["metadata"].read_text())
         if metadata.get("objective") == "ev":
-            logger.info("ensemble: skipping EV-head %s (incompatible scale)", name)
             continue
-        # Linear-ranker heads carry ``model_family`` in metadata.
         if "model_family" in metadata:
-            linear = _load_linear_model(name, metadata, model_dir)
-            if linear is not None:
-                out.append(linear)
-            continue
-        # Otherwise it's a LightGBM head (rank or finish-time).
-        try:
-            loaded = load_latest_model(model_dir=model_dir, model_name=name)
-            out.append(loaded)
-        except FileNotFoundError:
-            continue
+            metadata["npz_path"] = str(paths["model"])
+            model = _load_linear_model(name, metadata, model_dir)
+        else:
+            # Read the manifest-resolved immutable pair even after promotion.
+            model = load_latest_model(model_dir=paths["model"].parent,
+                                      model_name=paths["model"].stem)
+        if model is None:
+            raise FileNotFoundError(f"Approved head missing: {name}")
+        # Keep head names unique even for content-addressed releases named model.txt.
+        from ganyan.predictor.ml.artifacts import artifact_identity
+        model.artifact = artifact_identity(paths["model"], paths["metadata"])
+        model.metadata["approved_head"] = name
+        if isinstance(model, LoadedModel):
+            model.model_version = name
+        out.append(model)
     return out
 
 
@@ -244,11 +233,13 @@ class EnsemblePredictor:
             # doesn't match this race's race_type.
             if not _model_applies_to_race(model, race.race_type):
                 continue
-            X_df = frame.reindex(columns=model.feature_columns).astype("float64")
+            X_df = validated_features(frame, model.feature_columns)
             if isinstance(model, LoadedLinearModel):
                 raw = model.predict_raw(X_df.to_numpy())
             else:
                 raw = np.asarray(model.booster.predict(X_df), dtype=float)
+            if not np.isfinite(raw).all():
+                raise ValueError(f"Non-finite scores from {model.model_version}")
             obj = (model.metadata or {}).get("objective", "rank")
             if obj == "finish_time":
                 # Predicted finish times in seconds.  Smaller = better.
@@ -274,6 +265,9 @@ class EnsemblePredictor:
                 horse_ids[i]: float(probs[i]) for i in range(len(horse_ids))
             }
             per_model_rank[model.model_version] = ranks
+
+        if not per_model:
+            raise ValueError("No approved model applies to this race")
 
         # Aggregate per horse.
         out: list[EnsemblePrediction] = []
@@ -333,7 +327,7 @@ class EnsemblePredictor:
         per-model breakdown is shoved into ``contributing_factors``.
         """
         rows = self.predict(race_id)
-        n_models = max(1, len(self.models))
+        n_models = max(1, len(rows[0].by_model)) if rows else 1
         out: list[Prediction] = []
         for r in rows:
             factors = {
@@ -361,26 +355,8 @@ class EnsemblePredictor:
         so callers (notably the scheduler's morning_card job) can swap
         predictors without further changes.
         """
+        from ganyan.predictor.records import save_predictions
         preds = self.predict_as_predictions(race_id)
-        entries = {
-            (e.race_id, e.horse_id): e
-            for e in self.session.query(RaceEntry)
-            .filter(RaceEntry.race_id == race_id)
-            .all()
-        }
-        version = f"ensemble-{len(self.models)}-heads"
-        for p in preds:
-            entry = entries.get((race_id, p.horse_id))
-            if entry is None:
-                continue
-            entry.predicted_probability = p.probability
-            self.session.add(
-                PredictionRow(
-                    race_entry_id=entry.id,
-                    model_version=version,
-                    probability=p.probability,
-                    confidence=p.confidence,
-                    factors=p.contributing_factors,
-                )
-            )
-        return preds
+        identity = {"heads": {m.model_version: m.artifact for m in self.models}}
+        return save_predictions(self.session, race_id, preds,
+                                f"ensemble-{len(self.models)}-heads", identity)

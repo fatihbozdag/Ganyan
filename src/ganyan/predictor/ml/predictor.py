@@ -39,6 +39,7 @@ class LoadedModel:
     # was added — those models are uncalibrated but still rank-usable.
     softmax_temperature: float = 1.0
     metadata: dict = field(default_factory=dict)
+    artifact: dict = field(default_factory=dict)
 
 
 def load_latest_model(
@@ -49,10 +50,15 @@ def load_latest_model(
 
     Raises :class:`FileNotFoundError` when no model has been trained yet.
     """
-    model_dir = model_dir or DEFAULT_MODEL_DIR
+    from ganyan.predictor.ml.artifacts import approved_paths, artifact_identity, model_root
     model_name = model_name or DEFAULT_MODEL_BASENAME
-    model_path = model_dir / f"{model_name}.txt"
-    meta_path = model_dir / f"{model_name}.meta.json"
+    if model_dir is None:
+        paths = approved_paths(model_name, model_root())
+        model_path, meta_path = paths["model"], paths["metadata"]
+    else:
+        model_dir = Path(model_dir)
+        model_path = model_dir / f"{model_name}.txt"
+        meta_path = model_dir / f"{model_name}.meta.json"
     if not model_path.exists():
         raise FileNotFoundError(
             f"No trained model at {model_path}. Run `ganyan train` first.",
@@ -82,6 +88,7 @@ def load_latest_model(
         model_version=model_version,
         softmax_temperature=temperature,
         metadata=metadata,
+        artifact=artifact_identity(model_path, meta_path),
     )
 
 
@@ -136,8 +143,12 @@ class MLPredictor:
             if frame.empty:
                 return []
 
-        X = frame.reindex(columns=self.model.feature_columns).astype("float64")
-        raw_scores = self.model.booster.predict(X)
+        X = validated_features(frame, self.model.feature_columns)
+        raw_scores = np.asarray(self.model.booster.predict(X), dtype=float)
+        if not np.isfinite(raw_scores).all():
+            raise ValueError("Model produced non-finite scores")
+        if self.model.metadata.get("objective") == "finish_time":
+            raw_scores = -(raw_scores - raw_scores.mean()) / (float(raw_scores.std()) or 1.0)
 
         # Within-race softmax with the training-time fitted temperature.
         # LambdaRank margins have an arbitrary scale; ``T`` was chosen
@@ -191,29 +202,10 @@ class MLPredictor:
 
     def predict_and_save(self, race_id: int) -> list[Prediction]:
         """Run :meth:`predict` and persist to both RaceEntry and Prediction."""
+        from ganyan.predictor.records import save_predictions
         preds = self.predict(race_id)
-        entries = {
-            (e.race_id, e.horse_id): e
-            for e in self.session.query(RaceEntry)
-            .filter(RaceEntry.race_id == race_id)
-            .all()
-        }
-        version = self.model.model_version
-        for p in preds:
-            entry = entries.get((race_id, p.horse_id))
-            if entry is None:
-                continue
-            entry.predicted_probability = p.probability
-            self.session.add(
-                PredictionRow(
-                    race_entry_id=entry.id,
-                    model_version=version,
-                    probability=p.probability,
-                    confidence=p.confidence,
-                    factors=p.contributing_factors,
-                )
-            )
-        return preds
+        return save_predictions(self.session, race_id, preds,
+                                self.model.model_version, self.model.artifact)
 
 
 def _softmax(x: np.ndarray, temperature: float = 1.0) -> np.ndarray:
@@ -253,3 +245,12 @@ def _isnan(x) -> bool:
         return math.isnan(x)
     except (TypeError, ValueError):
         return False
+
+
+def validated_features(frame, columns):
+    """Only the explicitly retired, always-empty apprentice feature is compatible."""
+    missing = set(columns) - set(frame.columns)
+    unexpected = missing - {"apprentice_jockey"}
+    if unexpected:
+        raise ValueError(f"Model requires unavailable features: {sorted(unexpected)}")
+    return frame.reindex(columns=columns).astype("float64")
