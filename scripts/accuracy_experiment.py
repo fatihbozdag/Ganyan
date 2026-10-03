@@ -26,6 +26,7 @@ from pathlib import Path
 from ganyan.db.models import Race, RaceStatus
 from ganyan.db.session import get_session
 from ganyan.predictor.ml import ensemble as ensemble_mod
+from ganyan.predictor.ml import features as features_mod
 from ganyan.predictor.ml import predictor as predictor_mod
 from ganyan.predictor.ml.ensemble import EnsemblePredictor, load_all_models
 from ganyan.predictor.ml.features import build_race_frame
@@ -112,14 +113,24 @@ def run(args):
 
     # Feature frames are a pure function of the (static) DB; cache them so
     # every arm sees identical inputs and the frame is built once per race.
+    # For past races the training cutoff and the inference cutoff coincide.
     cache = {}
+    if args.frame_cache:
+        import pandas as pd
+        from ganyan.predictor.ml.artifacts import pipeline_digest
+        table = pd.read_pickle(args.frame_cache)
+        if table.attrs.get("pipeline_sha256") != pipeline_digest():
+            raise SystemExit("frame cache was built from different code; rebuild it")
+        for race_id, frame in table.groupby("race_id", sort=False):
+            cache[int(race_id)] = frame.drop(columns="race_id").reset_index(drop=True)
+        logger.info("loaded %d cached race frames", len(cache))
 
     def cached_frame(sess, race_id, *, as_of=None):
-        key = (race_id, as_of)
-        if key not in cache:
-            cache[key] = build_race_frame(sess, race_id, as_of=as_of)
-        return cache[key].copy()
+        if race_id not in cache:
+            cache[race_id] = build_race_frame(sess, race_id, as_of=as_of)
+        return cache[race_id].copy()
 
+    features_mod.build_race_frame = cached_frame
     ensemble_mod.build_race_frame = cached_frame
     predictor_mod.build_race_frame = cached_frame
 
@@ -182,6 +193,7 @@ def main():
     parser.add_argument("--out", required=True,
                         help="Directory under models/candidates or logs/experiments")
     parser.add_argument("--arms", nargs="+", required=True)
+    parser.add_argument("--frame-cache", help="Pickle from scripts/build_frame_cache.py")
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
     logging.getLogger("httpx").setLevel(logging.WARNING)
     run(parser.parse_args())
