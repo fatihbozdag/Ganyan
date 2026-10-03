@@ -28,6 +28,7 @@ def session():
             s.add(r)
         s.flush()
         yield s
+    engine.dispose()
 
 
 def _add_pick(session, strategy, stake, payout, hit, days_ago, race_idx=None):

@@ -214,14 +214,6 @@ def train_conditional_logit(
     X_test_raw = test.features.to_numpy(dtype=float)
     X_test_std = np.where(np.isnan(X_test_raw), mean, X_test_raw)
     X_test_std = (X_test_std - mean) / std
-    test_frame = TrainingFrame(
-        features=pd.DataFrame(X_test_std, columns=feature_cols),
-        target=test.target,
-        ev_target=test.ev_target,
-        finish_time_target=test.finish_time_target,
-        groups=test.groups,
-        race_dates=test.race_dates,
-    )
 
     train_blocks = _iter_race_blocks(train_frame)
 

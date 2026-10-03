@@ -132,6 +132,7 @@ def db_session():
     Base.metadata.create_all(engine)
     with Session(engine) as session:
         yield session
+    engine.dispose()
 
 
 def _seed_resulted_race(session, track_name, race_date, horses, surface="Kum",

@@ -158,7 +158,7 @@ def test_train_ranker_end_to_end(db_session, tmp_path: Path):
 
 def test_ml_predictor_round_trip(db_session, tmp_path: Path, monkeypatch):
     _seed_many(db_session, n_races=30)
-    result = train_ranker(
+    train_ranker(
         db_session,
         holdout_fraction=0.2,
         num_boost_round=50,

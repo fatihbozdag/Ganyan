@@ -31,6 +31,7 @@ def session():
     s = sessionmaker(bind=engine)()
     yield s
     s.close()
+    engine.dispose()
 
 
 def _seed_entry_with_workout(s, *, race_date: date, workout_date: date):

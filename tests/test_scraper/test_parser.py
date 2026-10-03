@@ -6,7 +6,6 @@ from ganyan.scraper.parser import (
     normalize_track_name,
     RawRaceCard,
     RawHorseEntry,
-    ParsedRaceCard,
     parse_race_card,
 )
 

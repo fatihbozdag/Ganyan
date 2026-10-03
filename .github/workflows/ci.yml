@@ -23,7 +23,11 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: '3.12'
+          enable-cache: true
+      - name: Lint (ruff, pyflakes rules from pyproject)
+        run: uvx ruff check src tests
       - run: uv sync --frozen --extra dev --extra bayes
-      - run: uv run pytest -q
+      - name: Tests with coverage floor
+        run: uv run pytest -q --cov=ganyan --cov-report=term --cov-fail-under=52
       - run: uv build
       - run: uv run ganyan --help

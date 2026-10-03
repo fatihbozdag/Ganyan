@@ -9,7 +9,7 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from ganyan.db.models import (Base, Horse, Race, RaceEntry, RaceStatus, Track, Pick,
+from ganyan.db.models import (Base, Horse, RaceStatus, Pick,
                              AgfSnapshot, MultiRacePool, MultiRacePick)
 from ganyan.scraper.parser import ParsedHorseEntry, ParsedRaceCard
 from ganyan.scraper.backfill import store_race_card
@@ -18,7 +18,7 @@ from ganyan.predictor.ml.trainer import _evaluate_ranker
 from ganyan.predictor.ml.artifacts import (approved_paths, artifact_identity, candidate_directory,
                                          pipeline_digest, promote)
 from ganyan.predictor.ml.gate import assert_min_window, validate_window, evaluate_gate
-from ganyan.time import utcnow, race_cutoff
+from ganyan.time import race_cutoff
 
 
 @pytest.fixture

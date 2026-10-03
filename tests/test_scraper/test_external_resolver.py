@@ -1,6 +1,6 @@
 # tests/test_scraper/test_external_resolver.py
 """Tests for external_signals binders."""
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 
 import pytest
 from sqlalchemy import create_engine
@@ -25,6 +25,7 @@ def session():
     s = Session()
     yield s
     s.close()
+    engine.dispose()
 
 
 def _seed_race(s, *, race_date: date, jockey: str, track_name: str = "Bursa"):
@@ -107,7 +108,7 @@ def test_discipline_skips_race_outside_window(session):
     session.add(sig)
     session.commit()
 
-    n = bind_discipline_to_entries(session, target_date=date(2026, 4, 30))
+    bind_discipline_to_entries(session, target_date=date(2026, 4, 30))
     session.commit()
 
     bound = session.query(ExternalSignal).filter_by(id=sig.id).one()

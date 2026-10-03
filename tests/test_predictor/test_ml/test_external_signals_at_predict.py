@@ -34,6 +34,7 @@ def session():
     s = sessionmaker(bind=engine)()
     yield s
     s.close()
+    engine.dispose()
 
 
 def _seed_minimal_race(s):

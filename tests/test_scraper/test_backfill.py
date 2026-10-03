@@ -22,6 +22,7 @@ def db_session():
     Base.metadata.create_all(engine)
     with Session(engine) as session:
         yield session
+    engine.dispose()
 
 
 def _make_raw_card(track="İstanbul", race_num=1, horse_name="Karayel"):

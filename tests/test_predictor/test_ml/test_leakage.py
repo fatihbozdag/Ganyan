@@ -114,7 +114,7 @@ def test_predict_invariant_to_target_race_finish_data(
     """
     try:
         from ganyan.predictor.ml import MLPredictor
-        from ganyan.predictor.ml.predictor import load_latest_model
+        from ganyan.predictor.ml.predictor import load_latest_model  # noqa: F401 (availability probe)
     except ImportError:
         pytest.skip("ML predictor not available — skipping leakage check.")
 

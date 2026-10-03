@@ -2,7 +2,7 @@
 import pytest
 from datetime import date
 from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import sessionmaker
 
 from ganyan.db.models import Base, Track, Race, Horse, RaceEntry, RaceStatus
 from ganyan.web.app import create_app
@@ -44,7 +44,8 @@ def app():
         enable_scheduler=False,
     )
     flask_app.config["TESTING"] = True
-    return flask_app
+    yield flask_app
+    engine.dispose()
 
 
 @pytest.fixture
@@ -159,7 +160,8 @@ def app_with_results():
         enable_scheduler=False,
     )
     flask_app.config["TESTING"] = True
-    return flask_app
+    yield flask_app
+    engine.dispose()
 
 
 def test_history_with_evaluations(app_with_results):

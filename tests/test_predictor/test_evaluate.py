@@ -11,8 +11,6 @@ from sqlalchemy.orm import Session
 from ganyan.db.models import Base, Track, Race, Horse, RaceEntry, RaceStatus
 from ganyan.predictor.bayesian import BayesianPredictor
 from ganyan.predictor.evaluate import (
-    RaceEvaluation,
-    EvaluationSummary,
     evaluate_race,
     evaluate_all,
 )
@@ -24,6 +22,7 @@ def db_session():
     Base.metadata.create_all(engine)
     with Session(engine) as session:
         yield session
+    engine.dispose()
 
 
 def _create_track(session, name="Istanbul"):

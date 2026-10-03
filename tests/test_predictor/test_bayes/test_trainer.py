@@ -10,8 +10,8 @@ from ganyan.predictor.bayes.trainer import save_posterior, load_posterior
 
 
 def test_save_and_load_roundtrip(tmp_path: Path):
-    with pm.Model() as m:
-        x = pm.Normal("x", 0, 1)
+    with pm.Model():
+        pm.Normal("x", 0, 1)
         idata = pm.sample(
             draws=50, tune=50, chains=1, random_seed=0,
             progressbar=False,

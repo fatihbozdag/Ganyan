@@ -10,7 +10,7 @@ import respx
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from ganyan.db.models import Base, Horse, Race, RaceEntry, RaceStatus, ScrapeLog, ScrapeStatus, Track
+from ganyan.db.models import Base, Horse, Race, RaceEntry, RaceStatus, ScrapeLog, ScrapeStatus
 from ganyan.scraper.parser import parse_race_card
 from ganyan.scraper.backfill import BackfillManager, store_historical_race
 from ganyan.scraper.tjk_api import TJKClient
@@ -241,6 +241,7 @@ def db_session():
     Base.metadata.create_all(engine)
     with Session(engine) as session:
         yield session
+    engine.dispose()
 
 
 # ---------------------------------------------------------------------------
@@ -546,7 +547,7 @@ class TestStoreHistoricalRace:
 
     def test_creates_race_as_resulted(self, db_session) -> None:
         """Historical races should be stored with resulted status."""
-        from ganyan.scraper.parser import RawRaceCard, RawHorseEntry, parse_race_card
+        from ganyan.scraper.parser import RawRaceCard, RawHorseEntry
 
         raw = RawRaceCard(
             track_name="Adana",
@@ -579,7 +580,7 @@ class TestStoreHistoricalRace:
 
     def test_idempotent(self, db_session) -> None:
         """Calling store_historical_race twice should not duplicate records."""
-        from ganyan.scraper.parser import RawRaceCard, RawHorseEntry, parse_race_card
+        from ganyan.scraper.parser import RawRaceCard, RawHorseEntry
 
         raw = RawRaceCard(
             track_name="Istanbul",
@@ -609,7 +610,7 @@ class TestStoreHistoricalRace:
 
     def test_upgrades_scheduled_to_resulted(self, db_session) -> None:
         """If race exists as scheduled, historical store upgrades to resulted."""
-        from ganyan.scraper.parser import RawRaceCard, RawHorseEntry, parse_race_card
+        from ganyan.scraper.parser import RawRaceCard, RawHorseEntry
         from ganyan.scraper.backfill import store_race_card
 
         raw_scheduled = RawRaceCard(

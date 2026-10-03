@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from ganyan.db.models import Base, Horse
 from ganyan.scraper.horse_crawler import (
-    HorseCrawler, HorseProfile, _parse_birth_date, _parse_kunye,
+    HorseCrawler, _parse_birth_date, _parse_kunye,
 )
 
 
@@ -40,6 +40,7 @@ def db_session():
     Base.metadata.create_all(engine)
     with Session(engine) as s:
         yield s
+    engine.dispose()
 
 
 def test_parse_birth_date():
