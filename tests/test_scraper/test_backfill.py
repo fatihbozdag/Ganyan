@@ -166,6 +166,29 @@ def test_update_race_results_sets_positions(db_session):
     assert entry.finish_time == "1.30.45"
 
 
+def test_update_race_results_marks_kosmaz_non_runner_scratched(db_session):
+    """A late withdrawal ("Koşmaz", no placing) must not count as a runner:
+    otherwise training drops the whole race and the gate excludes it."""
+    from ganyan.scraper.tjk_api import _is_non_runner
+
+    assert _is_non_runner("Koşmaz") and _is_non_runner("(KOŞMAZ)")
+    assert not _is_non_runner("1.30.45") and not _is_non_runner("Derecesiz")
+
+    store_race_card(db_session, parse_race_card(_make_raw_card()))
+    db_session.commit()
+    raw_result = RawRaceCard(
+        track_name="İstanbul", date=date(2026, 4, 5), race_number=1,
+        distance_meters=1400, surface="Çim", race_type="Handikap",
+        horses=[RawHorseEntry(name="Karayel", age=4, origin="TR", gate_number=1,
+                              finish_time="Koşmaz", scratched=True)],
+    )
+    update_race_results(db_session, parse_race_card(raw_result))
+    db_session.commit()
+    entry = db_session.query(RaceEntry).first()
+    assert entry.scratched is True
+    assert entry.finish_position is None
+
+
 def test_update_race_results_returns_none_for_missing_race(db_session):
     raw = _make_raw_card(track="Ankara", race_num=99)
     parsed = parse_race_card(raw)

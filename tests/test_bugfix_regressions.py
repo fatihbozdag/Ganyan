@@ -108,3 +108,33 @@ def test_repredict_continues_after_failed_race_then_raises(monkeypatch):
         scheduler._job_repredict_upcoming(Settings(database_url="sqlite://"))
     assert sorted(attempted) == sorted(race_ids)
     engine.dispose()
+
+
+def test_non_finisher_ranks_below_winner_in_training_and_exotics():
+    """TJK stores non-finishers ("Derecesiz") with placing 0. They must rank
+    below every finisher, not above the winner."""
+    from sqlalchemy.orm import Session
+
+    from ganyan.predictor.exotic_evaluate import _actual_winning_combo
+    from ganyan.predictor.ml.features import build_training_frame
+    from tests.test_predictor.test_ml.test_ml_pipeline import _seed_many
+
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    with Session(engine) as s:
+        _seed_many(s, n_races=1)
+        race = s.query(Race).one()
+        last = max(race.entries, key=lambda e: e.finish_position)
+        last.finish_position = 0
+        s.flush()
+        frame = build_training_frame(s)
+        by_horse = dict(zip(
+            [e.horse_id for e in sorted(race.entries, key=lambda e: e.horse_id)],
+            frame.target.tolist(),
+        ))
+        winner = next(e for e in race.entries if e.finish_position == 1)
+        assert by_horse[last.horse_id] == 0
+        assert by_horse[winner.horse_id] == max(by_horse.values())
+        combo = _actual_winning_combo(race.entries, "uclu")
+        assert last.horse_id not in combo and combo[0] == winner.horse_id
+    engine.dispose()

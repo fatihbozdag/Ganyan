@@ -534,6 +534,8 @@ def update_race_results(session: Session, parsed: ParsedRaceCard) -> Race | None
             entry.finish_position = h.finish_position
         if h.finish_time is not None:
             entry.finish_time = h.finish_time
+        if getattr(h, "scratched", False):
+            entry.scratched = True
         # Plase pool settles late on the same results card; write-once
         # like the race-level payouts so a TJK pool amendment doesn't
         # silently move a graded pick's settled payout.

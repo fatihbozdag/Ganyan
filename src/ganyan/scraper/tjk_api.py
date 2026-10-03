@@ -178,6 +178,14 @@ _DOMESTIC_SEHIR_IDS = {
 # Helpers
 # ---------------------------------------------------------------------------
 
+def _is_non_runner(text: str | None) -> bool:
+    """True for TJK's "Koşmaz" (did not run) marker in a results cell."""
+    if not text:
+        return False
+    folded = text.strip().casefold().replace("ş", "s")
+    return folded.strip("()") == "kosmaz"
+
+
 def _safe_int(text: str | None) -> int | None:
     """Parse an integer from text, returning None on failure."""
     if not text:
@@ -1273,6 +1281,7 @@ class TJKClient:
             return None
 
         age_text = _extract_text(row.select_one(_R_AGE))
+        finish_time = _extract_text(row.select_one(_R_TIME)) or None
 
         return RawHorseEntry(
             name=name,
@@ -1291,7 +1300,10 @@ class TJKClient:
             gny=_safe_float(_extract_text(row.select_one(_R_GNY))),
             agf=_extract_agf(row.select_one(_R_AGF)),
             finish_position=_safe_int(_extract_text(row.select_one(_R_FINISH))),
-            finish_time=_extract_text(row.select_one(_R_TIME)) or None,
+            finish_time=finish_time,
+            # A late withdrawal shows "Koşmaz" in the time column with no
+            # placing; without this flag it counts as an unplaced runner.
+            scratched=_is_non_runner(finish_time),
             tjk_at_id=_extract_at_id(name_cell),
             equipment=_extract_equipment(name_cell),
         )

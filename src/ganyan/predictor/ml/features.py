@@ -162,6 +162,15 @@ def _surface_encode(surface: str | None) -> float:
     return np.nan
 
 
+def _rank_score(finish_position: int, field_size: int) -> int:
+    """LambdaRank label: winner highest. TJK records non-finishers
+    ("Derecesiz" with placing 0) as position 0; they rank below every
+    finisher instead of above the winner."""
+    if finish_position < 1:
+        return 0
+    return max(0, field_size - finish_position)
+
+
 def build_training_frame(
     session: Session,
     *,
@@ -224,7 +233,7 @@ def build_training_frame(
             ev_value = (float(race.ganyan_payout_tl) - 1 if entry.finish_position == 1 else -1.0) if race.ganyan_payout_tl is not None else np.nan
             rows.append({**record, GROUP_COLUMN: race.id, "race_date": race.date,
                          "horse_id": entry.horse_id,
-                         "rank_score": max(0, len(entries) - entry.finish_position),
+                         "rank_score": _rank_score(entry.finish_position, len(entries)),
                          EV_TARGET_COLUMN: ev_value,
                          FINISH_TIME_TARGET_COLUMN: finish_seconds})
 

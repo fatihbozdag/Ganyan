@@ -98,7 +98,8 @@ def _actual_winning_combo(
 ) -> tuple[int, ...] | None:
     """Horses (by horse_id) that make up the winning combination."""
     size = _COMBO_SIZE[pool]
-    top = [e for e in entries if e.finish_position is not None]
+    # Placing 0 marks a non-finisher; it can never be part of a combination.
+    top = [e for e in entries if e.finish_position is not None and e.finish_position >= 1]
     top = sorted(top, key=lambda e: e.finish_position)[:size]
     if len(top) < size:
         return None

@@ -242,7 +242,8 @@ def build_training_frame(
                 or any(e.finish_position is None for e in finishers)
                 or not any(e.finish_position == 1 for e in finishers)):
             continue
-        finishers.sort(key=lambda e: e.finish_position)
+        # Placing 0 marks a non-finisher: order it behind every finisher.
+        finishers.sort(key=lambda e: (e.finish_position < 1, e.finish_position))
         horse_ids: List[int] = []
         jockey_ids: List[int] = []
         sire_ids: List[int] = []
