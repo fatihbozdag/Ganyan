@@ -5,7 +5,7 @@ import json
 import logging
 import subprocess
 from ganyan.time import today as race_today, is_upcoming
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import TYPE_CHECKING
 
 import typer

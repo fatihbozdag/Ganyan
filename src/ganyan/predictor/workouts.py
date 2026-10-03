@@ -95,7 +95,7 @@ def horse_workout_score(
     runs = history.get(horse_id)
     if not runs:
         return None
-    from datetime import date, datetimetime, time
+    from datetime import datetime, time
     from ganyan.time import ISTANBUL
     from datetime import timezone
     cutoff = as_of or datetime.combine(as_of_date, time.min, ISTANBUL).astimezone(timezone.utc).replace(tzinfo=None)

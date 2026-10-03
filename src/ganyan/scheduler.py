@@ -183,15 +183,13 @@ def _job_repredict_upcoming(settings: Settings) -> None:
     agf_snapshot job), so any race that posts after AGF settles needs
     its prediction redone before its post time.
 
-    Trigger: every 30 minutes between 11:05 and 20:35 — five minutes
+    Trigger: every 30 minutes between 11:05 and 23:35 — five minutes
     after each agf_snapshot run so AGF has committed. Skips races that
     have already resulted *and* races whose post_time has passed (TJK's
     results-publish often lags the race itself by 30+ minutes; refreshing
     a pick after the gates open silently rewrites the operator's
     morning-recorded recommendation, which is the audit-of-record).
     """
-    from datetime import datetime, timedelta
-
     from sqlalchemy import func
 
     from ganyan.db import get_session
@@ -212,6 +210,7 @@ def _job_repredict_upcoming(settings: Settings) -> None:
 
     session = get_session(settings.database_url)
     n_repredicted = n_picks = n_skipped_late = 0
+    failed_races: list[int] = []
     try:
         predictor = EnsemblePredictor(session)
         races = (
@@ -242,10 +241,10 @@ def _job_repredict_upcoming(settings: Settings) -> None:
                 session.commit()
             except Exception:  # noqa: BLE001
                 session.rollback()
-                raise
                 logger.exception(
                     "scheduler: repredict failed for race %s", race.id,
                 )
+                failed_races.append(race.id)
     finally:
         session.close()
 
@@ -254,6 +253,10 @@ def _job_repredict_upcoming(settings: Settings) -> None:
         "(%d races re-predicted, %d picks rewritten, %d skipped post-cutoff)",
         n_repredicted, n_picks, n_skipped_late,
     )
+    if failed_races:
+        raise RuntimeError(
+            f"repredict failed for {len(failed_races)} race(s): {failed_races}"
+        )
 
 
 def _job_agf_snapshot(settings: Settings) -> None:
