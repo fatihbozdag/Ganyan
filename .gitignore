@@ -66,3 +66,6 @@ models.bak*/
 logs/*.out
 .claude/
 
+
+# Cloud rebuild scrape state (scripts/rebuild_scrape.sh)
+logs/rebuild/
