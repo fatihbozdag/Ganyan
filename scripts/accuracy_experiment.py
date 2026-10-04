@@ -42,7 +42,14 @@ SPECIALISTS = [
     ("ŞARTLI", "lightgbm_spec_sartli"), ("KV", "lightgbm_spec_kv"),
     ("SATIŞ", "lightgbm_spec_satis"), ("G", "lightgbm_spec_stakes"),
 ]
-DEFAULT_WINDOW_DAYS = 90  # ganyan train's default window (cli/main.py)
+DEFAULT_WINDOW_DAYS = 90  # old ganyan train default window (cli/main.py)
+BLEND_FIT_DAYS = 182  # last ~6 months of the training window fit the blend
+HP_GRID = {
+    "leaves15": {"num_leaves": 15, "min_data_in_leaf": 50},
+    "leaves63": {"num_leaves": 63, "min_data_in_leaf": 50},
+    "lr02": {"learning_rate": 0.02, "min_data_in_leaf": 100},
+    "ff07": {"min_data_in_leaf": 200, "feature_fraction": 0.7},
+}
 
 
 def _ranker(session, root, start, end, *, name="lightgbm_ranker", holdout=0.2, **kw):
@@ -84,7 +91,59 @@ def build_arms(data_start, end):
         # Same heads as ensemble_all_h05, ordered by mean probability
         # instead of the #1-vote count.
         "ensemble_all_h05_meanprob": ("ensemble_mean_prob", "ensemble_all_h05"),
+        # Binary "did it win" head instead of LambdaRank.
+        "ranker_win": ("single", lambda s, r: _ranker(s, r, data_start, end, objective="win")),
+        # Hyperparameter variants of the all-history ranker.
+        **{f"ranker_hp_{key}": ("single", (lambda p: lambda s, r: _ranker(
+            s, r, data_start, end, params=p))(params)) for key, params in HP_GRID.items()},
+        # Market blend: conditional logit over log(AGF share) and the
+        # model's log-probability; weights fitted out-of-sample (see _blend).
+        "blend_ranker_all": ("blend", "ranker_all"),
+        "blend_ranker_win": ("blend", "ranker_win"),
     }
+
+
+def _blend_terms(session, predict, race_id):
+    """Per-runner [log AGF share, log model probability] for one race."""
+    import numpy as np
+    race = session.get(Race, race_id)
+    agf = {e.horse_id: float(e.agf) for e in race.entries if e.agf is not None}
+    preds = predict(race_id)
+    ids = [p.horse_id for p in preds]
+    x = np.array([[np.log(max(agf.get(h, 0.5), 0.5)),
+                   np.log(max(p.probability, 1e-6))] for h, p in zip(ids, preds)])
+    return ids, x
+
+
+def _fit_blend(session, predict, races):
+    """Max-likelihood weights of the winner's within-race softmax."""
+    import numpy as np
+    from scipy.optimize import minimize
+    data = []
+    for race_id, _, winners, _, _ in races:
+        ids, x = _blend_terms(session, predict, race_id)
+        data.append((x, np.array([h in winners for h in ids], dtype=float)))
+
+    def nll(w):
+        total = 0.0
+        for x, y in data:
+            z = x @ w
+            z = z - z.max()
+            total -= (z * y).sum() / y.sum() - np.log(np.exp(z).sum())
+        return total / len(data)
+
+    return minimize(nll, np.array([1.0, 1.0]), method="Nelder-Mead").x
+
+
+def _blend_predictor(session, predict, weights):
+    from types import SimpleNamespace
+
+    def blended(race_id):
+        ids, x = _blend_terms(session, predict, race_id)
+        z = x @ weights
+        order = sorted(range(len(ids)), key=lambda i: (-z[i], ids[i]))
+        return [SimpleNamespace(horse_id=ids[i], probability=float(z[i])) for i in order]
+    return blended
 
 
 def score_window(session, start, end):
@@ -140,7 +199,7 @@ def run(args):
     scored, n_excluded, n_races = score_window(session, s_from, s_to)
     if n_excluded / max(1, n_races) > 0.05:
         raise SystemExit(f"{n_excluded}/{n_races} races excluded (>5%)")
-    hits = {}
+    hits, blend_weights = {}, {}
     for name in args.arms:
         kind, train = arms[name]
         if isinstance(train, str):  # reuse another arm's trained heads
@@ -153,7 +212,23 @@ def run(args):
             logger.info("training %s", source)
             train(session, root)
             write_manifest(root)
-        if kind == "single":
+        if kind == "blend":
+            fit_from = train_to - timedelta(days=BLEND_FIT_DAYS - 1)
+            aux_root = out / f"{source}_blendfit"
+            if not (aux_root / "active.json").exists():
+                logger.info("training %s on data before %s", aux_root.name, fit_from)
+                build_arms(data_start, fit_from - timedelta(days=1))[source][1](session, aux_root)
+                write_manifest(aux_root)
+            aux = MLPredictor(session, load_latest_model(model_dir=aux_root, model_name="lightgbm_ranker")).predict
+            fit_races, _, _ = score_window(session, fit_from, train_to)
+            weights = _fit_blend(session, aux, fit_races)
+            blend_weights[name] = {"agf": float(weights[0]), "model": float(weights[1]),
+                                   "fit_window": [str(fit_from), str(train_to)],
+                                   "fit_races": len(fit_races)}
+            logger.info("%s weights agf=%.3f model=%.3f", name, *weights)
+            main = MLPredictor(session, load_latest_model(model_dir=root, model_name="lightgbm_ranker")).predict
+            predict = _blend_predictor(session, main, weights)
+        elif kind == "single":
             predict = MLPredictor(session, load_latest_model(model_dir=root, model_name="lightgbm_ranker")).predict
         else:
             aggregation = "mean_prob" if kind == "ensemble_mean_prob" else "convergence"
@@ -175,7 +250,8 @@ def run(args):
     report = {"train_to": str(train_to), "data_from": str(data_start),
               "score_window": [str(s_from), str(s_to)], "n": n,
               "excluded": n_excluded, "coverage_days": (scored[-1][1] - scored[0][1]).days + 1,
-              "agf_favourite_top1_pct": 100 * sum(agf) / n, "baseline_arm": base, "arms": {}}
+              "agf_favourite_top1_pct": 100 * sum(agf) / n, "baseline_arm": base,
+              "blend_weights": blend_weights, "arms": {}}
     for name, (top1, top3) in hits.items():
         b = sum(x and not y for x, y in zip(hits[base][0], top1))
         c = sum(y and not x for x, y in zip(hits[base][0], top1))

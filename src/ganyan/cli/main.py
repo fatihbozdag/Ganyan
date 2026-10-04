@@ -918,9 +918,9 @@ def train(
     exclude_feature: list[str] = typer.Option(None, "--exclude-feature", help="Exclude a supported feature; repeat as needed."),
     objective: str = typer.Option(
         "rank", "--objective",
-        help="'rank' (LambdaRank) or 'finish_time' (regression on actual "
+        help="'rank' (LambdaRank), 'finish_time' (regression on actual "
              "race seconds — sort ascending = winner ranker, joins "
-             "ensemble as 4th vote).",
+             "ensemble as 4th vote) or 'win' (binary: did it win).",
     ),
     model_name: str = typer.Option(
         None, "--model-name",
@@ -956,9 +956,9 @@ def train(
 
     start, end = _train_window(from_date, to_date, all_history)
 
-    if objective not in {"rank", "finish_time"}:
+    if objective not in {"rank", "finish_time", "win"}:
         raise typer.BadParameter(
-            f"objective must be 'rank' or 'finish_time' (got {objective!r})",
+            f"objective must be 'rank', 'finish_time' or 'win' (got {objective!r})",
         )
     excluded = list(dict.fromkeys((["agf_edge", "agf_raw"] if exclude_agf else []) + (exclude_feature or [])))
     if model_name is None:

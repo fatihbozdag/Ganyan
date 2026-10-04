@@ -60,6 +60,27 @@ _DEFAULT_LGBM_PARAMS: dict = {
     "lambdarank_truncation_level": 10,
 }
 
+# "Did it win" binary head: optimises the top-1 event directly instead of
+# LambdaRank's graded NDCG over the whole finishing order.
+_WIN_LGBM_PARAMS: dict = {
+    "objective": "binary",
+    "metric": "binary_logloss",
+    "learning_rate": 0.05,
+    "num_leaves": 31,
+    "min_data_in_leaf": 20,
+    "feature_fraction": 0.9,
+    "bagging_fraction": 0.85,
+    "bagging_freq": 5,
+    "verbose": -1,
+}
+
+
+def _winner_labels(frame: TrainingFrame) -> pd.Series:
+    """1 for each race's winner (highest rank_score), else 0."""
+    best = frame.target.groupby(frame.groups.values).transform("max")
+    return (frame.target.values == best.values).astype(int)
+
+
 # Default patience: generous so lambdarank has room to keep refining
 # when the top-ranker metric plateaus.
 _DEFAULT_EARLY_STOPPING_ROUNDS = 100
@@ -551,15 +572,17 @@ def train_ranker(
     ranking horses by win likelihood.  At inference, sort by predicted
     EV and bet the +EV picks.
     """
-    if objective not in {"rank", "ev", "finish_time"}:
+    if objective not in {"rank", "ev", "finish_time", "win"}:
         raise ValueError(
-            f"objective must be 'rank', 'ev', or 'finish_time', got {objective!r}",
+            f"objective must be 'rank', 'ev', 'finish_time' or 'win', got {objective!r}",
         )
 
     if objective == "ev":
         effective_params = {**_EV_LGBM_PARAMS, **(params or {})}
     elif objective == "finish_time":
         effective_params = {**_FINISH_TIME_LGBM_PARAMS, **(params or {})}
+    elif objective == "win":
+        effective_params = {**_WIN_LGBM_PARAMS, **(params or {})}
     else:
         effective_params = {**_DEFAULT_LGBM_PARAMS, **(params or {})}
     from ganyan.predictor.ml.artifacts import candidate_directory
@@ -642,10 +665,11 @@ def train_ranker(
                     ),
                 )
     else:
+        win = objective == "win"
         train_dataset = lgb.Dataset(
             train.features,
-            label=train.target,
-            group=train.group_sizes(),
+            label=_winner_labels(train) if win else train.target,
+            group=None if win else train.group_sizes(),
             free_raw_data=False,
         )
         valid_dataset = None
@@ -653,8 +677,8 @@ def train_ranker(
         if not selection.features.empty:
             valid_dataset = lgb.Dataset(
                 selection.features,
-                label=selection.target,
-                group=selection.group_sizes(),
+                label=_winner_labels(selection) if win else selection.target,
+                group=None if win else selection.group_sizes(),
                 reference=train_dataset,
                 free_raw_data=False,
             )

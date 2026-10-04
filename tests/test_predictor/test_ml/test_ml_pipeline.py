@@ -214,3 +214,18 @@ def test_ml_predictor_persists_audit_row(db_session, tmp_path: Path, monkeypatch
     # Version stamp now includes objective so EV / finish-time / rank
     # heads are distinguishable in the audit table.
     assert any(v.startswith("lightgbm-rank") for v in versions)
+
+
+def test_win_objective_trains_binary_winner_head(db_session, tmp_path: Path):
+    """objective='win' fits a binary 'did it win' head that ranks races."""
+    import json
+
+    _seed_many(db_session, n_races=30)
+    result = train_ranker(db_session, holdout_fraction=0.2, num_boost_round=30,
+                          model_dir=tmp_path, model_name="win_head", objective="win")
+    meta = json.loads(result.metadata_path.read_text())
+    assert meta["objective"] == "win"
+    loaded = load_latest_model(model_dir=tmp_path, model_name="win_head")
+    preds = MLPredictor(db_session, model=loaded).predict(db_session.query(Race).first().id)
+    assert len(preds) == 6
+    assert sum(p.probability for p in preds) == pytest.approx(100.0, abs=1e-3)
