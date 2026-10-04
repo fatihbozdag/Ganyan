@@ -81,6 +81,9 @@ def build_arms(data_start, end):
             s, r, end, short_start=short, long_start=data_start, holdout=0.2)),
         "ensemble_all_h05": ("ensemble", lambda s, r: _ensemble(
             s, r, end, short_start=data_start, long_start=data_start, holdout=0.05)),
+        # Same heads as ensemble_all_h05, ordered by mean probability
+        # instead of the #1-vote count.
+        "ensemble_all_h05_meanprob": ("ensemble_mean_prob", "ensemble_all_h05"),
     }
 
 
@@ -140,15 +143,22 @@ def run(args):
     hits = {}
     for name in args.arms:
         kind, train = arms[name]
-        root = out / name
+        if isinstance(train, str):  # reuse another arm's trained heads
+            source = train
+            train = arms[source][1]
+        else:
+            source = name
+        root = out / source
         if not (root / "active.json").exists():
-            logger.info("training %s", name)
+            logger.info("training %s", source)
             train(session, root)
             write_manifest(root)
         if kind == "single":
             predict = MLPredictor(session, load_latest_model(model_dir=root, model_name="lightgbm_ranker")).predict
         else:
-            predict = EnsemblePredictor(session, models=load_all_models(root)).predict
+            aggregation = "mean_prob" if kind == "ensemble_mean_prob" else "convergence"
+            predict = EnsemblePredictor(session, models=load_all_models(root),
+                                        aggregation=aggregation).predict
         top1, top3 = [], []
         for race_id, _, winners, _, expected in scored:
             preds = predict(race_id)

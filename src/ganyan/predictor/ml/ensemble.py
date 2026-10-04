@@ -182,9 +182,17 @@ class EnsemblePredictor:
         self,
         session: Session,
         models: list[LoadedModel] | None = None,
+        *,
+        aggregation: str = "convergence",
     ) -> None:
+        """``aggregation`` orders horses by ``"convergence"`` (heads voting
+        the horse #1, then mean probability; production default) or by
+        ``"mean_prob"`` (mean probability across applicable heads)."""
+        if aggregation not in {"convergence", "mean_prob"}:
+            raise ValueError(f"Unknown aggregation {aggregation!r}")
         self.session = session
         self._models = models
+        self.aggregation = aggregation
 
     @property
     def models(self) -> list[LoadedModel]:
@@ -307,14 +315,20 @@ class EnsemblePredictor:
         # Sort: more models agreeing at #1 wins; tiebreak by mean prob,
         # then by AGF (market) as final fallback to break perfect ties
         # — same convention as the single-model tiebreaker.
-        out.sort(
-            key=lambda p: (
-                p.convergence_top1,
-                p.mean_probability,
-                agf_by_hid.get(p.horse_id, -1.0),
-            ),
-            reverse=True,
-        )
+        if self.aggregation == "mean_prob":
+            out.sort(
+                key=lambda p: (p.mean_probability, agf_by_hid.get(p.horse_id, -1.0)),
+                reverse=True,
+            )
+        else:
+            out.sort(
+                key=lambda p: (
+                    p.convergence_top1,
+                    p.mean_probability,
+                    agf_by_hid.get(p.horse_id, -1.0),
+                ),
+                reverse=True,
+            )
         return out
 
     def predict_as_predictions(self, race_id: int) -> list[Prediction]:

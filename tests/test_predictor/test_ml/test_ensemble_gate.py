@@ -107,3 +107,20 @@ def test_write_manifest_refuses_production_root(tmp_path, monkeypatch):
     monkeypatch.setenv("GANYAN_MODEL_DIR", str(tmp_path))
     with pytest.raises(ValueError):
         gate.write_manifest(tmp_path)
+
+
+def test_mean_prob_aggregation_orders_by_mean_probability(session, tmp_path):
+    from ganyan.predictor.ml.ensemble import EnsemblePredictor
+
+    dates = sorted({r.date for r in session.query(Race).all()})
+    root = tmp_path / "set"
+    _train_set(session, root, dates[len(dates) // 2])
+    models = load_all_models(root)
+    race = session.query(Race).filter(Race.date == dates[-1]).first()
+    preds = EnsemblePredictor(session, models=models, aggregation="mean_prob").predict(race.id)
+    means = [p.mean_probability for p in preds]
+    assert means == sorted(means, reverse=True)
+    default = EnsemblePredictor(session, models=models).predict(race.id)
+    assert {p.horse_id for p in default} == {p.horse_id for p in preds}
+    with pytest.raises(ValueError):
+        EnsemblePredictor(session, models=models, aggregation="vote")
