@@ -80,7 +80,7 @@ its own DB session and completes quickly:
 ```bash
 uv run ganyan uclu-picks --date today
 uv run ganyan exotics-backtest --from 2026-01-01 --model ml
-uv run ganyan train              # rolling 90-day window by default; writes models/candidates/ only
+uv run ganyan train              # all history by default (--no-all-history = last 90 days); writes models/candidates/ only
 uv run ganyan crawl horses       # incremental pedigree update
 ```
 

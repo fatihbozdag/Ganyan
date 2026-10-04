@@ -95,3 +95,19 @@ def test_format_race_header_handles_missing_distance_and_surface():
 def test_format_race_header_returns_empty_for_none():
     from ganyan.cli.main import _format_race_header
     assert _format_race_header(None) == ("", "")
+
+
+def test_train_window_defaults_to_all_history(monkeypatch):
+    """All history is the default (2026-10-04 forward test: +1.20pp top-1
+    over the 90-day window); --no-all-history keeps the short window."""
+    from datetime import date
+
+    import ganyan.cli.main as cli
+
+    monkeypatch.setattr(cli, "race_today", lambda: date(2026, 10, 4))
+    assert cli._train_window(None, None, True) == (None, None)
+    assert cli._train_window(None, "2025-09-30", True) == (None, date(2025, 9, 30))
+    assert cli._train_window(None, None, False) == (date(2026, 7, 6), None)
+    assert cli._train_window("2024-01-01", None, False)[0] == date(2024, 1, 1)
+    help_text = _plain(runner.invoke(app, ["train", "--help"]))
+    assert "--no-all-history" in help_text

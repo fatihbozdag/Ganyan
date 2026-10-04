@@ -880,10 +880,10 @@ def db_reset() -> None:
 # ---------------------------------------------------------------------------
 
 
-# Default training window — the profitable strategy depends on
-# recent AGF calibration, not long history.  90 days captures current
-# jockey/trainer form and a reasonable sire-offspring sample; more
-# history just adds stale signal without deepening the tree.
+# Optional short training window (--no-all-history).  The 2026-10-04
+# forward test (docs/accuracy-2026-10-04/RESULTS.md) found the 90-day
+# ranker 1.20pp top-1 worse than the all-history ranker (p=0.011,
+# 6,245 races), so every train command now defaults to all history.
 _DEFAULT_TRAIN_WINDOW_DAYS = 90
 
 
@@ -894,17 +894,16 @@ def train(
         None, "--from",
         help=(
             "Earliest race date to include (YYYY-MM-DD).  "
-            f"Default: today minus {_DEFAULT_TRAIN_WINDOW_DAYS} days.  "
-            "Pass an explicit date (or --all-history) to override."
+            "Default: all history (see --no-all-history)."
         ),
     ),
     to_date: str = typer.Option(
         None, "--to", help="Latest race date to include (YYYY-MM-DD)."
     ),
     all_history: bool = typer.Option(
-        False, "--all-history",
-        help="Train on every resulted race in the DB (bypasses the "
-             f"{_DEFAULT_TRAIN_WINDOW_DAYS}-day default).  Slower, rarely useful.",
+        True, "--all-history/--no-all-history",
+        help="Train on every resulted race (default).  --no-all-history "
+             f"uses only the last {_DEFAULT_TRAIN_WINDOW_DAYS} days.",
     ),
     holdout: float = typer.Option(
         0.2, "--holdout", help="Fraction of latest dates held out for eval."
@@ -952,17 +951,10 @@ def train(
     settings = get_settings()
     logging.basicConfig(level=settings.log_level)
 
-    from datetime import timedelta
     from ganyan.db import get_session
     from ganyan.predictor.ml import train_ranker
 
-    if from_date is not None:
-        start = datetime.strptime(from_date, "%Y-%m-%d").date()
-    elif all_history:
-        start = None
-    else:
-        start = race_today() - timedelta(days=_DEFAULT_TRAIN_WINDOW_DAYS)
-    end = datetime.strptime(to_date, "%Y-%m-%d").date() if to_date else None
+    start, end = _train_window(from_date, to_date, all_history)
 
     if objective not in {"rank", "finish_time"}:
         raise typer.BadParameter(
