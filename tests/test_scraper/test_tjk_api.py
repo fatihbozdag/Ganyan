@@ -739,3 +739,15 @@ class TestParsePlasePayouts:
         # rare but possible — long-shot plase pays e.g. 1.234,50
         block = "PLASE 3 1.234,50 ₺"
         assert _parse_plase_payouts(block) == {3: 1234.50}
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("57", 57.0), ("57,5", 57.5), ("58.5", 58.5),
+    ("55+0.70Fazla Kilo", 55.7), ("55 +1.30 Fazla Kilo", 56.3),
+    ("52+2,00Fazla Kilo", 54.0), ("", None), (None, None), ("-", None),
+])
+def test_parse_weight_includes_overweight(text, expected):
+    """~40% of runners carry overweight ("Fazla Kilo"); they used to parse
+    as missing because the cell is not a bare number."""
+    from ganyan.scraper.tjk_api import _parse_weight
+    assert _parse_weight(text) == expected

@@ -186,6 +186,22 @@ def _is_non_runner(text: str | None) -> bool:
     return folded.strip("()") == "kosmaz"
 
 
+_WEIGHT_RE = re.compile(r"^\s*(\d+(?:[.,]\d+)?)\s*(?:\+\s*(\d+(?:[.,]\d+)?))?")
+
+
+def _parse_weight(text: str | None) -> float | None:
+    """Carried weight in kg. TJK appends overweight as "55+0.70Fazla Kilo";
+    the horse carries the sum (55.7). Plain "57" or "57,5" parse as-is."""
+    if not text:
+        return None
+    match = _WEIGHT_RE.match(text)
+    if match is None:
+        return None
+    base = float(match.group(1).replace(",", "."))
+    extra = float(match.group(2).replace(",", ".")) if match.group(2) else 0.0
+    return round(base + extra, 2)
+
+
 def _safe_int(text: str | None) -> int | None:
     """Parse an integer from text, returning None on failure."""
     if not text:
@@ -1260,7 +1276,7 @@ class TJKClient:
             gate_number=_safe_int(_extract_text(row.select_one(_P_GATE))),
             start_gate=_safe_int(_extract_text(row.select_one(_P_START))),
             jockey=_extract_link_text(row.select_one(_P_JOCKEY)) or None,
-            weight_kg=_safe_float(_extract_text(row.select_one(_P_WEIGHT))),
+            weight_kg=_parse_weight(_extract_text(row.select_one(_P_WEIGHT))),
             hp=_safe_float(_extract_text(row.select_one(_P_HP))),
             kgs=_safe_int(_extract_text(row.select_one(_P_KGS))),
             s20=_safe_float(_extract_text(row.select_one(_P_S20))),
@@ -1295,7 +1311,7 @@ class TJKClient:
             gate_number=_extract_program_no_from_results_name(name_cell),
             start_gate=_safe_int(_extract_text(row.select_one(_R_GATE))),
             jockey=_extract_link_text(row.select_one(_R_JOCKEY)) or None,
-            weight_kg=_safe_float(_extract_text(row.select_one(_R_WEIGHT))),
+            weight_kg=_parse_weight(_extract_text(row.select_one(_R_WEIGHT))),
             hp=_safe_float(_extract_text(row.select_one(_R_HP))),
             gny=_safe_float(_extract_text(row.select_one(_R_GNY))),
             agf=_extract_agf(row.select_one(_R_AGF)),
