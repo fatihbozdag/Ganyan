@@ -1,0 +1,53 @@
+{
+  "data_from": "2023-01-01",
+  "train_to": "2026-10-02",
+  "pipeline_sha256": "c826e8bb7969c96c9fbad6aa36dd82cb5e686ed1186fcf5abe69170d2f75cb89",
+  "git_commit": "5b84d049ff3066398fd7d0d54d3647f69d51286b",
+  "arms": {
+    "ranker_all": {
+      "kind": "single",
+      "root": "ranker_all",
+      "heads": {
+        "lightgbm_ranker": {
+          "model": "lightgbm_ranker.txt",
+          "metadata": "lightgbm_ranker.meta.json",
+          "model_sha256": "054691b4dbbc39a1317a877dd6ceca0f6b76fb5767fbc698dfd83b7c1befd6b5",
+          "metadata_sha256": "189a35c47bf7508aab0e9fd113153feffabb75c99c8990817b129bf9b57c6144"
+        }
+      }
+    },
+    "ranker_hp_ff07": {
+      "kind": "single",
+      "root": "ranker_hp_ff07",
+      "heads": {
+        "lightgbm_ranker": {
+          "model": "lightgbm_ranker.txt",
+          "metadata": "lightgbm_ranker.meta.json",
+          "model_sha256": "a2a6b9fc0701d274c52a167b7bfee6a136e2f120213c2286663f72a2063f2bb3",
+          "metadata_sha256": "3bf293f507d04eab908dc5e0e5b7d43b9ce53e2d8a50479d8291faee5d781388"
+        }
+      }
+    },
+    "blend_ranker_all": {
+      "kind": "blend",
+      "root": "ranker_all",
+      "heads": {
+        "lightgbm_ranker": {
+          "model": "lightgbm_ranker.txt",
+          "metadata": "lightgbm_ranker.meta.json",
+          "model_sha256": "054691b4dbbc39a1317a877dd6ceca0f6b76fb5767fbc698dfd83b7c1befd6b5",
+          "metadata_sha256": "189a35c47bf7508aab0e9fd113153feffabb75c99c8990817b129bf9b57c6144"
+        }
+      },
+      "blend": {
+        "agf": 0.543282989813231,
+        "model": 0.4184585684620217,
+        "fit_window": [
+          "2026-04-04",
+          "2026-10-02"
+        ],
+        "fit_races": 3246
+      }
+    }
+  }
+}

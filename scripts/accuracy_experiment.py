@@ -239,7 +239,17 @@ def run(args):
             logger.info("training %s", source)
             train(session, root)
             write_manifest(root)
-        if kind == "blend":
+        frozen_path = out / "frozen.json"
+        frozen_blend = (json.loads(frozen_path.read_text())["arms"].get(name, {}).get("blend")
+                        if frozen_path.exists() and not args.train_only else None)
+        if kind == "blend" and frozen_blend:
+            # Evaluating a frozen candidate: use the recorded weights, never refit.
+            import numpy as np
+            weights = np.array([frozen_blend["agf"], frozen_blend["model"]])
+            blend_weights[name] = {**frozen_blend, "source": "frozen.json"}
+            main = MLPredictor(session, load_latest_model(model_dir=root, model_name="lightgbm_ranker")).predict
+            predict = _blend_predictor(session, main, weights)
+        elif kind == "blend":
             fit_from = train_to - timedelta(days=BLEND_FIT_DAYS - 1)
             aux_root = out / f"{source}_blendfit"
             if not (aux_root / "active.json").exists():

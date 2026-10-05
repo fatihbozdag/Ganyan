@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "heads": {
+    "lightgbm_ranker": {
+      "model": "lightgbm_ranker.txt",
+      "metadata": "lightgbm_ranker.meta.json",
+      "model_sha256": "3193aa06692a0ff8f0fe29a4091b29e245fa42330db168b4cc404b8fce59200f",
+      "metadata_sha256": "04621aa8c7bfaf06fc8f9199f50f676066b4e45dd90afda33ab95c24bb42159d"
+    }
+  }
+}
