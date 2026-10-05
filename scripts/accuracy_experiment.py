@@ -162,15 +162,42 @@ def score_window(session, start, end):
     return scored, excluded, len(races)
 
 
+def _write_frozen(args, out, data_start, train_to, blend_weights):
+    """Record exactly what was frozen: per-arm head hashes, blend weights,
+    data window and code identity, before any evaluation data exists."""
+    import subprocess
+    from ganyan.predictor.ml.artifacts import pipeline_digest
+    arms = build_arms(data_start, train_to)
+    frozen = {"data_from": str(data_start), "train_to": str(train_to),
+              "pipeline_sha256": pipeline_digest(),
+              "git_commit": subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True,
+                                           text=True).stdout.strip(),
+              "arms": {}}
+    for name in args.arms:
+        train = arms[name][1]
+        source = train if isinstance(train, str) else name
+        frozen["arms"][name] = {
+            "kind": arms[name][0], "root": source,
+            "heads": json.loads((out / source / "active.json").read_text())["heads"],
+            **({"blend": blend_weights[name]} if name in blend_weights else {}),
+        }
+    path = out / "frozen.json"
+    path.write_text(json.dumps(frozen, indent=2) + "\n")
+    print(json.dumps(frozen, indent=2))
+
+
 def run(args):
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     session = get_session()
     data_start = date.fromisoformat(args.data_from)
     train_to = date.fromisoformat(args.train_to)
-    s_from, s_to = date.fromisoformat(args.score_from), date.fromisoformat(args.score_to)
-    if s_from <= train_to:
-        raise SystemExit("score window must start after --train-to")
+    if not args.train_only:
+        if not (args.score_from and args.score_to):
+            raise SystemExit("--score-from/--score-to are required unless --train-only")
+        s_from, s_to = date.fromisoformat(args.score_from), date.fromisoformat(args.score_to)
+        if s_from <= train_to:
+            raise SystemExit("score window must start after --train-to")
     arms = build_arms(data_start, train_to)
 
     # Feature frames are a pure function of the (static) DB; cache them so
@@ -196,7 +223,7 @@ def run(args):
     ensemble_mod.build_race_frame = cached_frame
     predictor_mod.build_race_frame = cached_frame
 
-    scored, n_excluded, n_races = score_window(session, s_from, s_to)
+    scored, n_excluded, n_races = ([], 0, 0) if args.train_only else score_window(session, s_from, s_to)
     if n_excluded / max(1, n_races) > 0.05:
         raise SystemExit(f"{n_excluded}/{n_races} races excluded (>5%)")
     hits, blend_weights = {}, {}
@@ -234,6 +261,8 @@ def run(args):
             aggregation = "mean_prob" if kind == "ensemble_mean_prob" else "convergence"
             predict = EnsemblePredictor(session, models=load_all_models(root),
                                         aggregation=aggregation).predict
+        if args.train_only:
+            continue
         top1, top3 = [], []
         for race_id, _, winners, _, expected in scored:
             preds = predict(race_id)
@@ -243,6 +272,10 @@ def run(args):
             top3.append(any(p.horse_id in winners for p in preds[:3]))
         hits[name] = (top1, top3)
         logger.info("%s top-1 %.2f%%", name, 100 * sum(top1) / len(top1))
+
+    if args.train_only:
+        _write_frozen(args, out, data_start, train_to, blend_weights)
+        return
 
     n = len(scored)
     # Market comparison only on races where AGF exists: a race without AGF
@@ -282,8 +315,10 @@ def main():
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--data-from", default="2023-01-01")
     parser.add_argument("--train-to", required=True)
-    parser.add_argument("--score-from", required=True)
-    parser.add_argument("--score-to", required=True)
+    parser.add_argument("--score-from")
+    parser.add_argument("--score-to")
+    parser.add_argument("--train-only", action="store_true",
+                        help="Train arms (and fit blends) without scoring; write frozen.json")
     parser.add_argument("--out", required=True,
                         help="Directory under models/candidates or logs/experiments")
     parser.add_argument("--arms", nargs="+", required=True)
