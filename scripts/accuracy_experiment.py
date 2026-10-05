@@ -245,23 +245,31 @@ def run(args):
         logger.info("%s top-1 %.2f%%", name, 100 * sum(top1) / len(top1))
 
     n = len(scored)
-    agf = [agf_top is not None and agf_top in winners for _, _, winners, agf_top, _ in scored]
+    # Market comparison only on races where AGF exists: a race without AGF
+    # is not a miss by the market, and counting it as one hands every
+    # model a free edge (~1 pp on 2024-25 data).
+    has_agf = [agf_top is not None for _, _, _, agf_top, _ in scored]
+    agf = [agf_top in winners for _, _, winners, agf_top, _ in scored]
+    n_agf = sum(has_agf)
     base = args.arms[0]
     report = {"train_to": str(train_to), "data_from": str(data_start),
               "score_window": [str(s_from), str(s_to)], "n": n,
               "excluded": n_excluded, "coverage_days": (scored[-1][1] - scored[0][1]).days + 1,
-              "agf_favourite_top1_pct": 100 * sum(agf) / n, "baseline_arm": base,
-              "blend_weights": blend_weights, "arms": {}}
+              "n_with_agf": n_agf,
+              "agf_favourite_top1_pct": 100 * sum(a for a, h in zip(agf, has_agf) if h) / n_agf,
+              "baseline_arm": base, "blend_weights": blend_weights, "arms": {}}
     for name, (top1, top3) in hits.items():
         b = sum(x and not y for x, y in zip(hits[base][0], top1))
         c = sum(y and not x for x, y in zip(hits[base][0], top1))
-        b_m = sum(x and not y for x, y in zip(agf, top1))
-        c_m = sum(y and not x for x, y in zip(agf, top1))
+        pairs = [(a, t) for a, t, h in zip(agf, top1, has_agf) if h]
+        b_m = sum(a and not t for a, t in pairs)
+        c_m = sum(t and not a for a, t in pairs)
         report["arms"][name] = {
             "top1_pct": 100 * sum(top1) / n, "top3_pct": 100 * sum(top3) / n,
             "delta_vs_baseline_pp": 100 * (sum(top1) - sum(hits[base][0])) / n,
             "mcnemar_p_vs_baseline": mcnemar_exact(b, c),
-            "delta_vs_agf_pp": 100 * (sum(top1) - sum(agf)) / n,
+            "top1_pct_with_agf": 100 * sum(t for _, t in pairs) / n_agf,
+            "delta_vs_agf_pp": 100 * (c_m - b_m) / n_agf,
             "mcnemar_p_vs_agf": mcnemar_exact(b_m, c_m),
         }
     path = out / f"report_{s_from}_{s_to}.json"
