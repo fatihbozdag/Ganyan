@@ -1,5 +1,15 @@
 # Forward accuracy test — 2026-10-04
 
+> **Correction (2026-10-05).** The "vs AGF" columns below are biased in
+> the models' favour. The runner counted races with no AGF at all (247 in
+> the selection year, 91 in the test year) as misses for the AGF favourite
+> while still scoring the models on them. On races that have AGF, the
+> favourite's top-1 is **34.31%** (selection year) and **34.21%** (test
+> year), not 33.00% / 33.71%. Against that, every arm in the test year is
+> roughly 0.3–0.5 pp *below* the market. The baseline comparisons (model vs
+> model on the same races) are unaffected. Corrected market comparisons
+> are in the "Round 2" section; the runner was fixed in the same change.
+
 Primary metric: top-1 hit rate (did the model's #1 pick win). Paired exact
 McNemar test on the same races. Market baseline: the AGF favourite.
 
@@ -109,3 +119,49 @@ uv run python scripts/accuracy_experiment.py --data-from 2023-01-01 \
 
 Raw reports: `selection_report.json`, `final_report_primary.json`,
 `final_report_secondary.json` in this directory.
+
+## Round 2 — repaired weights and new approaches (selection year only)
+
+Changes since round 1: `weight_kg` was missing for ~40% of runners because
+overweight cells ("55+0.70Fazla Kilo") failed to parse (fixed in
+`97fffaf`; all results re-scraped, 0% missing now), and the market
+comparison now uses only races with AGF.
+
+Protocol: approaches judged on the selection year only. The 2025-10 → 2026-10
+test year was **not** scored again. Proof requires a new untouched window
+(≥365 days from 2026-10-03).
+
+Selection year 2024-10-01 → 2025-09-30, train ≤ 2024-09-30. n = 6,478
+(6,231 with AGF). Baseline: `ranker_all`. AGF favourite on AGF races:
+**34.31%**.
+
+| Arm | Top-1 | Δ vs ranker_all | p | Top-1 on AGF races | Δ vs AGF | p |
+|---|---|---|---|---|---|---|
+| ranker_all (baseline) | 33.58% | — | — | 34.04% | −0.27 pp | 0.060 |
+| ranker_90d | 31.97% | −1.61 pp | 0.0003 | 32.79% | −1.52 pp | 0.0004 |
+| ranker_win | 33.50% | −0.08 pp | 0.86 | 34.33% | +0.02 pp | 1.0 |
+| ranker_hp_leaves15 | 33.76% | +0.19 pp | 0.17 | 34.23% | −0.08 pp | 0.33 |
+| ranker_hp_leaves63 | 33.42% | −0.15 pp | 0.42 | 33.99% | −0.32 pp | 0.033 |
+| ranker_hp_lr02 | 33.53% | −0.05 pp | 0.83 | 34.12% | −0.19 pp | 0.13 |
+| ranker_hp_ff07 | 33.84% | +0.26 pp | 0.064 | 34.31% | +0.00 pp | 1.0 |
+| blend_ranker_all | 33.82% | +0.25 pp | 0.072 | 34.30% | −0.02 pp | 1.0 |
+| blend_ranker_win | 33.50% | −0.08 pp | 0.77 | 34.33% | +0.02 pp | 1.0 |
+| ensemble_all_h05 | 33.61% | +0.03 pp | 0.96 | 33.80% | −0.51 pp | 0.080 |
+
+Market blend weights (conditional logit, fitted on 3,353 races,
+2024-04-02 → 2024-09-30, using a model trained only before that window):
+`blend_ranker_all` AGF 1.022 / model 0.006; `blend_ranker_win` AGF 0.980 /
+model 0.050. The fit puts essentially all weight on the market.
+
+### Round 2 conclusions
+
+1. **Nothing beats the AGF favourite.** The best arms tie it to within
+   0.02 pp, and the blend fit gives the model almost zero weight once AGF is
+   known. On this data the models add no measurable information about the
+   winner beyond the market's own favourite.
+2. **Repairing weight did not change top-1** (`ranker_all` 33.58% vs 34.04%
+   in round 1 on the old data; well within noise).
+3. **No tuning, objective or blend variant beats the all-history ranker**
+   (largest +0.26 pp, p = 0.064).
+4. The 90-day window remains clearly worse (−1.61 pp, p = 0.0003),
+   consistent with round 1.
