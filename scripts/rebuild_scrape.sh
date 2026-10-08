@@ -4,6 +4,7 @@
 # recorded in $DONE so a restart skips them.
 # Usage: scripts/rebuild_scrape.sh 2023-01-01 2026-10-02
 #        RESULTS_ONLY=1 scripts/rebuild_scrape.sh ...   # re-parse results only
+# Portable across GNU and BSD/macOS: month arithmetic runs in Python, not `date -d`.
 set -u
 START=${1:?start date}
 END=${2:?end date}
@@ -12,25 +13,36 @@ DONE="$STATE_DIR/done_months${RESULTS_ONLY:+_results}.txt"
 mkdir -p "$STATE_DIR"
 touch "$DONE"
 
-cur=$(date -d "$(date -d "$END" +%Y-%m-01)" +%Y-%m-%d)
-while [[ "$cur" > "$(date -d "$START -1 month" +%Y-%m-%d)" ]]; do
-  month=${cur:0:7}
-  from=$cur
-  [[ "$from" < "$START" ]] && from=$START
-  to=$(date -d "$cur +1 month -1 day" +%Y-%m-%d)
-  [[ "$to" > "$END" ]] && to=$END
+ts() { date +%Y-%m-%dT%H:%M:%S%z; }
+
+# One line per month, newest first: "YYYY-MM from to", clipped to START..END.
+months=$(uv run python - "$START" "$END" <<'PY'
+import datetime as dt
+import sys
+
+start = dt.date.fromisoformat(sys.argv[1])
+end = dt.date.fromisoformat(sys.argv[2])
+year, month = end.year, end.month
+while (year, month) >= (start.year, start.month):
+    first = dt.date(year, month, 1)
+    last = dt.date(year + month // 12, month % 12 + 1, 1) - dt.timedelta(days=1)
+    print(f"{year:04d}-{month:02d}", max(first, start), min(last, end))
+    year, month = (year - 1, 12) if month == 1 else (year, month - 1)
+PY
+) || { echo "$(ts) could not compute month windows" >&2; exit 1; }
+
+while read -r month from to; do
   if grep -qx "$month" "$DONE"; then
     echo "skip $month"
   else
-    echo "$(date -Is) start $month ($from -> $to)"
+    echo "$(ts) start $month ($from -> $to)"
     if { [ -n "${RESULTS_ONLY:-}" ] || uv run ganyan scrape --backfill --from "$from" --to "$to"; } \
        && uv run ganyan scrape --results-range --from "$from" --to "$to" --rescrape; then
       echo "$month" >> "$DONE"
-      echo "$(date -Is) done $month"
+      echo "$(ts) done $month"
     else
-      echo "$(date -Is) FAILED $month (will retry on next run)"
+      echo "$(ts) FAILED $month (will retry on next run)"
     fi
   fi
-  cur=$(date -d "$cur -1 month" +%Y-%m-%d)
-done
-echo "$(date -Is) rebuild finished"
+done <<< "$months"
+echo "$(ts) rebuild finished"
