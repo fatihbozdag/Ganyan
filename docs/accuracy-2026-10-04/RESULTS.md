@@ -165,3 +165,24 @@ model 0.050. The fit puts essentially all weight on the market.
    (largest +0.26 pp, p = 0.064).
 4. The 90-day window remains clearly worse (−1.61 pp, p = 0.0003),
    consistent with round 1.
+
+## Training diagnostics (2026-10-08)
+
+Why every model ends up level with the AGF favourite:
+
+- **The rankers are almost pure AGF.** With early stopping on the selection
+  split, the selection-year `ranker_all` and all four tuning variants keep
+  **1 tree** (`best_iteration` = 1); that tree puts 97% of its gain on
+  `agf_edge`. The frozen `ranker_all` (46 trees) still puts 90% on AGF
+  (`agf_edge` 82%, `agf_raw` 8%); no other feature exceeds 1%.
+- **More trees do not help; they overfit.** Training the same
+  configuration for 400 rounds without early stopping (training data only):
+  selection-split top-1 34.71% at 1 tree, 33.66% at 50, 33.33% at 400;
+  NDCG@1 and NDCG@10 peak at the first tree. Early stopping is doing its
+  job; the non-market features carry no learnable top-1 signal on this data.
+- **Finish-time heads never early-stop** (they hit the 500-round cap) and
+  rank winners poorly (holdout top-1 ≈ 20–22%); they add a weak vote to
+  the ensemble.
+- Round-1 runs (`dev`, `final`) were trained before the weight fix and
+  later code changes; their pipeline digest differs from today's. They
+  are kept as the record of those results, not reused.
