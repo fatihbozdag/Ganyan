@@ -1,5 +1,6 @@
 """TJK race card parser — pure data transformation, no I/O."""
 
+import re
 from dataclasses import dataclass, field
 from datetime import date
 
@@ -249,9 +250,23 @@ def parse_last_six(last_six: str | None) -> list[int | None]:
     return result
 
 
+# TJK sometimes appends the meeting's race-day ordinal to the city name,
+# abbreviated ("İzmir (22. Y.G.)") or spelled out ("İzmir  (22. Yarış Günü)").
+# Left in place it creates a second track per race day, so card rows and
+# result rows for the same race land on different Race records.
+_RACE_DAY_SUFFIX_RE = re.compile(
+    r"\s*\(\s*\d+\s*\.\s*(?:Y\s*\.\s*G\s*\.?|Yar[ıiIİ][şŞ]\s+G[üÜ]n[üÜ])\s*\)\s*$",
+    re.IGNORECASE,
+)
+
+
 def normalize_track_name(name: str) -> str:
-    """Normalize Turkish track names with correct casing and İ/ı handling."""
-    stripped = name.strip()
+    """Normalize Turkish track names with correct casing and İ/ı handling.
+
+    A trailing race-day suffix is removed and inner whitespace collapsed,
+    so every meeting at a city maps to one track.
+    """
+    stripped = " ".join(_RACE_DAY_SUFFIX_RE.sub("", name).split())
     if stripped in TRACK_NAMES:
         return TRACK_NAMES[stripped]
     lower = stripped.lower()
