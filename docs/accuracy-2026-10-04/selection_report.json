@@ -1,0 +1,63 @@
+{
+  "train_to": "2024-09-30",
+  "data_from": "2023-01-01",
+  "score_window": [
+    "2024-10-01",
+    "2025-09-30"
+  ],
+  "n": 6478,
+  "excluded": 109,
+  "coverage_days": 365,
+  "agf_favourite_top1_pct": 33.00401358443964,
+  "baseline_arm": "ranker_90d",
+  "arms": {
+    "ranker_90d": {
+      "top1_pct": 31.985180611299786,
+      "top3_pct": 66.42482247607286,
+      "delta_vs_baseline_pp": 0.0,
+      "mcnemar_p_vs_baseline": 1.0,
+      "delta_vs_agf_pp": -1.018832973139858,
+      "mcnemar_p_vs_agf": 0.025898713014961158
+    },
+    "ranker_all": {
+      "top1_pct": 34.038283420808895,
+      "top3_pct": 68.6014201914171,
+      "delta_vs_baseline_pp": 2.0531028095091077,
+      "mcnemar_p_vs_baseline": 1.4091156295471499e-05,
+      "delta_vs_agf_pp": 1.0342698363692497,
+      "mcnemar_p_vs_agf": 0.00041167192542713733
+    },
+    "ranker_all_h05": {
+      "top1_pct": 33.88391478851497,
+      "top3_pct": 68.57054646495833,
+      "delta_vs_baseline_pp": 1.8987341772151898,
+      "mcnemar_p_vs_baseline": 7.993811793595926e-05,
+      "delta_vs_agf_pp": 0.8799012040753319,
+      "mcnemar_p_vs_agf": 0.002904336631965872
+    },
+    "ensemble_default": {
+      "top1_pct": 33.744983019450444,
+      "top3_pct": 64.80395183698673,
+      "delta_vs_baseline_pp": 1.7598024081506638,
+      "mcnemar_p_vs_baseline": 1.7198124642257958e-05,
+      "delta_vs_agf_pp": 0.7409694350108058,
+      "mcnemar_p_vs_agf": 0.04340625525204374
+    },
+    "ensemble_all_h05": {
+      "top1_pct": 33.80673047236802,
+      "top3_pct": 64.74220438406915,
+      "delta_vs_baseline_pp": 1.821549861068231,
+      "mcnemar_p_vs_baseline": 0.0001375184155469044,
+      "delta_vs_agf_pp": 0.8027168879283729,
+      "mcnemar_p_vs_agf": 0.00759542461444591
+    },
+    "ensemble_all_h05_meanprob": {
+      "top1_pct": 32.88051867860451,
+      "top3_pct": 67.18122877431306,
+      "delta_vs_baseline_pp": 0.8953380673047237,
+      "mcnemar_p_vs_baseline": 0.07056381635359317,
+      "delta_vs_agf_pp": -0.1234949058351343,
+      "mcnemar_p_vs_agf": 0.7632698850177199
+    }
+  }
+}

@@ -85,8 +85,6 @@ async def _with_retry(
 # Full-page track tabs
 _SEL_TRACK_TABS = "ul.gunluk-tabs li a[data-sehir-id]"
 
-# Race pane containers (one per race within a track page)
-_SEL_RACE_PANES = "div.races-panes > div"
 
 # Race header elements inside each pane
 _SEL_RACE_NO = "h3.race-no"
@@ -108,6 +106,7 @@ _P_JOCKEY = f"td.{_P}-JokeAdi"
 _P_OWNER = f"td.{_P}-SahipAdi"
 _P_TRAINER = f"td.{_P}-AntronorAdi"
 _P_GATE = f"td.{_P}-SiraId"  # program NO (bet-slip number), NOT StartId (physical gate)
+_P_START = f"td.{_P}-StartId"
 _P_HP = f"td.{_P}-Hc"
 _P_LAST6 = f"td.{_P}-Son6Yaris"
 _P_KGS = f"td.{_P}-KGS"
@@ -129,7 +128,7 @@ _R_TRAINER = f"td.{_R}-AntronorAdi"
 _R_TIME = f"td.{_R}-Derece"
 _R_GNY = f"td.{_R}-Gny"
 _R_AGF = f"td.{_R}-AGFORAN"
-_R_GATE = f"td.{_R}-StartId"  # physical start gate (NOT used; we extract program NO from the name cell via _extract_program_no_from_name)
+_R_GATE = f"td.{_R}-StartId"  # physical start gate; program number remains separate
 _R_HP = f"td.{_R}-Hc"
 
 # Endpoints (relative to base_url)
@@ -159,7 +158,6 @@ _Q_AGE = f"td.{_Q}-BirinciAtAdiYas"
 _Q_TIME = f"td.{_Q}-BirinciAtDerece"
 _Q_HP = f"td.{_Q}-HandikapPuani"
 
-_QUERY_RESULTS_PER_PAGE = 50
 
 # Known Turkish domestic track SehirIds (from TJK website navigation)
 _DOMESTIC_SEHIR_IDS = {
@@ -179,6 +177,30 @@ _DOMESTIC_SEHIR_IDS = {
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+def _is_non_runner(text: str | None) -> bool:
+    """True for TJK's "Koşmaz" (did not run) marker in a results cell."""
+    if not text:
+        return False
+    folded = text.strip().casefold().replace("ş", "s")
+    return folded.strip("()") == "kosmaz"
+
+
+_WEIGHT_RE = re.compile(r"^\s*(\d+(?:[.,]\d+)?)\s*(?:\+\s*(\d+(?:[.,]\d+)?))?")
+
+
+def _parse_weight(text: str | None) -> float | None:
+    """Carried weight in kg. TJK appends overweight as "55+0.70Fazla Kilo";
+    the horse carries the sum (55.7). Plain "57" or "57,5" parse as-is."""
+    if not text:
+        return None
+    match = _WEIGHT_RE.match(text)
+    if match is None:
+        return None
+    base = float(match.group(1).replace(",", "."))
+    extra = float(match.group(2).replace(",", ".")) if match.group(2) else 0.0
+    return round(base + extra, 2)
+
 
 def _safe_int(text: str | None) -> int | None:
     """Parse an integer from text, returning None on failure."""
@@ -509,9 +531,11 @@ def _parse_multi_race_pools(block_text: str) -> list[dict]:
         index = 0
         for m in re.finditer(pattern, block_text):
             index += 1
+            prefix = re.search(r"(\d+)\.\s*$", block_text[:m.start()])
+            actual_index = int(prefix.group(1)) if prefix else index
             out.append({
                 "pool_type": pool_type,
-                "pool_index": index,
+                "pool_index": actual_index,
                 "winning_combo": m.group(1),
                 "payout_tl": _parse_payout_amount(m.group(2)),
             })
@@ -1250,8 +1274,9 @@ class TJKClient:
             owner=_extract_link_text(row.select_one(_P_OWNER)) or None,
             trainer=_extract_link_text(row.select_one(_P_TRAINER)) or None,
             gate_number=_safe_int(_extract_text(row.select_one(_P_GATE))),
+            start_gate=_safe_int(_extract_text(row.select_one(_P_START))),
             jockey=_extract_link_text(row.select_one(_P_JOCKEY)) or None,
-            weight_kg=_safe_float(_extract_text(row.select_one(_P_WEIGHT))),
+            weight_kg=_parse_weight(_extract_text(row.select_one(_P_WEIGHT))),
             hp=_safe_float(_extract_text(row.select_one(_P_HP))),
             kgs=_safe_int(_extract_text(row.select_one(_P_KGS))),
             s20=_safe_float(_extract_text(row.select_one(_P_S20))),
@@ -1272,6 +1297,7 @@ class TJKClient:
             return None
 
         age_text = _extract_text(row.select_one(_R_AGE))
+        finish_time = _extract_text(row.select_one(_R_TIME)) or None
 
         return RawHorseEntry(
             name=name,
@@ -1283,13 +1309,17 @@ class TJKClient:
             # Previously used _R_GATE (-StartId) which is the physical start gate,
             # a different numbering system from the bet-slip / grading reference.
             gate_number=_extract_program_no_from_results_name(name_cell),
+            start_gate=_safe_int(_extract_text(row.select_one(_R_GATE))),
             jockey=_extract_link_text(row.select_one(_R_JOCKEY)) or None,
-            weight_kg=_safe_float(_extract_text(row.select_one(_R_WEIGHT))),
+            weight_kg=_parse_weight(_extract_text(row.select_one(_R_WEIGHT))),
             hp=_safe_float(_extract_text(row.select_one(_R_HP))),
             gny=_safe_float(_extract_text(row.select_one(_R_GNY))),
             agf=_extract_agf(row.select_one(_R_AGF)),
             finish_position=_safe_int(_extract_text(row.select_one(_R_FINISH))),
-            finish_time=_extract_text(row.select_one(_R_TIME)) or None,
+            finish_time=finish_time,
+            # A late withdrawal shows "Koşmaz" in the time column with no
+            # placing; without this flag it counts as an unplaced runner.
+            scratched=_is_non_runner(finish_time),
             tjk_at_id=_extract_at_id(name_cell),
             equipment=_extract_equipment(name_cell),
         )

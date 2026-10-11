@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "heads": {
+    "lightgbm_finish_time": {
+      "model": "lightgbm_finish_time.txt",
+      "metadata": "lightgbm_finish_time.meta.json",
+      "model_sha256": "3394466e817fdc123b2ad114055cff9111361739ce4e8ceccc7299a10e451a28",
+      "metadata_sha256": "46313bfe005f682bc581ed69c3250f724476e99c2bf8e94c824db92ef46ff129"
+    },
+    "lightgbm_ranker": {
+      "model": "lightgbm_ranker.txt",
+      "metadata": "lightgbm_ranker.meta.json",
+      "model_sha256": "b92af401070e6699ace72887486108491acc827c4024b6beadba2d66d81373cf",
+      "metadata_sha256": "b36af788ae1f46d125da888c7388c4a869e0525ff771f781e98506fc462740ab"
+    },
+    "lightgbm_spec_handikap": {
+      "model": "lightgbm_spec_handikap.txt",
+      "metadata": "lightgbm_spec_handikap.meta.json",
+      "model_sha256": "0b6ebac81f01a6a42dcadcfaa637c9daaae3a5e7c992be043d28b17a70b0c160",
+      "metadata_sha256": "aeaaad114f16852fceaa2f3614448fb25397d475dd5b2047d472aff0352aaffe"
+    },
+    "lightgbm_spec_kv": {
+      "model": "lightgbm_spec_kv.txt",
+      "metadata": "lightgbm_spec_kv.meta.json",
+      "model_sha256": "1f79252e9a35b936d20d55eeb7f26dedf059ffd22f8617bf60ae860948d5f2c5",
+      "metadata_sha256": "83ed96182c281c76bde490abfc0cdfe7d744671d4d0e47de4b2b9087eacfeafe"
+    },
+    "lightgbm_spec_maiden": {
+      "model": "lightgbm_spec_maiden.txt",
+      "metadata": "lightgbm_spec_maiden.meta.json",
+      "model_sha256": "b6885161c136c4fad7ef3c143ae9cc5160ef890b9eec842a8d05effe60338d78",
+      "metadata_sha256": "76ef778d8d70c7d594707d3b0ade27baf0b873ae26ef26f6fd4dc3c7fd863804"
+    },
+    "lightgbm_spec_sartli": {
+      "model": "lightgbm_spec_sartli.txt",
+      "metadata": "lightgbm_spec_sartli.meta.json",
+      "model_sha256": "436f7b94cbe20c4f485810d6802bfc66d9637466cc4209a210fcbd8e1181e882",
+      "metadata_sha256": "3e1014b301f1560fd5a483f517e5185fdf112caa2779b36f75a38d51539bf873"
+    },
+    "lightgbm_spec_satis": {
+      "model": "lightgbm_spec_satis.txt",
+      "metadata": "lightgbm_spec_satis.meta.json",
+      "model_sha256": "3d0ec880ae1914b45affa9da8634736fb586b198b99a0267f3e9dcf81ce984d7",
+      "metadata_sha256": "b0dbb1a4b13d9a7853fefb633db6b9fec2a0df9044a85f1e9a12fce4a90922ca"
+    },
+    "lightgbm_spec_stakes": {
+      "model": "lightgbm_spec_stakes.txt",
+      "metadata": "lightgbm_spec_stakes.meta.json",
+      "model_sha256": "20795c9b9099dbb8e37c2addcfbd494f5f6329878f3e371abe27a65c4b0587b7",
+      "metadata_sha256": "c1c8fcb78c8fa9e76887bdefdcc427acf4931b32f37f6dfb08cfb1fa1417b8d7"
+    },
+    "lightgbm_value": {
+      "model": "lightgbm_value.txt",
+      "metadata": "lightgbm_value.meta.json",
+      "model_sha256": "b72688a5e013c47875a910229d294f5f645b236c695d75822b14a2d06adbd5aa",
+      "metadata_sha256": "9599d64d99edd572709e24e54cadc8c2143c5adc6009420e674b0a9d4aa3c888"
+    },
+    "linear_conditional_logit": {
+      "model": "linear_conditional_logit.npz",
+      "metadata": "linear_conditional_logit.meta.json",
+      "model_sha256": "0f6329d79206eac1306ec42f728352787ac5b4c1a68a569391e017db3273605f",
+      "metadata_sha256": "a2cf46517b130e4915ddfc5c234a1450574e9d8834f61c194e73032cd46633d2"
+    }
+  }
+}

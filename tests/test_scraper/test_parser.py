@@ -6,7 +6,6 @@ from ganyan.scraper.parser import (
     normalize_track_name,
     RawRaceCard,
     RawHorseEntry,
-    ParsedRaceCard,
     parse_race_card,
 )
 
@@ -70,6 +69,20 @@ def test_normalize_track_name():
     assert normalize_track_name("istanbul") == "İstanbul"
     assert normalize_track_name("ISTANBUL") == "İstanbul"
     assert normalize_track_name(" İstanbul ") == "İstanbul"
+
+
+def test_normalize_track_name_strips_race_day_suffix():
+    # Spelled-out form as stored by card scrapes 2025-01 → 2026-06.
+    assert normalize_track_name("İzmir  (22. Yarış Günü)") == "İzmir"
+    assert normalize_track_name("Şanlıurfa (3. Yarış Günü)") == "Şanlıurfa"
+    assert normalize_track_name("İSTANBUL (101. YARIŞ GÜNÜ)") == "İstanbul"
+    # Abbreviated form the card tab parser already handled.
+    assert normalize_track_name("Bursa (16. Y.G.)") == "Bursa"
+    assert normalize_track_name("Adana (7.Y.G)") == "Adana"
+    # Unknown city: suffix still removed, inner whitespace collapsed.
+    assert normalize_track_name("Yeni  Şehir  (2. Yarış Günü)") == "Yeni Şehir"
+    # A parenthesis that is not a race-day ordinal is kept.
+    assert normalize_track_name("Kocaeli (Kartepe)") == "Kocaeli (Kartepe)"
 
 
 def test_parse_race_card():

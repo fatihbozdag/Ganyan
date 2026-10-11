@@ -70,14 +70,15 @@ def build_hierarchical_pl_model(frame: TrainingFrame) -> pm.Model:
         sigma_theta = pm.HalfNormal("sigma_theta", 1.0)
         sigma_alpha = pm.HalfNormal("sigma_alpha", 0.5)
         sigma_beta = pm.HalfNormal("sigma_beta", 0.5)
-        sigma_gamma = pm.HalfNormal("sigma_gamma", 0.5)
 
         beta_sire = pm.Normal("beta_sire", 0.0, sigma_beta, dims="sire")
         mu_horse = beta_sire[mats["horse_to_sire"]]
         theta = pm.Normal("theta", mu=mu_horse, sigma=sigma_theta, dims="horse")
         alpha_jockey = pm.Normal("alpha_jockey", 0.0, sigma_alpha, dims="jockey")
-        gamma_track_dist = pm.Normal(
-            "gamma_track_dist", 0.0, sigma_gamma, dims="track_dist",
+        # A shared race intercept cancels from PL; keep a zero deterministic
+        # for posterior-file compatibility, not an unidentified parameter.
+        gamma_track_dist = pm.Deterministic(
+            "gamma_track_dist", pt.zeros(n_track_dist), dims="track_dist",
         )
 
         score = (
@@ -109,14 +110,15 @@ def build_hierarchical_pl_model_with_agf(frame: TrainingFrame) -> pm.Model:
         sigma_theta = pm.HalfNormal("sigma_theta", 1.0)
         sigma_alpha = pm.HalfNormal("sigma_alpha", 0.5)
         sigma_beta = pm.HalfNormal("sigma_beta", 0.5)
-        sigma_gamma = pm.HalfNormal("sigma_gamma", 0.5)
 
         beta_sire = pm.Normal("beta_sire", 0.0, sigma_beta, dims="sire")
         mu_horse = beta_sire[mats["horse_to_sire"]]
         theta = pm.Normal("theta", mu=mu_horse, sigma=sigma_theta, dims="horse")
         alpha_jockey = pm.Normal("alpha_jockey", 0.0, sigma_alpha, dims="jockey")
-        gamma_track_dist = pm.Normal(
-            "gamma_track_dist", 0.0, sigma_gamma, dims="track_dist",
+        # A shared race intercept cancels from PL; keep a zero deterministic
+        # for posterior-file compatibility, not an unidentified parameter.
+        gamma_track_dist = pm.Deterministic(
+            "gamma_track_dist", pt.zeros(n_track_dist), dims="track_dist",
         )
         delta_agf = pm.Normal("delta_agf", 0.0, 1.0)
 
@@ -162,14 +164,15 @@ def build_full_hierarchical_pl_model(frame: TrainingFrame) -> pm.Model:
         sigma_theta = pm.HalfNormal("sigma_theta", 1.0)
         sigma_alpha = pm.HalfNormal("sigma_alpha", 0.5)
         sigma_beta = pm.HalfNormal("sigma_beta", 0.5)
-        sigma_gamma = pm.HalfNormal("sigma_gamma", 0.5)
 
         beta_sire = pm.Normal("beta_sire", 0.0, sigma_beta, dims="sire")
         mu_horse = beta_sire[mats["horse_to_sire"]]
         theta = pm.Normal("theta", mu=mu_horse, sigma=sigma_theta, dims="horse")
         alpha_jockey = pm.Normal("alpha_jockey", 0.0, sigma_alpha, dims="jockey")
-        gamma_track_dist = pm.Normal(
-            "gamma_track_dist", 0.0, sigma_gamma, dims="track_dist",
+        # A shared race intercept cancels from PL; keep a zero deterministic
+        # for posterior-file compatibility, not an unidentified parameter.
+        gamma_track_dist = pm.Deterministic(
+            "gamma_track_dist", pt.zeros(n_track_dist), dims="track_dist",
         )
         delta_agf = pm.Normal("delta_agf", 0.0, 1.0)
         delta_kgs = pm.Normal("delta_kgs", 0.0, 1.0)

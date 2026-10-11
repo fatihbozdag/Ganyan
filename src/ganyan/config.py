@@ -8,7 +8,12 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     flask_port: int = 5003
     flask_debug: bool = False
+    flask_host: str = "127.0.0.1"
+    secret_key: str | None = None
+    mutation_token: str | None = None
     show_backfill_ui: bool = False
+    ganyan_skip_scheduler: bool = False
+    ganyan_skip_launch_refresh: bool = False
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 

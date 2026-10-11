@@ -66,3 +66,8 @@ models.bak*/
 logs/*.out
 .claude/
 
+
+# Cloud rebuild scrape state (scripts/rebuild_scrape.sh)
+logs/rebuild/
+# Local experiment artifacts (frame cache, trained arms); reports go to docs/
+logs/experiments/

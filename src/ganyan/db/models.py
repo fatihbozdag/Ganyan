@@ -56,6 +56,7 @@ class Race(Base):
     track_id: Mapped[int] = mapped_column(ForeignKey("tracks.id"))
     date: Mapped[date_type] = mapped_column(Date)
     race_number: Mapped[int] = mapped_column(SmallInteger)
+    conditions_history: Mapped[list | None] = mapped_column(JSON, nullable=True)
     post_time: Mapped[str | None] = mapped_column(String(5), nullable=True)  # HH:MM
     distance_meters: Mapped[int | None] = mapped_column(Integer)
     surface: Mapped[str | None] = mapped_column(String(50))
@@ -138,6 +139,9 @@ class RaceEntry(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     race_id: Mapped[int] = mapped_column(ForeignKey("races.id"))
     horse_id: Mapped[int] = mapped_column(ForeignKey("horses.id"))
+    age_at_race: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
+    trainer_at_race: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    start_gate: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
     gate_number: Mapped[int | None] = mapped_column(SmallInteger)
     jockey: Mapped[str | None] = mapped_column(String(200))
     weight_kg: Mapped[float | None] = mapped_column(Numeric(4, 1))
@@ -195,6 +199,7 @@ class AgfSnapshot(Base):
         Index("ix_agf_snapshots_taken_at", "taken_at"),
     )
 
+    start_gate: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
     id: Mapped[int] = mapped_column(primary_key=True)
     race_entry_id: Mapped[int] = mapped_column(
         ForeignKey("race_entries.id", ondelete="CASCADE"),

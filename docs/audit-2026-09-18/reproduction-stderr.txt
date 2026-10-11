@@ -1,0 +1,17 @@
+/Users/fatihbozdag/.matplotlib is not a writable directory
+Matplotlib created a temporary cache directory at /var/folders/7h/brgt3r6570s65rp6jnpqc6240000gn/T/matplotlib-3q_c__w4 because there was an issue with the default path (/Users/fatihbozdag/.matplotlib); it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
+scheduler: agf-snapshot failed
+Traceback (most recent call last):
+  File "/Users/fatihbozdag/Downloads/Cursor-Projects/ganyan/src/ganyan/scheduler.py", line 300, in _job_agf_snapshot
+    cards = asyncio.run(_scrape())
+  File "/Users/fatihbozdag/.local/share/uv/python/cpython-3.14.0-macos-aarch64-none/lib/python3.14/unittest/mock.py", line 1175, in __call__
+    return self._mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/fatihbozdag/.local/share/uv/python/cpython-3.14.0-macos-aarch64-none/lib/python3.14/unittest/mock.py", line 1179, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/fatihbozdag/.local/share/uv/python/cpython-3.14.0-macos-aarch64-none/lib/python3.14/unittest/mock.py", line 1240, in _execute_mock_call
+    result = effect(*args, **kwargs)
+  File "/Users/fatihbozdag/Downloads/Cursor-Projects/ganyan/docs/audit-2026-09-18/reproduce.py", line 175, in fail_run
+    raise RuntimeError("synthetic network failure")
+RuntimeError: synthetic network failure

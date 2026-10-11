@@ -17,12 +17,9 @@ strategies for ROI continuity; that's a separate concern from what we
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from itertools import permutations
-from typing import Iterable
+from dataclasses import dataclass
 
 from ganyan.predictor.exotics import (
-    Combo,
     ganyan_probabilities,
     ikili_probabilities,
     plase_probabilities,

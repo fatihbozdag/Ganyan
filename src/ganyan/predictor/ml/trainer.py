@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from ganyan.predictor.ml.artifacts import pipeline_digest
 import logging
 import subprocess
 from dataclasses import dataclass, field
@@ -58,6 +59,27 @@ _DEFAULT_LGBM_PARAMS: dict = {
     "verbose": -1,
     "lambdarank_truncation_level": 10,
 }
+
+# "Did it win" binary head: optimises the top-1 event directly instead of
+# LambdaRank's graded NDCG over the whole finishing order.
+_WIN_LGBM_PARAMS: dict = {
+    "objective": "binary",
+    "metric": "binary_logloss",
+    "learning_rate": 0.05,
+    "num_leaves": 31,
+    "min_data_in_leaf": 20,
+    "feature_fraction": 0.9,
+    "bagging_fraction": 0.85,
+    "bagging_freq": 5,
+    "verbose": -1,
+}
+
+
+def _winner_labels(frame: TrainingFrame) -> pd.Series:
+    """1 for each race's winner (highest rank_score), else 0."""
+    best = frame.target.groupby(frame.groups.values).transform("max")
+    return (frame.target.values == best.values).astype(int)
+
 
 # Default patience: generous so lambdarank has room to keep refining
 # when the top-ranker metric plateaus.
@@ -170,12 +192,15 @@ def cross_validate_ranker(
     folds = temporal_kfold(frame, n_folds)
     per_fold: list[dict] = []
     for i, (train, test) in enumerate(folds):
+        train, selection = _temporal_split(train, 0.2)
+        if selection.features.empty:
+            raise ValueError("Insufficient dates for inner temporal validation")
         train_ds = lgb.Dataset(
             train.features, label=train.target, group=train.group_sizes(),
             free_raw_data=False,
         )
         valid_ds = lgb.Dataset(
-            test.features, label=test.target, group=test.group_sizes(),
+            selection.features, label=selection.target, group=selection.group_sizes(),
             reference=train_ds, free_raw_data=False,
         )
         booster = lgb.train(
@@ -219,6 +244,8 @@ def _temporal_split(
     frame: TrainingFrame, holdout_fraction: float,
 ) -> tuple[TrainingFrame, TrainingFrame]:
     """Split a training frame at the date quantile."""
+    if not 0 < holdout_fraction < 1:
+        raise ValueError("holdout_fraction must be between zero and one")
     unique_dates = sorted(frame.race_dates.unique())
     if len(unique_dates) < 2:
         # Too little data to hold anything out.
@@ -310,37 +337,6 @@ def _fit_temperature(
             total += float(np.sum((p - y) ** 2))
         return total / len(race_blocks)
 
-    def ece_bucketed(t: float, n_bins: int = 10) -> float:
-        # Winner-only ECE: bucket the probability we assigned to the
-        # winner's horse in each race, compare to the observed win rate
-        # (which is 1.0 per race for the winner's row).  Equivalent to
-        # comparing |mean_pred_of_winners − 1| across bins.
-        weights = np.zeros(n_bins)
-        mean_p = np.zeros(n_bins)
-        hits = np.zeros(n_bins)
-        for scores, widx in race_blocks:
-            p = probs_for(t, scores)
-            pw = float(p[widx])
-            idx = min(int(pw * n_bins), n_bins - 1)
-            weights[idx] += 1
-            mean_p[idx] += pw
-            hits[idx] += 1.0  # always 1: bucket is winners by prob
-        # Reliability: for each bucket, compare mean_p/weights vs actual
-        # win rate.  But "actual" here needs a different slicing; use
-        # winner-prob reliability as an approximation.
-        total = weights.sum()
-        if total == 0:
-            return 0.0
-        e = 0.0
-        for i in range(n_bins):
-            if weights[i] == 0:
-                continue
-            mp = mean_p[i] / weights[i]
-            # "Actual" for this bucket = hit_rate_of_winners = 1.0, which
-            # trivialises the metric.  Use 1.0 as target, so ECE here
-            # measures average under-confidence on the winner row.
-            e += abs(mp - 1.0) * (weights[i] / total)
-        return e
 
     # Emit a human-readable sweep so operators can see the curve shape
     # and whether the fitted optimum is at a boundary.
@@ -411,30 +407,34 @@ def _evaluate_ranker(
     df["_target"] = frame.target.values
     df["_race"] = frame.groups.values
 
-    top1 = 0
-    top3 = 0
-    winner_ranks: list[int] = []
-    for _race_id, race_df in df.groupby("_race", sort=False):
-        ranked = race_df.sort_values("_score", ascending=False).reset_index(drop=True)
-        # Winner = highest target in the race (ties broken by first appearance).
-        winner_target = race_df["_target"].max()
-        winners = ranked[ranked["_target"] == winner_target]
-        if winners.empty:
-            continue
-        winner_rank = int(winners.index[0]) + 1  # 1-based
-        winner_ranks.append(winner_rank)
-        if winner_rank == 1:
-            top1 += 1
-        if winner_rank <= 3:
-            top3 += 1
+    return _ranking_metrics(df, "_score")
 
-    n = len(winner_ranks)
-    return {
-        "top1_accuracy": (top1 / n) * 100 if n else 0.0,
-        "top3_accuracy": (top3 / n) * 100 if n else 0.0,
-        "avg_winner_rank": float(np.mean(winner_ranks)) if winner_ranks else 0.0,
-        "n_races": n,
-    }
+
+def _ranking_metrics(df, score_column, *, ascending=False):
+    """Expected accuracy under a uniform tie break; independent of row/outcome order."""
+    from math import comb
+    top1 = top3 = 0.0
+    ranks = []
+    for _, group in df.groupby("_race", sort=False):
+        scores = group[score_column]
+        if not np.isfinite(scores).all():
+            raise ValueError("Non-finite prediction scores")
+        winners = group["_target"] == group["_target"].max()
+        best = scores[winners].min() if ascending else scores[winners].max()
+        ahead = int((scores < best).sum() if ascending else (scores > best).sum())
+        tied = int((scores == best).sum())
+        winning_ties = int(((scores == best) & winners).sum())
+        ranks.append(ahead + (tied + 1) / (winning_ties + 1))
+        def hit_at(k):
+            slots = min(tied, max(0, k - ahead))
+            return 1.0 - comb(tied - winning_ties, slots) / comb(tied, slots) if slots else 0.0
+        top1 += hit_at(1)
+        top3 += hit_at(3)
+    n = len(ranks)
+    return {"top1_accuracy": 100 * top1 / n if n else 0.0,
+            "top3_accuracy": 100 * top3 / n if n else 0.0,
+            "avg_winner_rank": float(np.mean(ranks)) if n else 0.0,
+            "n_races": n, "tie_policy": "uniform_expected"}
 
 
 _EV_LGBM_PARAMS: dict = {
@@ -498,29 +498,8 @@ def _evaluate_finish_time_model(
     # Rank-of-winner: per race, sort ascending by predicted seconds and
     # find where the actual winner (max rank_score) lands.  Same metric
     # as the rank objective so the heads are comparable head-to-head.
-    top1 = top3 = 0
-    winner_ranks: list[int] = []
-    for _race_id, race_df in df.groupby("_race", sort=False):
-        ranked = race_df.sort_values("_pred", ascending=True).reset_index(drop=True)
-        winner_target = race_df["_target"].max()
-        winners = ranked[ranked["_target"] == winner_target]
-        if winners.empty:
-            continue
-        wr = int(winners.index[0]) + 1
-        winner_ranks.append(wr)
-        if wr == 1:
-            top1 += 1
-        if wr <= 3:
-            top3 += 1
-    n = len(winner_ranks)
-    return {
-        "n_races": n,
-        "mae_seconds": mae,
-        "rmse_seconds": rmse,
-        "top1_accuracy": (top1 / n) * 100 if n else 0.0,
-        "top3_accuracy": (top3 / n) * 100 if n else 0.0,
-        "avg_winner_rank": float(np.mean(winner_ranks)) if winner_ranks else 0.0,
-    }
+    return {**_ranking_metrics(df, "_pred", ascending=True),
+            "mae_seconds": mae, "rmse_seconds": rmse}
 
 
 def _evaluate_ev_model(
@@ -546,8 +525,10 @@ def _evaluate_ev_model(
     top1_realised = []
     positive_ev_realised = []
     for _, race_df in df.groupby("_race", sort=False):
-        ranked = race_df.sort_values("_pred_ev", ascending=False)
-        top1_realised.append(float(ranked.iloc[0]["_realised_ev"]))
+        if race_df["_realised_ev"].isna().any():
+            continue  # Missing pool excludes wins and losses together.
+        tied = race_df[race_df["_pred_ev"] == race_df["_pred_ev"].max()]
+        top1_realised.append(float(tied["_realised_ev"].mean()))
         # Bet on EVERY horse the model predicts +EV for
         positive = race_df[race_df["_pred_ev"] > 0.0]
         if not positive.empty:
@@ -591,20 +572,25 @@ def train_ranker(
     ranking horses by win likelihood.  At inference, sort by predicted
     EV and bet the +EV picks.
     """
-    if objective not in {"rank", "ev", "finish_time"}:
+    if objective not in {"rank", "ev", "finish_time", "win"}:
         raise ValueError(
-            f"objective must be 'rank', 'ev', or 'finish_time', got {objective!r}",
+            f"objective must be 'rank', 'ev', 'finish_time' or 'win', got {objective!r}",
         )
 
     if objective == "ev":
         effective_params = {**_EV_LGBM_PARAMS, **(params or {})}
     elif objective == "finish_time":
         effective_params = {**_FINISH_TIME_LGBM_PARAMS, **(params or {})}
+    elif objective == "win":
+        effective_params = {**_WIN_LGBM_PARAMS, **(params or {})}
     else:
         effective_params = {**_DEFAULT_LGBM_PARAMS, **(params or {})}
-    model_dir = model_dir or DEFAULT_MODEL_DIR
+    from ganyan.predictor.ml.artifacts import candidate_directory
+    model_dir = candidate_directory(model_dir)
     model_dir.mkdir(parents=True, exist_ok=True)
     model_name = model_name or DEFAULT_MODEL_BASENAME
+    if Path(model_name).name != model_name:
+        raise ValueError("model_name must be a filename stem; use model_dir for directories")
 
     frame = build_training_frame(
         session, from_date=from_date, to_date=to_date,
@@ -621,6 +607,10 @@ def train_ranker(
     # engineered features are forced to carry real weight.  The excluded
     # list is persisted so inference rebuilds the matrix the same way.
     excluded = list(exclude_features or [])
+    if set(excluded) - set(FEATURE_COLUMNS):
+        raise ValueError(f"Unknown excluded features: {sorted(set(excluded) - set(FEATURE_COLUMNS))}")
+    if set(excluded) == set(FEATURE_COLUMNS):
+        raise ValueError("At least one feature is required")
     if excluded:
         keep_cols = [c for c in FEATURE_COLUMNS if c not in excluded]
         frame = TrainingFrame(
@@ -637,6 +627,7 @@ def train_ranker(
         )
 
     train, test = _temporal_split(frame, holdout_fraction)
+    train, selection = _temporal_split(train, 0.2)
 
     if objective in {"ev", "finish_time"}:
         # Regression: per-row label is either realised EV or actual
@@ -644,10 +635,10 @@ def train_ranker(
         # objective is independent of within-race grouping).
         if objective == "ev":
             train_label_full = train.ev_target
-            valid_label_full = test.ev_target
+            valid_label_full = selection.ev_target
         else:
             train_label_full = train.finish_time_target
-            valid_label_full = test.finish_time_target
+            valid_label_full = selection.finish_time_target
         # Drop any rows where the target couldn't be computed.
         train_mask = train_label_full.notna()
         train_features = train.features[train_mask].reset_index(drop=True)
@@ -657,9 +648,9 @@ def train_ranker(
         )
         valid_dataset = None
         callbacks = []
-        if not test.features.empty:
+        if not selection.features.empty:
             valid_mask = valid_label_full.notna()
-            valid_features = test.features[valid_mask].reset_index(drop=True)
+            valid_features = selection.features[valid_mask].reset_index(drop=True)
             valid_label = valid_label_full[valid_mask].reset_index(drop=True)
             if not valid_features.empty:
                 valid_dataset = lgb.Dataset(
@@ -674,19 +665,20 @@ def train_ranker(
                     ),
                 )
     else:
+        win = objective == "win"
         train_dataset = lgb.Dataset(
             train.features,
-            label=train.target,
-            group=train.group_sizes(),
+            label=_winner_labels(train) if win else train.target,
+            group=None if win else train.group_sizes(),
             free_raw_data=False,
         )
         valid_dataset = None
         callbacks = []
-        if not test.features.empty:
+        if not selection.features.empty:
             valid_dataset = lgb.Dataset(
-                test.features,
-                label=test.target,
-                group=test.group_sizes(),
+                selection.features,
+                label=_winner_labels(selection) if win else selection.target,
+                group=None if win else selection.group_sizes(),
                 reference=train_dataset,
                 free_raw_data=False,
             )
@@ -704,7 +696,7 @@ def train_ranker(
         train_set=train_dataset,
         num_boost_round=num_boost_round,
         valid_sets=[train_dataset] + ([valid_dataset] if valid_dataset else []),
-        valid_names=["train"] + (["test"] if valid_dataset else []),
+        valid_names=["train"] + (["selection"] if valid_dataset else []),
         callbacks=callbacks,
     )
 
@@ -723,7 +715,7 @@ def train_ranker(
         # alongside the booster; MLPredictor reads it back and applies
         # ``raw / T`` before the softmax so downstream Kelly sizing gets
         # calibrated (not arbitrary-scaled) probabilities.
-        temperature = _fit_temperature(booster, test)
+        temperature = _fit_temperature(booster, selection)
     metrics["softmax_temperature"] = temperature
     metrics["objective"] = objective
 
@@ -761,6 +753,14 @@ def train_ranker(
         "num_boost_round": num_boost_round,
         "best_iteration": booster.best_iteration or num_boost_round,
         "softmax_temperature": temperature,
+        "feature_schema": 2,
+        "pipeline_sha256": pipeline_digest(),
+        "data_from_date": str(frame.race_dates.min()),
+        "data_to_date": str(frame.race_dates.max()),
+        "training_from_date": str(train.race_dates.min()),
+        "training_to_date": str(train.race_dates.max()),
+        "selection_from_date": str(selection.race_dates.min()) if len(selection.race_dates) else None,
+        "selection_to_date": str(selection.race_dates.max()) if len(selection.race_dates) else None,
         "trained_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "git_sha": _git_sha(),
     }

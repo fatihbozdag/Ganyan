@@ -19,6 +19,7 @@ def session():
     s = Session(eng)
     yield s
     s.close()
+    eng.dispose()
 
 
 def _seed(s: Session, target: date, daily_top1_pcts: list[tuple[date, float]]):

@@ -1,0 +1,94 @@
+{
+  "horse_identity": {
+    "incoming_at_id": 222,
+    "stored_at_id": 111
+  },
+  "race_refresh": [
+    "kum",
+    1200,
+    "14:00"
+  ],
+  "post_race_snapshot": {
+    "before": null,
+    "after": 80.0
+  },
+  "plase_loss": {
+    "hit": false,
+    "net_tl": null,
+    "summary": {
+      "plase_top1": {
+        "n": 1,
+        "hits": 0,
+        "priced_n": 0,
+        "stake_tl": 100.0,
+        "priced_stake_tl": 0.0,
+        "payout_tl": 0.0,
+        "net_tl": 0.0,
+        "hit_rate_pct": 0.0,
+        "roi_pct": 0.0
+      }
+    }
+  },
+  "exotic_payout_units": {
+    "ledger_payout": 500.0,
+    "backtest_payout": 1000.0
+  },
+  "train_serve_coverage": {
+    "train": "NaN",
+    "serve": 0.0
+  },
+  "multi_early_settlement": {
+    "hit": true,
+    "payout": 0.0,
+    "net": -1.0
+  },
+  "multi_overwrite": {
+    "same_id": true,
+    "start_race": 3,
+    "graded": false
+  },
+  "constant_model_accuracy": {
+    "top1_accuracy": 100.0,
+    "top3_accuracy": 100.0,
+    "avg_winner_rank": 1.0,
+    "n_races": 2
+  },
+  "health_without_results_or_predictions": {
+    "status": "ok",
+    "reasons": []
+  },
+  "unauthenticated_post": {
+    "status": 200,
+    "body": {
+      "count": 0,
+      "message": "Bug\u00fcn i\u00e7in yar\u0131\u015f bulunamad\u0131."
+    }
+  },
+  "scheduler_failure_returns_successfully": true,
+  "oos_gate_one_scored_race": {
+    "window": [
+      "2025-01-01",
+      "2026-01-30"
+    ],
+    "n": 1,
+    "live": {
+      "name": "lightgbm_ranker",
+      "top1_hits": 0,
+      "top1_pct": 0.0
+    },
+    "candidate": {
+      "name": "fake",
+      "top1_hits": 1,
+      "top1_pct": 100.0
+    },
+    "agf_baseline": {
+      "n": 1,
+      "top1_hits": 1
+    },
+    "delta_pp": 100.0,
+    "mcnemar_b": 0,
+    "mcnemar_c": 1,
+    "mcnemar_p": 1.0,
+    "swap": true
+  }
+}

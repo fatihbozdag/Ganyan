@@ -4,7 +4,8 @@ import asyncio
 import json
 import logging
 import subprocess
-from datetime import date, datetime
+from ganyan.time import today as race_today, is_upcoming
+from datetime import date, datetime, timedelta
 from typing import TYPE_CHECKING
 
 import typer
@@ -92,7 +93,7 @@ def scrape(
         end = (
             datetime.strptime(to_date, "%Y-%m-%d").date()
             if to_date
-            else date.today()
+            else race_today()
         )
         asyncio.run(_run_historical_backfill(settings, start, end))
     elif results_range:
@@ -102,7 +103,7 @@ def scrape(
         start = datetime.strptime(from_date, "%Y-%m-%d").date()
         end = (
             datetime.strptime(to_date, "%Y-%m-%d").date()
-            if to_date else date.today()
+            if to_date else race_today()
         )
         asyncio.run(_run_full_results_backfill(settings, start, end, rescrape))
     else:
@@ -123,14 +124,14 @@ async def _scrape_today(settings) -> None:
         async with TJKClient(
             base_url=settings.tjk_base_url, delay=settings.scrape_delay
         ) as client:
-            raw_cards = await client.get_race_card(date.today())
+            raw_cards = await client.get_race_card(race_today())
             if not raw_cards:
                 typer.echo("No race cards found for today.")
                 return
             for raw in raw_cards:
                 parsed = parse_race_card(raw)
                 store_race_card(session, parsed)
-                log_scrape(session, date.today(), parsed.track_name, ScrapeStatus.success)
+                log_scrape(session, race_today(), parsed.track_name, ScrapeStatus.success)
             session.commit()
             typer.echo(f"Stored {len(raw_cards)} race card(s) for today.")
     except Exception as exc:
@@ -152,7 +153,7 @@ async def _scrape_results(settings) -> None:
         async with TJKClient(
             base_url=settings.tjk_base_url, delay=settings.scrape_delay
         ) as client:
-            raw_cards = await client.get_race_results(date.today())
+            raw_cards = await client.get_race_results(race_today())
             if not raw_cards:
                 typer.echo("No results found for today.")
                 return
@@ -294,7 +295,7 @@ def scrape_external(
         raise typer.Exit(code=1)
 
     if target_date is None:
-        target = date.today()
+        target = race_today()
     else:
         target = datetime.strptime(target_date, "%Y-%m-%d").date()
 
@@ -377,33 +378,7 @@ def _build_predictor(session, model: str):
             def predict(self, race_id):
                 return self.inner.predict_as_predictions(race_id)
             def predict_and_save(self, race_id):
-                # Persist by reusing MLPredictor's audit-row writer with
-                # the ensemble's "model_version".
-                from ganyan.db.models import RaceEntry, Prediction as PRow
-                preds = self.predict(race_id)
-                entries = {
-                    (e.race_id, e.horse_id): e
-                    for e in self.inner.session.query(RaceEntry)
-                    .filter(RaceEntry.race_id == race_id).all()
-                }
-                version = (
-                    f"ensemble-{len(self.inner.models)}heads"
-                )
-                for p in preds:
-                    entry = entries.get((race_id, p.horse_id))
-                    if entry is None:
-                        continue
-                    entry.predicted_probability = p.probability
-                    self.inner.session.add(
-                        PRow(
-                            race_entry_id=entry.id,
-                            model_version=version,
-                            probability=p.probability,
-                            confidence=p.confidence,
-                            factors=p.contributing_factors,
-                        )
-                    )
-                return preds
+                return self.inner.predict_and_save(race_id)
         return _EnsembleAdapter(session)
     raise typer.BadParameter(
         f"Unknown model: {model!r}. Use 'bayesian', 'ml', or 'ensemble'.",
@@ -417,7 +392,9 @@ def _predict_race(race_id: int, json_output: bool, model: str) -> None:
     session = get_session()
     try:
         predictor = _build_predictor(session, model)
-        predictions = predictor.predict_and_save(race_id)
+        race = session.get(Race, race_id)
+        predictions = (predictor.predict_and_save(race_id) if race and is_upcoming(race)
+                       else predictor.predict(race_id))
         if not predictions:
             typer.echo(f"No predictions for race {race_id}.")
             return
@@ -436,7 +413,7 @@ def _predict_today(json_output: bool, model: str) -> None:
     try:
         races = (
             session.query(Race)
-            .filter(Race.date == date.today(), Race.status == RaceStatus.scheduled)
+            .filter(Race.date == race_today(), Race.status == RaceStatus.scheduled)
             .all()
         )
         if not races:
@@ -445,13 +422,15 @@ def _predict_today(json_output: bool, model: str) -> None:
 
         predictor = _build_predictor(session, model)
         for race in races:
+            if not is_upcoming(race, margin_minutes=5):
+                continue
             predictions = predictor.predict_and_save(race.id)
             _display_predictions(predictions, race, race.id, json_output)
             typer.echo("")  # blank line separator
         # Refresh picks so /advice reflects the fresh predictions rather
         # than a stale morning snapshot.  Graded picks are preserved.
         from ganyan.predictor.picks import refresh_picks_for_date
-        added = refresh_picks_for_date(session, date.today())
+        added = refresh_picks_for_date(session, race_today())
         typer.echo(f"Refreshed picks: {added} new pick(s) written.")
         session.commit()
     finally:
@@ -471,7 +450,7 @@ def predictions_cmd(
     the daemon's ensemble most recently wrote without disturbing the audit
     trail or running an in-process predictor.
     """
-    from datetime import date as _date, datetime as _dt
+    from datetime import datetime as _dt
     from sqlalchemy import select, func
     from ganyan.db import get_session, Race, RaceEntry
     from ganyan.db.models import Horse, Prediction, Track
@@ -479,7 +458,7 @@ def predictions_cmd(
     if not today and not on_date:
         typer.echo("Provide --today or --date YYYY-MM-DD.")
         raise typer.Exit(1)
-    target = _date.today() if today else _dt.strptime(on_date, "%Y-%m-%d").date()
+    target = race_today() if today else _dt.strptime(on_date, "%Y-%m-%d").date()
 
     session = get_session()
     try:
@@ -800,7 +779,7 @@ def races(
     logging.basicConfig(level=settings.log_level)
 
     if today:
-        target_date = date.today()
+        target_date = race_today()
     elif race_date:
         target_date = datetime.strptime(race_date, "%Y-%m-%d").date()
     else:
@@ -901,10 +880,10 @@ def db_reset() -> None:
 # ---------------------------------------------------------------------------
 
 
-# Default training window — the profitable strategy depends on
-# recent AGF calibration, not long history.  90 days captures current
-# jockey/trainer form and a reasonable sire-offspring sample; more
-# history just adds stale signal without deepening the tree.
+# Optional short training window (--no-all-history).  The 2026-10-04
+# forward test (docs/accuracy-2026-10-04/RESULTS.md) found the 90-day
+# ranker 1.20pp top-1 worse than the all-history ranker (p=0.011,
+# 6,245 races), so every train command now defaults to all history.
 _DEFAULT_TRAIN_WINDOW_DAYS = 90
 
 
@@ -915,17 +894,16 @@ def train(
         None, "--from",
         help=(
             "Earliest race date to include (YYYY-MM-DD).  "
-            f"Default: today minus {_DEFAULT_TRAIN_WINDOW_DAYS} days.  "
-            "Pass an explicit date (or --all-history) to override."
+            "Default: all history (see --no-all-history)."
         ),
     ),
     to_date: str = typer.Option(
         None, "--to", help="Latest race date to include (YYYY-MM-DD)."
     ),
     all_history: bool = typer.Option(
-        False, "--all-history",
-        help="Train on every resulted race in the DB (bypasses the "
-             f"{_DEFAULT_TRAIN_WINDOW_DAYS}-day default).  Slower, rarely useful.",
+        True, "--all-history/--no-all-history",
+        help="Train on every resulted race (default).  --no-all-history "
+             f"uses only the last {_DEFAULT_TRAIN_WINDOW_DAYS} days.",
     ),
     holdout: float = typer.Option(
         0.2, "--holdout", help="Fraction of latest dates held out for eval."
@@ -937,17 +915,22 @@ def train(
         False, "--exclude-agf",
         help="Train WITHOUT AGF features (for value-betting comparisons).",
     ),
+    exclude_feature: list[str] = typer.Option(None, "--exclude-feature", help="Exclude a supported feature; repeat as needed."),
     objective: str = typer.Option(
         "rank", "--objective",
-        help="'rank' (LambdaRank) or 'finish_time' (regression on actual "
+        help="'rank' (LambdaRank), 'finish_time' (regression on actual "
              "race seconds — sort ascending = winner ranker, joins "
-             "ensemble as 4th vote).",
+             "ensemble as 4th vote) or 'win' (binary: did it win).",
     ),
     model_name: str = typer.Option(
         None, "--model-name",
         help="Filename stem for the saved model.  Default depends on "
              "objective: lightgbm_ranker / lightgbm_finish_time, with "
              "`_value` suffix when --exclude-agf.",
+    ),
+    model_dir: str = typer.Option(
+        None, "--model-dir",
+        help="Candidate directory to write into (default models/candidates).",
     ),
 ) -> None:
     """Fit a LightGBM model on resulted races and save to disk.
@@ -968,23 +951,16 @@ def train(
     settings = get_settings()
     logging.basicConfig(level=settings.log_level)
 
-    from datetime import timedelta
     from ganyan.db import get_session
     from ganyan.predictor.ml import train_ranker
 
-    if from_date is not None:
-        start = datetime.strptime(from_date, "%Y-%m-%d").date()
-    elif all_history:
-        start = None
-    else:
-        start = date.today() - timedelta(days=_DEFAULT_TRAIN_WINDOW_DAYS)
-    end = datetime.strptime(to_date, "%Y-%m-%d").date() if to_date else None
+    start, end = _train_window(from_date, to_date, all_history)
 
-    if objective not in {"rank", "finish_time"}:
+    if objective not in {"rank", "finish_time", "win"}:
         raise typer.BadParameter(
-            f"objective must be 'rank' or 'finish_time' (got {objective!r})",
+            f"objective must be 'rank', 'finish_time' or 'win' (got {objective!r})",
         )
-    excluded = ["agf_edge", "agf_raw"] if exclude_agf else None
+    excluded = list(dict.fromkeys((["agf_edge", "agf_raw"] if exclude_agf else []) + (exclude_feature or [])))
     if model_name is None:
         if objective == "finish_time":
             model_name = (
@@ -1007,6 +983,7 @@ def train(
             num_boost_round=rounds,
             exclude_features=excluded,
             model_name=model_name,
+            model_dir=model_dir,
             objective=objective,
         )
     finally:
@@ -1030,6 +1007,19 @@ def train(
         if i >= 10:
             break
         typer.echo(f"  {feat:<22} {gain:>10.1f}")
+
+
+def _train_window(from_date, to_date, all_history):
+    """Resolve --from/--to/--all-history for the train subcommands."""
+    from datetime import timedelta
+    if from_date is not None:
+        start = date.fromisoformat(from_date)
+    elif all_history:
+        start = None
+    else:
+        start = race_today() - timedelta(days=_DEFAULT_TRAIN_WINDOW_DAYS)
+    end = date.fromisoformat(to_date) if to_date else None
+    return start, end
 
 
 # Race-type buckets a specialist will be trained on.  Prefixes so
@@ -1063,6 +1053,9 @@ def train_linear(
     model_name: str = typer.Option(
         None, "--model-name", help="Filename stem. Default reflects family.",
     ),
+    from_date: str = typer.Option(None, "--from", help="Earliest race date (YYYY-MM-DD); overrides --all-history."),
+    to_date: str = typer.Option(None, "--to", help="Latest race date (YYYY-MM-DD)."),
+    model_dir: str = typer.Option(None, "--model-dir", help="Candidate directory (default models/candidates)."),
 ) -> None:
     """Train a pure-numpy linear ranker (Conditional Logit or Plackett-
     Luce) as an additional ensemble head.  Saves a ``.npz`` + meta.json
@@ -1075,14 +1068,10 @@ def train_linear(
         )
     settings = get_settings()
     logging.basicConfig(level=settings.log_level)
-    from datetime import timedelta
     from ganyan.db import get_session
     from ganyan.predictor.ml.linear_ranker import train_conditional_logit
 
-    start = (
-        None if all_history
-        else date.today() - timedelta(days=_DEFAULT_TRAIN_WINDOW_DAYS)
-    )
+    start, end = _train_window(from_date, to_date, all_history)
     name = model_name or (
         "linear_conditional_logit" if family == "conditional_logit"
         else "linear_plackett_luce"
@@ -1093,6 +1082,8 @@ def train_linear(
         res = train_conditional_logit(
             session,
             from_date=start,
+            to_date=end,
+            model_dir=model_dir,
             epochs=epochs,
             lr=lr,
             plackett_luce=(family == "plackett_luce"),
@@ -1153,7 +1144,7 @@ def train_cv(
 
     start = (
         None if all_history
-        else date.today() - timedelta(days=_DEFAULT_TRAIN_WINDOW_DAYS)
+        else race_today() - timedelta(days=_DEFAULT_TRAIN_WINDOW_DAYS)
     )
     session = get_session()
     try:
@@ -1203,6 +1194,9 @@ def train_specialists(
         200, "--min-races",
         help="Skip buckets with fewer resulted races than this — too noisy.",
     ),
+    from_date: str = typer.Option(None, "--from", help="Earliest race date (YYYY-MM-DD); overrides --all-history."),
+    to_date: str = typer.Option(None, "--to", help="Latest race date (YYYY-MM-DD)."),
+    model_dir: str = typer.Option(None, "--model-dir", help="Candidate directory (default models/candidates)."),
 ) -> None:
     """Train one LightGBM model per race-type bucket.
 
@@ -1215,14 +1209,10 @@ def train_specialists(
     settings = get_settings()
     logging.basicConfig(level=settings.log_level)
 
-    from datetime import timedelta
     from ganyan.db import get_session
     from ganyan.predictor.ml import train_ranker
 
-    start = (
-        None if all_history
-        else date.today() - timedelta(days=_DEFAULT_TRAIN_WINDOW_DAYS)
-    )
+    start, end = _train_window(from_date, to_date, all_history)
 
     results: list[tuple[str, object, str | None]] = []
     for prefix, name in _SPECIALIST_BUCKETS:
@@ -1233,6 +1223,8 @@ def train_specialists(
                 result = train_ranker(
                     session,
                     from_date=start,
+                    to_date=end,
+                    model_dir=model_dir,
                     holdout_fraction=0.2,
                     num_boost_round=rounds,
                     model_name=name,
@@ -1348,7 +1340,7 @@ def value_picks(
     logging.basicConfig(level=settings.log_level)
 
     target = (
-        datetime.strptime(race_date, "%Y-%m-%d").date() if race_date else date.today()
+        datetime.strptime(race_date, "%Y-%m-%d").date() if race_date else race_today()
     )
 
     from ganyan.db import get_session
@@ -1721,7 +1713,7 @@ def uclu_picks_cmd(
 
     target = (
         datetime.strptime(race_date, "%Y-%m-%d").date()
-        if race_date else date.today()
+        if race_date else race_today()
     )
 
     from ganyan.db import get_session
@@ -1876,7 +1868,7 @@ def bet_picks_cmd(
 
     target = (
         datetime.strptime(race_date, "%Y-%m-%d").date()
-        if race_date else date.today()
+        if race_date else race_today()
     )
 
     session = get_session()
@@ -1978,6 +1970,7 @@ def multi_picks_cmd(
         512, "--max-tickets",
         help="Budget cap on total combinations (default 512).",
     ),
+    pool_index: int = typer.Option(None, "--pool-index", help="Explicit pool number matching --start-race."),
     persist: bool = typer.Option(
         False, "--persist",
         help="Write the coupon to multi_race_picks (idempotent on date+track+pool+strategy).",
@@ -1995,7 +1988,7 @@ def multi_picks_cmd(
 
     target = (
         datetime.strptime(race_date, "%Y-%m-%d").date()
-        if race_date else date.today()
+        if race_date else race_today()
     )
 
     from ganyan.db import get_session
@@ -2013,7 +2006,7 @@ def multi_picks_cmd(
         if persist:
             pick = persist_coupon(
                 session, target, track_name, start_race_no, draft,
-                pool_type=pool_type,
+                pool_type=pool_type, pool_index=pool_index,
             )
             session.commit()
             pick_id = pick.id
@@ -2300,7 +2293,6 @@ def morning_cmd(
     settings = get_settings()
     logging.basicConfig(level=settings.log_level)
 
-    from datetime import date as _date
     import asyncio
     from sqlalchemy import func
 
@@ -2311,7 +2303,7 @@ def morning_cmd(
     from ganyan.predictor.ml import MLPredictor
     from ganyan.predictor.picks import generate_picks_for_race, grade_all_pending
 
-    today = _date.today()
+    today = race_today()
 
     async def _scrape() -> int:
         session = get_session()
@@ -2356,6 +2348,8 @@ def morning_cmd(
             .all()
         )
         for r in races:
+            if not is_upcoming(r, margin_minutes=5):
+                continue
             try:
                 predictor.predict_and_save(r.id)
                 picks_created += len(generate_picks_for_race(session, r.id))
@@ -2466,7 +2460,7 @@ def advice_cmd(
     settings = get_settings()
     logging.basicConfig(level=settings.log_level)
 
-    from datetime import date as _date, datetime as _dt
+    from datetime import datetime as _dt
     from pathlib import Path as _Path
     from ganyan.db import get_session
     from ganyan.db.models import Race, Pick, RaceStatus
@@ -2475,7 +2469,7 @@ def advice_cmd(
     from sqlalchemy.orm import joinedload
 
     target_date = (
-        _dt.strptime(date_str, "%Y-%m-%d").date() if date_str else _date.today()
+        _dt.strptime(date_str, "%Y-%m-%d").date() if date_str else race_today()
     )
     # uclu_top1 dropped 2026-05-02: 0/16 hits on gated picks, ROI −100%.
     # uclu_box6 dropped 2026-05-05: 30d ROI −32.5% on n=895; 7d slope −44.4%.
@@ -2513,9 +2507,10 @@ def advice_cmd(
         from ganyan.predictor.bayes.predictor import (
             predict_from_posterior,
         )
-        entries = list(race.entries)
+        entries = [e for e in race.entries if not e.scratched]
         if len(entries) < 3:
             return None
+        from ganyan.time import prediction_cutoff
         race_in = {
             "horse_ids": [e.horse_id for e in entries],
             "horse_names": [
@@ -2528,32 +2523,32 @@ def advice_cmd(
             "track_id": race.track_id,
             "distance_meters": race.distance_meters or 0,
             "agfs": [
-                float(e.agf) if e.agf is not None else 0.0 for e in entries
+                float(e.agf) if e.agf is not None else None for e in entries
             ],
             "kgss": [
-                float(e.kgs) if e.kgs is not None else 0.0 for e in entries
+                float(e.kgs) if e.kgs is not None else None for e in entries
             ],
             "s20s": [
-                float(e.s20) if e.s20 is not None else 0.0 for e in entries
+                float(e.s20) if e.s20 is not None else None for e in entries
             ],
             "last_sixes": [e.last_six or "" for e in entries],
         }
         if bayes_speed_history is not None:
             from ganyan.predictor.speed_figures import horse_speed_score
             race_in["speeds"] = [
-                horse_speed_score(bayes_speed_history, e.horse_id, race.date) or 0.0
+                horse_speed_score(bayes_speed_history, e.horse_id, race.date)
                 for e in entries
             ]
         if bayes_workout_history is not None:
             from ganyan.predictor.workouts import horse_workout_score
             race_in["workouts"] = [
-                horse_workout_score(bayes_workout_history, e.horse_id, race.date) or 0.0
+                horse_workout_score(bayes_workout_history, e.horse_id, race.date, as_of=prediction_cutoff(race))
                 for e in entries
             ]
         if bayes_pace_history is not None:
             from ganyan.predictor.pace import horse_pace_score
             race_in["paces"] = [
-                horse_pace_score(bayes_pace_history, e.horse_id, race.date) or 0.0
+                horse_pace_score(bayes_pace_history, e.horse_id, race.date)
                 for e in entries
             ]
         try:
@@ -2609,16 +2604,16 @@ def advice_cmd(
             from ganyan.predictor.pace import (
                 build_horse_pace_history, compute_pace_baseline,
             )
-            variants = compute_track_variants(session, to_date=target_date)
+            variants = compute_track_variants(session, to_date=target_date - timedelta(days=1))
             bayes_speed_history = build_horse_speed_history(
-                session, variants, to_date=target_date,
+                session, variants, to_date=target_date - timedelta(days=1),
             )
             bayes_workout_history = build_horse_workout_history(
                 session, to_date=target_date,
             )
-            pace_baseline = compute_pace_baseline(session, to_date=target_date)
+            pace_baseline = compute_pace_baseline(session, to_date=target_date - timedelta(days=1))
             bayes_pace_history = build_horse_pace_history(
-                session, pace_baseline, to_date=target_date,
+                session, pace_baseline, to_date=target_date - timedelta(days=1),
             )
         edge_stats = strategy_edge_stats(
             session,
@@ -2634,7 +2629,7 @@ def advice_cmd(
         )
         if not races:
             typer.echo(f"{target_date} için yarış bulunamadı.")
-            if target_date == _date.today():
+            if target_date == race_today():
                 typer.echo("  → uv run ganyan morning "
                            "(scrape + predict + generate picks)")
             else:
@@ -3025,11 +3020,11 @@ def tune_thresholds_cmd(
     settings = get_settings()
     logging.basicConfig(level=settings.log_level)
 
-    from datetime import date as _date, timedelta
+    from datetime import timedelta
     from ganyan.db import get_session
     from ganyan.db.models import Pick, Race
 
-    since = _date.today() - timedelta(days=lookback_days)
+    since = race_today() - timedelta(days=lookback_days)
 
     BETTING_STRATEGIES = ("uclu_top1", "uclu_box6", "sirali_ikili_top1")
     strategies = [strategy] if strategy else list(BETTING_STRATEGIES)
@@ -3109,3 +3104,82 @@ def tune_thresholds_cmd(
             typer.echo("")
     finally:
         session.close()
+
+
+@app.command("model-gate")
+def model_gate_cmd(
+    candidate: str = typer.Option(..., "--candidate"),
+    from_date: str = typer.Option(..., "--from"),
+    to_date: str = typer.Option(..., "--to"),
+    output: str = typer.Option(..., "--output"),
+    retrospective: bool = typer.Option(False, "--retrospective"),
+    live: str = typer.Option(
+        "lightgbm_ranker", "--live",
+        help="Baseline head: approved head name, or a path relative to models/. "
+             "Promotion only accepts gates run against the approved live head.",
+    ),
+):
+    """Evaluate exact candidate/live artifacts on an untouched time window."""
+    from pathlib import Path
+    from ganyan.predictor.ml.gate import evaluate_gate, load_named
+    from ganyan.db import get_session
+    with get_session() as session:
+        result = evaluate_gate(session, load_named(live), load_named(candidate),
+            date.fromisoformat(from_date), date.fromisoformat(to_date),
+            mode="retrospective" if retrospective else "forward")
+    Path(output).parent.mkdir(parents=True, exist_ok=True)
+    Path(output).write_text(json.dumps(result, indent=2) + "\n")
+    typer.echo(f"Top-1 lift: {result['delta_pp']:+.2f}pp; promotion eligible: {result['swap']}")
+
+
+@app.command("ensemble-manifest")
+def ensemble_manifest_cmd(
+    root: str = typer.Option(..., "--root", help="Candidate directory holding trained heads."),
+):
+    """Write active.json for every head in a candidate directory."""
+    from ganyan.predictor.ml.gate import write_manifest
+    typer.echo(str(write_manifest(root)))
+
+
+@app.command("ensemble-gate")
+def ensemble_gate_cmd(
+    candidate_root: str = typer.Option(..., "--candidate-root", help="Directory with active.json (see ensemble-manifest)."),
+    from_date: str = typer.Option(..., "--from"),
+    to_date: str = typer.Option(..., "--to"),
+    output: str = typer.Option(..., "--output"),
+    live_root: str = typer.Option(None, "--live-root", help="Baseline head set (default: approved production heads)."),
+    retrospective: bool = typer.Option(False, "--retrospective"),
+):
+    """Paired forward top-1 test of two whole ensembles (diagnostic; never promotes)."""
+    from pathlib import Path
+    from ganyan.db import get_session
+    from ganyan.predictor.ml.ensemble import load_all_models
+    from ganyan.predictor.ml.gate import evaluate_ensemble_gate
+    with get_session() as session:
+        result = evaluate_ensemble_gate(
+            session, load_all_models(live_root), load_all_models(candidate_root),
+            date.fromisoformat(from_date), date.fromisoformat(to_date),
+            mode="retrospective" if retrospective else "forward")
+    Path(output).parent.mkdir(parents=True, exist_ok=True)
+    Path(output).write_text(json.dumps(result, indent=2) + "\n")
+    typer.echo(
+        f"n={result['n']} live top-1 {result['live_top1_pct']:.2f}% vs candidate "
+        f"{result['candidate_top1_pct']:.2f}% ({result['delta_pp']:+.2f}pp, "
+        f"McNemar p={result['mcnemar_p']:.4g})"
+    )
+
+
+@app.command("model-promote")
+def model_promote_cmd(candidate: str = typer.Option(..., "--candidate"),
+                      gate: str = typer.Option(..., "--gate")):
+    """Atomically activate a candidate only after an exact-artifact forward gate."""
+    from ganyan.predictor.ml.artifacts import model_root, promote
+    from pathlib import Path
+    relative = Path(candidate)
+    if relative.is_absolute() or ".." in relative.parts or relative.parts[0] != "candidates":
+        raise typer.BadParameter("Candidate must be under models/candidates")
+    typer.echo(str(promote(model_root() / relative, gate)))
+
+
+if __name__ == "__main__":
+    app()

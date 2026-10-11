@@ -2,10 +2,11 @@
 import pytest
 from datetime import date
 from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import sessionmaker
 
 from ganyan.db.models import Base, Track, Race, Horse, RaceEntry, RaceStatus
 from ganyan.web.app import create_app
+from tests.helpers import record_fixture_predictions
 
 
 @pytest.fixture
@@ -34,6 +35,7 @@ def app():
             eid="1.30.45", last_six="1 3 2 4 1 2",
         )
         session.add(entry)
+        record_fixture_predictions(session)
         session.commit()
 
     flask_app = create_app(
@@ -42,12 +44,17 @@ def app():
         enable_scheduler=False,
     )
     flask_app.config["TESTING"] = True
-    return flask_app
+    yield flask_app
+    engine.dispose()
 
 
 @pytest.fixture
 def client(app):
-    return app.test_client()
+    client = app.test_client()
+    with client.session_transaction() as sess:
+        sess["csrf_token"] = "fixture-token"
+    client.environ_base["HTTP_X_CSRF_TOKEN"] = "fixture-token"
+    return client
 
 
 def test_index_returns_200(client):
@@ -144,6 +151,7 @@ def app_with_results():
             finish_position=2, predicted_probability=40.0,
         )
         session.add_all([e1, e2])
+        record_fixture_predictions(session)
         session.commit()
 
     flask_app = create_app(
@@ -152,7 +160,8 @@ def app_with_results():
         enable_scheduler=False,
     )
     flask_app.config["TESTING"] = True
-    return flask_app
+    yield flask_app
+    engine.dispose()
 
 
 def test_history_with_evaluations(app_with_results):

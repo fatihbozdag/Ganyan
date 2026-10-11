@@ -39,7 +39,7 @@
     </style>
     {% block head_extra %}{% endblock %}
 </head>
-<body>
+<body hx-headers='{"X-CSRF-Token": "{{ csrf_token() }}"}'>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
         <div class="container">
             <a class="navbar-brand fw-bold" href="/">Ganyan</a>

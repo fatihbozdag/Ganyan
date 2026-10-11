@@ -333,6 +333,7 @@ class TestGetRaceCard:
         assert h1.trainer == "M.TEK"
         # gate_number is the program NO (SiraId), not physical StartId
         assert h1.gate_number == 1
+        assert h1.start_gate == 2
         assert h1.hp == 7.0
         assert h1.kgs == 22
         assert h1.s20 == 17.0
@@ -349,6 +350,7 @@ class TestGetRaceCard:
         # gate_number is SiraId (program NO), so this is 2 regardless of
         # the "5DS" string in the StartId column.
         assert h2.gate_number == 2
+        assert h2.start_gate == 5
         assert h2.eid is None
         assert h2.gny is None
         assert h2.agf is None
@@ -492,6 +494,7 @@ class TestGetRaceResults:
         # gate_number is the program NO embedded in the name cell "(3)",
         # not the physical StartId column (which says 8).
         assert h1.gate_number == 3
+        assert h1.start_gate == 8
         assert h1.gny == 3.4
         assert h1.agf == 17.0
         assert h1.hp == 52.0
@@ -736,3 +739,15 @@ class TestParsePlasePayouts:
         # rare but possible — long-shot plase pays e.g. 1.234,50
         block = "PLASE 3 1.234,50 ₺"
         assert _parse_plase_payouts(block) == {3: 1234.50}
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("57", 57.0), ("57,5", 57.5), ("58.5", 58.5),
+    ("55+0.70Fazla Kilo", 55.7), ("55 +1.30 Fazla Kilo", 56.3),
+    ("52+2,00Fazla Kilo", 54.0), ("", None), (None, None), ("-", None),
+])
+def test_parse_weight_includes_overweight(text, expected):
+    """~40% of runners carry overweight ("Fazla Kilo"); they used to parse
+    as missing because the cell is not a bare number."""
+    from ganyan.scraper.tjk_api import _parse_weight
+    assert _parse_weight(text) == expected

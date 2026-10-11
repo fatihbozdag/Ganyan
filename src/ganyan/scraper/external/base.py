@@ -9,6 +9,7 @@ from datetime import date as date_type, datetime
 from typing import ClassVar
 
 from sqlalchemy.orm import Session
+from ganyan.time import utcnow
 
 
 logger = logging.getLogger(__name__)
@@ -104,7 +105,7 @@ def persist_signals(
             race_entry_id=r.race_entry_id,
             value=r.value,
             payload=r.payload,
-            captured_at=r.captured_at,
+            captured_at=r.captured_at or utcnow(),
         )
         for r in rows
     ]

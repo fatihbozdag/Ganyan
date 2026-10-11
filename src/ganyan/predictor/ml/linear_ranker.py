@@ -24,6 +24,7 @@ seconds even on 13k races.  No scipy / torch dependency.
 from __future__ import annotations
 
 import json
+from ganyan.predictor.ml.artifacts import pipeline_digest
 import logging
 from dataclasses import dataclass
 from datetime import date as date_type
@@ -36,7 +37,7 @@ from ganyan.predictor.ml.features import (
     TrainingFrame,
     build_training_frame,
 )
-from ganyan.predictor.ml.trainer import DEFAULT_MODEL_DIR, _temporal_split
+from ganyan.predictor.ml.trainer import _temporal_split
 
 
 logger = logging.getLogger(__name__)
@@ -213,17 +214,8 @@ def train_conditional_logit(
     X_test_raw = test.features.to_numpy(dtype=float)
     X_test_std = np.where(np.isnan(X_test_raw), mean, X_test_raw)
     X_test_std = (X_test_std - mean) / std
-    test_frame = TrainingFrame(
-        features=pd.DataFrame(X_test_std, columns=feature_cols),
-        target=test.target,
-        ev_target=test.ev_target,
-        finish_time_target=test.finish_time_target,
-        groups=test.groups,
-        race_dates=test.race_dates,
-    )
 
     train_blocks = _iter_race_blocks(train_frame)
-    test_blocks = _iter_race_blocks(test_frame)
 
     beta = np.zeros(len(feature_cols))
     m_state = np.zeros_like(beta)
@@ -249,36 +241,19 @@ def train_conditional_logit(
             if stale >= patience:
                 break
 
-    # Evaluate top-1 / top-3 on holdout.  Shuffle within each race
-    # block before evaluation: the training frame is sorted by
-    # finish_position so the winner is always at index 0 — without
-    # shuffling, a model that learned nothing (β=0, all scores tied)
-    # would falsely score 100% top-1 because argsort breaks ties by
-    # insertion order.  Shuffling decorrelates rank-by-position from
-    # rank-by-prediction so the metric reflects real signal.
-    rng = np.random.default_rng(seed=42)
-    top1 = top3 = 0
-    n_test = 0
-    for Xr, yr in test_blocks:
-        n_horses = len(yr)
-        if n_horses < 2:
-            continue
-        perm = rng.permutation(n_horses)
-        Xr_shuf = Xr[perm]
-        yr_shuf = yr[perm]
-        scores = Xr_shuf @ best_beta
-        # AGF-tied breaking by stable argsort on (-score, original_idx)
-        # — matches predictor.py's tiebreaker convention.
-        order = np.lexsort((np.arange(n_horses), -scores))
-        widx = int(np.argmax(yr_shuf))
-        rank = int(np.where(order == widx)[0][0]) + 1
-        if rank == 1:
-            top1 += 1
-        if rank <= 3:
-            top3 += 1
-        n_test += 1
+    # Expected tie performance is deterministic and independent of row order.
+    from ganyan.predictor.ml.trainer import _ranking_metrics
+    evaluation = pd.DataFrame({"_race": test.groups.to_numpy(),
+                               "_target": test.target.to_numpy(),
+                               "_pred": X_test_std @ best_beta})
+    metrics = _ranking_metrics(evaluation, "_pred")
+    n_test = metrics["n_races"]
+    metrics["final_nll"] = best_loss
+    if Path(model_name).name != model_name:
+        raise ValueError("Model name must be a basename")
 
-    model_dir = model_dir or DEFAULT_MODEL_DIR
+    from ganyan.predictor.ml.artifacts import candidate_directory
+    model_dir = candidate_directory(model_dir)
     model_dir.mkdir(parents=True, exist_ok=True)
     meta_path = model_dir / f"{model_name}.meta.json"
     npz_path = model_dir / f"{model_name}.npz"
@@ -287,12 +262,6 @@ def train_conditional_logit(
         npz_path, beta=best_beta, mean=mean, std=std,
         feature_columns=np.array(feature_cols),
     )
-    metrics = {
-        "top1_accuracy": (top1 / n_test * 100) if n_test else 0.0,
-        "top3_accuracy": (top3 / n_test * 100) if n_test else 0.0,
-        "n_races": n_test,
-        "final_nll": best_loss,
-    }
     from ganyan.predictor.ml.trainer import _git_sha
     from datetime import datetime, timezone
 
@@ -306,6 +275,10 @@ def train_conditional_logit(
         "npz_path": npz_path.name,
         "standardisation": {"mean": mean.tolist(), "std": std.tolist()},
         "race_type_prefix": race_type_prefix,
+        "feature_schema": 2,
+        "pipeline_sha256": pipeline_digest(),
+        "data_from_date": str(frame.race_dates.min()),
+        "data_to_date": str(frame.race_dates.max()),
         "trained_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "git_sha": _git_sha(),
     }

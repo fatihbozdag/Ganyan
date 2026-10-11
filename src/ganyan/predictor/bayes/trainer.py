@@ -20,6 +20,7 @@ def save_posterior(idata: az.InferenceData, frame: TrainingFrame, base: Path) ->
     nc_path = base.with_suffix(".nc")
     idata.to_netcdf(str(nc_path))
     idx = {
+        "feature_schema": frame.feature_schema,
         "horse_index": {str(k): v for k, v in frame.horse_index.items()},
         "jockey_index": frame.jockey_index,
         "sire_index": frame.sire_index,
@@ -33,7 +34,7 @@ def save_posterior(idata: az.InferenceData, frame: TrainingFrame, base: Path) ->
 def load_posterior(base: Path) -> Tuple[az.InferenceData, TrainingFrame]:
     idata = az.from_netcdf(str(base.with_suffix(".nc")))
     raw = json.loads(base.with_suffix(".indices.json").read_text())
-    frame = TrainingFrame()
+    frame = TrainingFrame(feature_schema=raw.get("feature_schema", 1))
     frame.horse_index = {int(k): v for k, v in raw["horse_index"].items()}
     frame.jockey_index = raw["jockey_index"]
     frame.sire_index = raw["sire_index"]

@@ -1,0 +1,126 @@
+{
+  "train_to": "2024-09-30",
+  "data_from": "2023-01-01",
+  "score_window": [
+    "2024-10-01",
+    "2025-09-30"
+  ],
+  "n": 6478,
+  "excluded": 109,
+  "coverage_days": 365,
+  "n_with_agf": 6231,
+  "agf_favourite_top1_pct": 34.31230942063874,
+  "baseline_arm": "ranker_all",
+  "blend_weights": {
+    "blend_ranker_all": {
+      "agf": 1.0224423800930689,
+      "model": 0.005779370191245846,
+      "fit_window": [
+        "2024-04-02",
+        "2024-09-30"
+      ],
+      "fit_races": 3353
+    },
+    "blend_ranker_win": {
+      "agf": 0.9802502011900569,
+      "model": 0.049895301580089174,
+      "fit_window": [
+        "2024-04-02",
+        "2024-09-30"
+      ],
+      "fit_races": 3353
+    }
+  },
+  "arms": {
+    "ranker_all": {
+      "top1_pct": 33.57517752392714,
+      "top3_pct": 68.47792528558197,
+      "delta_vs_baseline_pp": 0.0,
+      "mcnemar_p_vs_baseline": 1.0,
+      "top1_pct_with_agf": 34.03948001925855,
+      "delta_vs_agf_pp": -0.2728294013801958,
+      "mcnemar_p_vs_agf": 0.060370037339928545
+    },
+    "ranker_90d": {
+      "top1_pct": 31.969743748070393,
+      "top3_pct": 66.1623958011732,
+      "delta_vs_baseline_pp": -1.6054337758567458,
+      "mcnemar_p_vs_baseline": 0.00025211236303125466,
+      "top1_pct_with_agf": 32.78767453057294,
+      "delta_vs_agf_pp": -1.5246348900658,
+      "mcnemar_p_vs_agf": 0.00039246079781951604
+    },
+    "ranker_win": {
+      "top1_pct": 33.497993207780176,
+      "top3_pct": 67.8604507564063,
+      "delta_vs_baseline_pp": -0.07718431614695893,
+      "mcnemar_p_vs_baseline": 0.8606450414904071,
+      "top1_pct_with_agf": 34.32835820895522,
+      "delta_vs_agf_pp": 0.016048788316482106,
+      "mcnemar_p_vs_agf": 1.0
+    },
+    "ranker_hp_leaves15": {
+      "top1_pct": 33.76041988267984,
+      "top3_pct": 68.63229391787588,
+      "delta_vs_baseline_pp": 0.18524235875270145,
+      "mcnemar_p_vs_baseline": 0.16864291143970336,
+      "top1_pct_with_agf": 34.23206547905633,
+      "delta_vs_agf_pp": -0.08024394158241052,
+      "mcnemar_p_vs_agf": 0.332305908203125
+    },
+    "ranker_hp_leaves63": {
+      "top1_pct": 33.42080889163322,
+      "top3_pct": 68.09200370484717,
+      "delta_vs_baseline_pp": -0.15436863229391787,
+      "mcnemar_p_vs_baseline": 0.42279113414588043,
+      "top1_pct_with_agf": 33.9913336543091,
+      "delta_vs_agf_pp": -0.3209757663296421,
+      "mcnemar_p_vs_agf": 0.03299261842647618
+    },
+    "ranker_hp_lr02": {
+      "top1_pct": 33.52886693423896,
+      "top3_pct": 68.30811979005865,
+      "delta_vs_baseline_pp": -0.04631058968817536,
+      "mcnemar_p_vs_baseline": 0.8264047244491933,
+      "top1_pct_with_agf": 34.11972396084096,
+      "delta_vs_agf_pp": -0.19258545979778527,
+      "mcnemar_p_vs_agf": 0.12634707581392135
+    },
+    "ranker_hp_ff07": {
+      "top1_pct": 33.837604198826796,
+      "top3_pct": 68.95646804569311,
+      "delta_vs_baseline_pp": 0.2624266748996604,
+      "mcnemar_p_vs_baseline": 0.06394991646706695,
+      "top1_pct_with_agf": 34.31230942063874,
+      "delta_vs_agf_pp": 0.0,
+      "mcnemar_p_vs_agf": 1.0
+    },
+    "blend_ranker_all": {
+      "top1_pct": 33.822167335597406,
+      "top3_pct": 68.67860450756406,
+      "delta_vs_baseline_pp": 0.2469898116702686,
+      "mcnemar_p_vs_baseline": 0.07223792719176259,
+      "top1_pct_with_agf": 34.29626063232226,
+      "delta_vs_agf_pp": -0.016048788316482106,
+      "mcnemar_p_vs_agf": 1.0
+    },
+    "blend_ranker_win": {
+      "top1_pct": 33.497993207780176,
+      "top3_pct": 67.89132448286509,
+      "delta_vs_baseline_pp": -0.07718431614695893,
+      "mcnemar_p_vs_baseline": 0.7687855622330488,
+      "top1_pct_with_agf": 34.32835820895522,
+      "delta_vs_agf_pp": 0.016048788316482106,
+      "mcnemar_p_vs_agf": 1.0
+    },
+    "ensemble_all_h05": {
+      "top1_pct": 33.606051250385924,
+      "top3_pct": 64.52608829885767,
+      "delta_vs_baseline_pp": 0.030873726458783574,
+      "mcnemar_p_vs_baseline": 0.9622402427430371,
+      "top1_pct_with_agf": 33.79874819451131,
+      "delta_vs_agf_pp": -0.5135612261274274,
+      "mcnemar_p_vs_agf": 0.08005109637327291
+    }
+  }
+}

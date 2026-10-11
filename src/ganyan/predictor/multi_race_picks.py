@@ -33,6 +33,7 @@ from ganyan.db.models import (
     MultiRacePick, MultiRacePool, Race, Track,
 )
 from ganyan.predictor.ml.ensemble import EnsemblePredictor
+from ganyan.time import is_upcoming, utcnow
 
 
 logger = logging.getLogger(__name__)
@@ -91,6 +92,8 @@ def generate_coupon(
     ticket-count product fits under ``max_tickets``. Raises if the
     target races don't all exist or the predictor returns nothing.
     """
+    if max_tickets < 1:
+        raise ValueError("max_tickets must be positive")
     leg_count = {"5li": 5, "6li": 6, "7li": 7}[pool_type]
     end_race_no = start_race_no + leg_count - 1
 
@@ -179,13 +182,13 @@ def persist_coupon(
     draft: CouponDraft,
     *,
     pool_type: str = "6li",
-    pool_index: int = 1,
+    pool_index: int | None = None,
     strategy: str = "asymmetric_v1",
     ticket_unit_tl: float = DEFAULT_TICKET_UNIT_TL,
 ) -> MultiRacePick:
     """Write a CouponDraft to ``multi_race_picks``. Idempotent on
     (date, track, pool_type, pool_index, strategy) — re-running with
-    the same key updates the existing row in place."""
+    the same content returns the immutable existing row."""
     track = session.query(Track).filter(Track.name == track_name).first()
     if track is None:
         raise ValueError(f"unknown track {track_name!r}")
@@ -194,20 +197,45 @@ def persist_coupon(
     end_race_no = start_race_no + leg_count - 1
     stake_tl = draft.total_tickets * ticket_unit_tl
 
-    existing = (
-        session.query(MultiRacePick)
-        .filter(
-            MultiRacePick.date == target_date,
-            MultiRacePick.track_id == track.id,
-            MultiRacePick.pool_type == pool_type,
-            MultiRacePick.pool_index == pool_index,
-            MultiRacePick.strategy == strategy,
-        )
-        .first()
-    )
+    if ticket_unit_tl <= 0 or draft.total_tickets != _product(draft.kept_horses_per_leg):
+        raise ValueError("Invalid coupon stake or ticket count")
+    if leg_count != {"5li": 5, "6li": 6, "7li": 7}.get(pool_type):
+        raise ValueError("Pool leg count mismatch")
+    pools = session.query(MultiRacePool).filter(
+        MultiRacePool.date == target_date, MultiRacePool.track_id == track.id,
+        MultiRacePool.pool_type == pool_type).all()
+    if pool_index is None:
+        matches = [p for p in pools if (p.start_race_no, p.end_race_no) == (start_race_no, end_race_no)]
+        if len(matches) != 1:
+            raise ValueError("Pool window is ambiguous; explicitly provide pool_index and start race")
+        pool_index = matches[0].pool_index
+    if pool_index < 1:
+        raise ValueError("pool_index must be positive")
+    pool = next((p for p in pools if p.pool_index == pool_index), None)
+    if pool and pool.start_race_no is not None and (pool.start_race_no, pool.end_race_no) != (start_race_no, end_race_no):
+        raise ValueError("Pool index belongs to a different race window")
+    existing = session.query(MultiRacePick).filter_by(
+        date=target_date, track_id=track.id, pool_type=pool_type,
+        pool_index=pool_index, strategy=strategy).first()
+    if existing is not None:
+        if (existing.start_race_no, existing.end_race_no, existing.kept_horses_per_leg,
+            float(existing.ticket_unit_tl)) != (start_race_no, end_race_no, draft.kept_horses_per_leg, ticket_unit_tl):
+            raise ValueError("Recorded coupons are immutable; use a new strategy revision before post time")
+        return existing
+    races = session.query(Race).filter(Race.date == target_date, Race.track_id == track.id,
+                Race.race_number.between(start_race_no, end_race_no)).all()
+    if len(races) != leg_count or not all(is_upcoming(r) for r in races):
+        raise ValueError("Coupons may only be recorded before every leg's known post time")
+    if pool is None:
+        pool = MultiRacePool(date=target_date, track_id=track.id, pool_type=pool_type,
+                            pool_index=pool_index, start_race_no=start_race_no, end_race_no=end_race_no)
+        session.add(pool)
+    else:
+        pool.start_race_no, pool.end_race_no = start_race_no, end_race_no
     if existing is None:
         existing = MultiRacePick(
             date=target_date,
+            generated_at=utcnow(),
             track_id=track.id,
             pool_type=pool_type,
             pool_index=pool_index,
@@ -221,19 +249,6 @@ def persist_coupon(
             conviction_per_leg=draft.conviction_per_leg,
         )
         session.add(existing)
-    else:
-        existing.start_race_no = start_race_no
-        existing.end_race_no = end_race_no
-        existing.kept_horses_per_leg = draft.kept_horses_per_leg
-        existing.total_tickets = draft.total_tickets
-        existing.ticket_unit_tl = ticket_unit_tl
-        existing.stake_tl = stake_tl
-        existing.conviction_per_leg = draft.conviction_per_leg
-        existing.graded = False
-        existing.hit = None
-        existing.payout_tl = None
-        existing.net_tl = None
-        existing.graded_at = None
     session.flush()
     return existing
 
@@ -272,9 +287,14 @@ def grade_pick(
         )
         .first()
     )
-    if pool is None or pool.winning_combo is None:
+    if pool is None or pool.winning_combo is None or pool.payout_tl is None:
         return None
 
+    if (pool.start_race_no, pool.end_race_no) != (pick.start_race_no, pick.end_race_no):
+        logger.warning("Unverified pool window for pick %s", pick.id)
+        return None
+    if pick.graded and pick.payout_tl is not None:
+        return pick.hit
     leg_winners = _parse_winning_combo(pool.winning_combo)
     if len(leg_winners) != len(pick.kept_horses_per_leg):
         logger.warning(

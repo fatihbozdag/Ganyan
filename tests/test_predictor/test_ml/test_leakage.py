@@ -20,7 +20,9 @@ from __future__ import annotations
 import pytest
 from sqlalchemy.orm import Session
 
-from ganyan.db import get_session
+from sqlalchemy import create_engine
+from ganyan.db.models import Base
+from tests.test_predictor.test_ml.test_ml_pipeline import _seed_many
 from ganyan.db.models import Race, RaceEntry, RaceStatus
 
 
@@ -53,13 +55,14 @@ def test_feature_columns_exclude_post_race_fields() -> None:
     )
 
 
-@pytest.fixture(scope="module")
-def db_session() -> Session:
-    """A module-scoped DB session.  Rolls back at teardown."""
-    s = get_session()
-    yield s
-    s.rollback()
-    s.close()
+@pytest.fixture
+def db_session():
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    with Session(engine) as session:
+        _seed_many(session, n_races=5)
+        yield session
+    engine.dispose()
 
 
 @pytest.fixture
@@ -111,19 +114,17 @@ def test_predict_invariant_to_target_race_finish_data(
     """
     try:
         from ganyan.predictor.ml import MLPredictor
-        from ganyan.predictor.ml.predictor import load_latest_model
+        from ganyan.predictor.ml.predictor import load_latest_model  # noqa: F401 (availability probe)
     except ImportError:
         pytest.skip("ML predictor not available — skipping leakage check.")
 
-    try:
-        load_latest_model()
-    except FileNotFoundError:
-        pytest.skip(
-            "No trained LightGBM model on disk — skipping leakage check. "
-            "Run `ganyan train` to enable.",
-        )
-
-    predictor = MLPredictor(db_session)
+    from types import SimpleNamespace
+    import numpy as np
+    from ganyan.predictor.ml.predictor import LoadedModel
+    from ganyan.predictor.ml.features import FEATURE_COLUMNS
+    # A deterministic feature-sensitive scorer, independent of production files.
+    booster = SimpleNamespace(predict=lambda x: np.nan_to_num(x.to_numpy()).sum(axis=1))
+    predictor = MLPredictor(db_session, LoadedModel(booster, FEATURE_COLUMNS, "test"))
 
     # Baseline — with finish data in place.
     preds_a = predictor.predict(resulted_race_id)
@@ -244,3 +245,43 @@ def test_build_race_frame_excludes_target_finish(db_session: Session) -> None:
         f"build_race_frame output contains post-race columns: "
         f"{sorted(leaked_cols)}.  These should never appear in inference data."
     )
+
+
+def test_race_features_invariant_to_future_races() -> None:
+    """Features for race R must not change when later races are removed.
+
+    The finish-data test above only covers the target race's own row.
+    Rolling rates (jockey/trainer/sire/dam, form, speed figures, AGF
+    reliability) read *other* races; any missing ``Race.date < R.date``
+    filter would let results from after R leak into R's features.
+    """
+    import pandas as pd
+    from ganyan.predictor.ml.features import build_race_frame
+
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    with Session(engine) as session:
+        _seed_many(session, n_races=20)
+        dates = sorted({d for (d,) in session.query(Race.date).distinct()})
+        cutoff_date = dates[len(dates) // 2]
+        target = (
+            session.query(Race).filter(Race.date == cutoff_date)
+            .order_by(Race.race_number).first()
+        )
+        before = build_race_frame(session, target.id).sort_values("horse_id")
+        assert len(before) > 0
+
+        future = session.query(Race).filter(Race.date > cutoff_date).all()
+        assert future, "fixture must contain races after the target date"
+        for race in future:
+            for entry in list(race.entries):
+                session.delete(entry)
+            session.delete(race)
+        session.flush()
+        session.expire_all()
+
+        after = build_race_frame(session, target.id).sort_values("horse_id")
+        pd.testing.assert_frame_equal(
+            before.reset_index(drop=True), after.reset_index(drop=True),
+        )
+    engine.dispose()
